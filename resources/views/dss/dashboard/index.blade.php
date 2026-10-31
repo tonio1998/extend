@@ -20,21 +20,42 @@
 @endphp
 
 <div class="container-fluid p-0">
-    @if($canSwitchView)
-        <div class="pm-card px-3.5 py-2.5 mb-3.5 d-flex align-items-center justify-content-between flex-wrap gap-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-primary text-white">Perspective</span>
-                <span class="fw-bold text-dark small">Role Dashboard View</span>
+    {{-- Top Control Bar: Monitoring Scope (Whole / Per Year) & Role Dashboard View --}}
+    <div class="pm-card px-3.5 py-2.5 mb-3.5 d-flex align-items-center justify-content-between flex-wrap gap-3">
+        <div class="d-flex align-items-center flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-1.5">
+                <span class="badge bg-dark text-white rounded-pill px-2.5 py-1 extra-small">
+                    <i class="mdi mdi-calendar-range me-1"></i>Monitoring Scope
+                </span>
+                <span class="fw-bold text-dark small">{{ $periodLabel ?? 'Whole / All-Time' }}</span>
             </div>
             <div class="pm-segment-group">
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'director']) }}" class="pm-segment-pill {{ $activeRoleView === 'director' ? 'active' : '' }}">Extension Director</a>
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'dean']) }}" class="pm-segment-pill {{ $activeRoleView === 'dean' ? 'active' : '' }}">Dean</a>
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'college_head']) }}" class="pm-segment-pill {{ $activeRoleView === 'college_head' ? 'active' : '' }}">College Head</a>
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'project_leader']) }}" class="pm-segment-pill {{ $activeRoleView === 'project_leader' ? 'active' : '' }}">Project Leader</a>
-                <a href="{{ request()->fullUrlWithQuery(['view' => 'extension_office']) }}" class="pm-segment-pill {{ $activeRoleView === 'extension_office' ? 'active' : '' }}">Extension Office</a>
+                <a href="{{ request()->fullUrlWithQuery(['period' => 'all', 'fy' => null]) }}"
+                   class="pm-segment-pill {{ ($selectedPeriod ?? 'all') === 'all' ? 'active' : '' }}">
+                    <i class="mdi mdi-infinity me-1"></i>Whole (All-Time)
+                </a>
+                @foreach(($availableYears ?? [date('Y')]) as $yr)
+                    <a href="{{ request()->fullUrlWithQuery(['period' => $yr, 'fy' => $yr]) }}"
+                       class="pm-segment-pill {{ (string) ($selectedPeriod ?? '') === (string) $yr ? 'active' : '' }}">
+                        FY {{ $yr }}
+                    </a>
+                @endforeach
             </div>
         </div>
-    @endif
+
+        @if($canSwitchView)
+            <div class="d-flex align-items-center flex-wrap gap-2">
+                <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 extra-small">Perspective</span>
+                <div class="pm-segment-group">
+                    <a href="{{ request()->fullUrlWithQuery(['view' => 'director']) }}" class="pm-segment-pill {{ $activeRoleView === 'director' ? 'active' : '' }}">Extension Director</a>
+                    <a href="{{ request()->fullUrlWithQuery(['view' => 'dean']) }}" class="pm-segment-pill {{ $activeRoleView === 'dean' ? 'active' : '' }}">Dean</a>
+                    <a href="{{ request()->fullUrlWithQuery(['view' => 'college_head']) }}" class="pm-segment-pill {{ $activeRoleView === 'college_head' ? 'active' : '' }}">College Head</a>
+                    <a href="{{ request()->fullUrlWithQuery(['view' => 'project_leader']) }}" class="pm-segment-pill {{ $activeRoleView === 'project_leader' ? 'active' : '' }}">Project Leader</a>
+                    <a href="{{ request()->fullUrlWithQuery(['view' => 'extension_office']) }}" class="pm-segment-pill {{ $activeRoleView === 'extension_office' ? 'active' : '' }}">Extension Office</a>
+                </div>
+            </div>
+        @endif
+    </div>
 
     {{-- ========================================================================
          UI TEMPLATE 1: FLUP — CLEAN SAAS MINIMALIST
@@ -109,6 +130,8 @@
                 </a>
             </div>
         </div>
+
+        @include('dss.dashboard.partials.sdg_monitoring')
 
         <!-- ROW 2: Full-Width Grouped Bar Chart ("Product sales" -> "Extension budget & execution") -->
         <div class="flup-card p-4 mb-4">
@@ -368,6 +391,8 @@
             </div>
         </div>
 
+        @include('dss.dashboard.partials.sdg_monitoring')
+
         <!-- ROW 2: Left Performance List & Right 2x3 Metric Cards -->
         <div class="row g-4 mb-4">
             <div class="col-xl-6">
@@ -578,6 +603,8 @@
                 </div>
             </div>
         </div>
+
+        @include('dss.dashboard.partials.sdg_monitoring')
 
         <!-- ROW 2: Left Mini Card + Center Workflow Analytics Strip + Right DTS Server Status Card -->
         <div class="row g-3 mb-3.5">

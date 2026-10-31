@@ -60,6 +60,8 @@ class ExtensionProposalController extends Controller
             ->doesntHave('extensionProposal');
         $approvedPlansReadyCount = (clone $approvedPlansQuery)->count();
         $approvedPlansList = $approvedPlansQuery->latest()->get();
+        $allSdgs = SustainableDevelopmentGoal::ordered()->get();
+        $selectedSdg = $request->query('sdg', 'all');
 
         $isMyProposals = false;
 
@@ -71,7 +73,9 @@ class ExtensionProposalController extends Controller
             'inRouteCount',
             'approvedCount',
             'approvedPlansReadyCount',
-            'approvedPlansList'
+            'approvedPlansList',
+            'allSdgs',
+            'selectedSdg'
         ));
     }
 
@@ -102,6 +106,8 @@ class ExtensionProposalController extends Controller
             ->latest()
             ->get();
         $approvedPlansReadyCount = $approvedPlansList->count();
+        $allSdgs = SustainableDevelopmentGoal::ordered()->get();
+        $selectedSdg = $request->query('sdg', 'all');
 
         $isMyProposals = true;
 
@@ -113,7 +119,9 @@ class ExtensionProposalController extends Controller
             'inRouteCount',
             'approvedCount',
             'approvedPlansReadyCount',
-            'approvedPlansList'
+            'approvedPlansList',
+            'allSdgs',
+            'selectedSdg'
         ));
     }
 
@@ -128,6 +136,7 @@ class ExtensionProposalController extends Controller
             'academicProgram',
             'campus',
             'projectLeaderUser',
+            'sdgs',
         ])->where('tenant_id', $tenantId);
 
         if ($request->boolean('my_proposals') && $user) {
@@ -137,6 +146,31 @@ class ExtensionProposalController extends Controller
         if ($request->filled('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
+
+        if ($request->filled('sdg') && $request->sdg !== 'all') {
+            $sdgNum = (int) $request->sdg;
+            if ($sdgNum >= 1 && $sdgNum <= 17) {
+                $query->where(function ($q) use ($sdgNum) {
+                    $q->whereHas('sdgs', function ($sq) use ($sdgNum) {
+                        $sq->where('goal_number', $sdgNum);
+                    })
+                        ->orWhereJsonContains('sdg_alignments->selected', $sdgNum)
+                        ->orWhereJsonContains('sdg_alignments->selected', (string) $sdgNum)
+                        ->orWhereJsonContains('sdg_alignments->indirect', $sdgNum)
+                        ->orWhereJsonContains('sdg_alignments->indirect', (string) $sdgNum)
+                        ->orWhereJsonContains('sdg_alignments', $sdgNum)
+                        ->orWhereJsonContains('sdg_alignments', (string) $sdgNum);
+                });
+            }
+        }
+
+        $sdgColors = [
+            1 => '#E5243B', 2 => '#DDA63A', 3 => '#4C9F38', 4 => '#C5192D',
+            5 => '#FF3A21', 6 => '#26BDE2', 7 => '#FCC30B', 8 => '#A21942',
+            9 => '#FD6925', 10 => '#DD1367', 11 => '#FD9D24', 12 => '#BF8B2E',
+            13 => '#3F7E44', 14 => '#0A97D9', 15 => '#56C02B', 16 => '#00689D',
+            17 => '#19486A',
+        ];
 
         return DataTables::of($query)
             ->addColumn('code_link', function (ExtensionProposal $proposal) {
@@ -168,9 +202,27 @@ class ExtensionProposalController extends Controller
                     .'<i class="mdi mdi-clipboard-check-outline me-1"></i>'.$plan->plan_code
                     .'</a>';
             })
-            ->addColumn('title_display', function (ExtensionProposal $proposal) {
+            ->addColumn('title_display', function (ExtensionProposal $proposal) use ($sdgColors) {
                 $url = route('dss.rie.proposals.show', $proposal->getRouteKey());
                 $college = $proposal->academicProgram?->name ?? 'General Extension';
+                $resolvedSdgs = $proposal->resolved_sdg_alignments;
+                $directNums = array_map('intval', (array) ($resolvedSdgs['selected'] ?? []));
+                $indirectNums = array_map('intval', (array) ($resolvedSdgs['indirect'] ?? []));
+                $allNums = array_values(array_unique(array_merge($directNums, $indirectNums)));
+                sort($allNums);
+
+                $sdgHtml = '';
+                if (! empty($allNums)) {
+                    $sdgHtml = '<div class="d-flex flex-wrap align-items-center gap-1 mt-1">';
+                    foreach ($allNums as $num) {
+                        $color = $sdgColors[$num] ?? '#19486A';
+                        $isIndirect = in_array($num, $indirectNums, true) && ! in_array($num, $directNums, true);
+                        $borderStyle = $isIndirect ? 'border: 1px dashed #ffffff; opacity: 0.85;' : '';
+                        $label = 'SDG '.$num.($isIndirect ? ' (Ind)' : '');
+                        $sdgHtml .= '<span class="badge text-white font-mono" style="background-color: '.$color.'; font-size: 9.5px; padding: 2px 6px; '.$borderStyle.'">'.$label.'</span>';
+                    }
+                    $sdgHtml .= '</div>';
+                }
 
                 return '<div>'
                     .'<a href="'.$url.'" class="fw-bold text-dark text-decoration-none hover-text-primary d-block text-truncate" style="max-width: 320px;" title="'.e($proposal->title).'">'
@@ -179,6 +231,7 @@ class ExtensionProposalController extends Controller
                     .'<span class="extra-small text-muted d-block text-truncate" style="max-width: 320px;">'
                     .e($college)
                     .'</span>'
+                    .$sdgHtml
                     .'</div>';
             })
             ->addColumn('leader_display', function (ExtensionProposal $proposal) {
@@ -413,12 +466,12 @@ class ExtensionProposalController extends Controller
             return str_contains($role, 'asst') || str_contains($role, 'assistant');
         });
 
-        $projectLeaderName = $leaderProp['name'] ?? ($request->input('project_leader_name') ?: $plan->prepared_by_name);
+        $projectLeaderName = $leaderProp['name'] ?? ($request->input('project_leader_name') ?: ($plan->prepared_by_name ?: ($user?->name ?: 'Project Leader')));
         $projectLeaderTitle = $leaderProp['role'] ?? ($request->input('project_leader_title') ?: 'Project Leader');
         $projectLeaderEmployeeId = $leaderProp['employee_id'] ?? ($user?->employee_id ?? $plan->prepared_by_employee_id);
 
         $asstProjectLeaderName = ! empty($asstLeaderProp['name']) ? $asstLeaderProp['name'] : null;
-        $asstProjectLeaderTitle = $asstProjectLeaderName ? ($asstLeaderProp['role'] ?? 'Assistant Project Leader') : null;
+        $asstProjectLeaderTitle = ! empty($asstLeaderProp['role']) ? $asstLeaderProp['role'] : 'Assistant Project Leader';
 
         $institution = TenantContext::getInstitution();
         $defaultAgency = $plan->campus?->campus_name ?: ($institution?->school_name ?: 'Higher Education Institution');
@@ -493,16 +546,16 @@ class ExtensionProposalController extends Controller
             'budget_partner_share' => $validated['budget_partner_share'] ?? null,
             'fund_source_internal' => $validated['fund_source_internal'] ?? $budgetInstitutionShare,
             'fund_source_external' => $validated['fund_source_external'] ?? ($validated['budget_partner_share'] ?? null),
-            'budget_total_display' => $validated['budget_total_display'] ?? null,
-            'budget_cash_amount' => $validated['budget_cash_amount'] ?? ($plan->proposed_budget ?: 0),
+            'budget_total_display' => ! empty($validated['budget_total_display']) ? $validated['budget_total_display'] : 'Grand Total: No Cash Requirement',
+            'budget_cash_amount' => isset($validated['budget_cash_amount']) && $validated['budget_cash_amount'] !== '' ? (float) $validated['budget_cash_amount'] : (float) ($plan->proposed_budget ?: 0),
 
             'project_leader_user_id' => $user?->id,
             'project_leader_employee_id' => $projectLeaderEmployeeId,
-            'project_leader_name' => $projectLeaderName,
-            'project_leader_title' => $projectLeaderTitle,
+            'project_leader_name' => $projectLeaderName ?: 'Project Leader',
+            'project_leader_title' => $projectLeaderTitle ?: 'Project Leader',
             'project_leader_gender' => $validated['project_leader_gender'] ?? ($proponentEmp?->gender ?: null),
             'asst_project_leader_name' => $asstProjectLeaderName,
-            'asst_project_leader_title' => $asstProjectLeaderTitle,
+            'asst_project_leader_title' => $asstProjectLeaderTitle ?: 'Assistant Project Leader',
             'proponents' => $cleanProponents,
 
             'introduction' => $validated['introduction'] ?? null,
@@ -530,13 +583,7 @@ class ExtensionProposalController extends Controller
         ]);
 
         if (! empty($validated['sdg_alignments'])) {
-            $selectedGoals = $validated['sdg_alignments']['selected'] ?? $validated['sdg_alignments'];
-            if (is_array($selectedGoals)) {
-                $sdgIds = SustainableDevelopmentGoal::whereIn('goal_number', array_map('intval', $selectedGoals))
-                    ->pluck('id')
-                    ->toArray();
-                $proposal->sdgs()->sync($sdgIds);
-            }
+            self::syncProposalSdgs($proposal, $validated['sdg_alignments']);
         }
 
         DtsRoutingService::registerExtensionProposal($proposal, $user?->id);
@@ -546,6 +593,47 @@ class ExtensionProposalController extends Controller
 
         return redirect()->route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'technical'])
             ->with('success', 'Part I saved as Draft. You may now craft Part II (Technical Description) and configure signatories before submitting for review.');
+    }
+
+    public static function syncProposalSdgs(ExtensionProposal $proposal, mixed $sdgAlignments): void
+    {
+        if (! is_array($sdgAlignments)) {
+            return;
+        }
+
+        $selectedGoals = [];
+        $indirectGoals = [];
+
+        if (isset($sdgAlignments['selected']) || isset($sdgAlignments['indirect'])) {
+            $selectedGoals = array_map('intval', (array) ($sdgAlignments['selected'] ?? []));
+            $indirectGoals = array_map('intval', (array) ($sdgAlignments['indirect'] ?? []));
+        } else {
+            $selectedGoals = array_map('intval', array_filter($sdgAlignments, fn ($v) => is_numeric($v) || is_string($v)));
+        }
+
+        $allGoalNumbers = array_values(array_unique(array_merge($selectedGoals, $indirectGoals)));
+        if (empty($allGoalNumbers)) {
+            $proposal->sdgs()->sync([]);
+
+            return;
+        }
+
+        $sdgMap = SustainableDevelopmentGoal::whereIn('goal_number', $allGoalNumbers)
+            ->pluck('id', 'goal_number');
+
+        $syncPayload = [];
+        foreach ($selectedGoals as $goalNum) {
+            if (isset($sdgMap[$goalNum])) {
+                $syncPayload[$sdgMap[$goalNum]] = ['is_primary' => true];
+            }
+        }
+        foreach ($indirectGoals as $goalNum) {
+            if (isset($sdgMap[$goalNum]) && ! isset($syncPayload[$sdgMap[$goalNum]])) {
+                $syncPayload[$sdgMap[$goalNum]] = ['is_primary' => false];
+            }
+        }
+
+        $proposal->sdgs()->sync($syncPayload);
     }
 
     public static function resolveSignatoryPlacement(?string $roleLabel, ?string $tierRole, int $idx, ?int $userCol = null, ?string $userAlign = null): array
@@ -1464,6 +1552,7 @@ class ExtensionProposalController extends Controller
             'project_leader_name' => 'nullable|string|max:191',
             'project_leader_title' => 'nullable|string|max:191',
             'project_leader_gender' => 'nullable|string|max:20',
+            'sdg_alignments' => 'nullable|array',
         ]);
 
         $targetBeneficiaries = $request->input('target_beneficiaries_data');
@@ -1497,6 +1586,7 @@ class ExtensionProposalController extends Controller
             'banner_program' => $validated['banner_program'] ?? $proposal->banner_program,
             'banner_program_other' => $validated['banner_program_other'] ?? $proposal->banner_program_other,
             'agenda_priorities' => $validated['agenda_priorities'] ?? $proposal->agenda_priorities,
+            'sdg_alignments' => $validated['sdg_alignments'] ?? $proposal->sdg_alignments,
             'beneficiaries' => $validated['beneficiaries'] ?? $proposal->beneficiaries,
             'target_beneficiaries_data' => $targetBeneficiaries ?: $proposal->target_beneficiaries_data,
             'implementing_agency' => $validated['implementing_agency'] ?? $proposal->implementing_agency,
@@ -1513,14 +1603,19 @@ class ExtensionProposalController extends Controller
             'fund_source_external' => $validated['fund_source_external'] ?? ($validated['budget_partner_share'] ?? $proposal->fund_source_external),
             'budget_institution_share' => $validated['budget_institution_share'] ?? $proposal->budget_institution_share,
             'budget_partner_share' => $validated['budget_partner_share'] ?? $proposal->budget_partner_share,
-            'budget_total_display' => $validated['budget_total_display'] ?? $proposal->budget_total_display,
-            'budget_cash_amount' => $validated['budget_cash_amount'] ?? $proposal->budget_cash_amount,
-            'project_leader_name' => $validated['project_leader_name'] ?? $proposal->project_leader_name,
-            'project_leader_title' => $validated['project_leader_title'] ?? $proposal->project_leader_title,
+            'budget_total_display' => ! empty($validated['budget_total_display']) ? $validated['budget_total_display'] : ($proposal->budget_total_display ?: 'Grand Total: No Cash Requirement'),
+            'budget_cash_amount' => isset($validated['budget_cash_amount']) && $validated['budget_cash_amount'] !== '' ? (float) $validated['budget_cash_amount'] : (float) ($proposal->budget_cash_amount ?? 0),
+            'project_leader_name' => ! empty($validated['project_leader_name']) ? $validated['project_leader_name'] : ($proposal->project_leader_name ?: 'Project Leader'),
+            'project_leader_title' => ! empty($validated['project_leader_title']) ? $validated['project_leader_title'] : ($proposal->project_leader_title ?: 'Project Leader'),
             'project_leader_gender' => $validated['project_leader_gender'] ?? $proposal->project_leader_gender,
+            'asst_project_leader_title' => $proposal->asst_project_leader_title ?: 'Assistant Project Leader',
         ]);
 
         $proposal->save();
+
+        if (! empty($validated['sdg_alignments'])) {
+            self::syncProposalSdgs($proposal, $validated['sdg_alignments']);
+        }
 
         if ($request->ajax()) {
             return response()->json([
@@ -1676,17 +1771,7 @@ class ExtensionProposalController extends Controller
         }
         if ($request->has('sdg_alignments')) {
             $proposal->sdg_alignments = $validated['sdg_alignments'];
-
-            $selectedGoals = [];
-            if (is_array($validated['sdg_alignments'])) {
-                $selectedGoals = $validated['sdg_alignments']['selected'] ?? $validated['sdg_alignments'];
-            }
-            if (is_array($selectedGoals)) {
-                $sdgIds = SustainableDevelopmentGoal::whereIn('goal_number', array_map('intval', $selectedGoals))
-                    ->pluck('id')
-                    ->toArray();
-                $proposal->sdgs()->sync($sdgIds);
-            }
+            self::syncProposalSdgs($proposal, $validated['sdg_alignments']);
         }
         if ($request->has('development_gap')) {
             $proposal->development_gap = $this->sanitizeRichHtml($validated['development_gap']);

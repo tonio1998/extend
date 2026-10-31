@@ -12,6 +12,7 @@ use App\Http\Controllers\DSS\EmployeeManagementController;
 use App\Http\Controllers\DSS\ExtensionPriorityController;
 use App\Http\Controllers\DSS\InstitutionSettingsController;
 use App\Http\Controllers\DSS\RIE\ExtensionBudgetController;
+use App\Http\Controllers\DSS\RIE\ExtensionCalendarController;
 use App\Http\Controllers\DSS\RIE\ExtensionPlanController;
 use App\Http\Controllers\DSS\RIE\ExtensionProposalController;
 use App\Http\Controllers\DSS\RIE\ExtensionTrackingController;
@@ -131,6 +132,11 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/data', [ExtensionTrackingController::class, 'data'])->name('data');
             Route::post('/connect', [ExtensionTrackingController::class, 'connect'])->name('connect');
             Route::post('/disconnect', [ExtensionTrackingController::class, 'disconnect'])->name('disconnect');
+        });
+
+        Route::prefix('calendar')->name('calendar.')->group(function () {
+            Route::get('/', [ExtensionCalendarController::class, 'index'])->name('index');
+            Route::get('/events', [ExtensionCalendarController::class, 'events'])->name('events');
         });
     });
 

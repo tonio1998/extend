@@ -152,6 +152,18 @@
             </a>
         @endcan
 
+        @canany(['rie.proposals.view', 'rie.plans.view'])
+            <a href="{{ route('dss.rie.calendar.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.calendar') ? 'active' : '' }}" title="Extension Calendar & Duration Monitoring">
+                <div class="pm-nav-left">
+                    <i class="mdi mdi-calendar-clock-outline pm-nav-icon"></i>
+                    <span class="text-truncate">Extension Calendar</span>
+                </div>
+                @if($uiTemplate === 'print_manzil')
+                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
+                @endif
+            </a>
+        @endcanany
+
         @can('rie.budgets.view')
             <a href="{{ route('dss.rie.budgets.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.budgets') ? 'active' : '' }}" title="Extension Budgets">
                 <div class="pm-nav-left">

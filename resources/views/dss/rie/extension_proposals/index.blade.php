@@ -130,7 +130,15 @@
                 <h5 class="fw-bold text-dark m-0 fs-6">Registered Proposals</h5>
                 <span class="badge bg-light text-secondary border font-mono extra-small">Live Synchronized</span>
             </div>
-            <div class="d-flex align-items-center gap-2">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <select id="sdgFilter" class="form-select form-select-sm rounded-pill extra-small border-secondary-subtle" style="width: 220px;">
+                    <option value="all" {{ ($selectedSdg ?? 'all') === 'all' ? 'selected' : '' }}>All UN SDGs (1–17)</option>
+                    @foreach($allSdgs ?? [] as $sdgItem)
+                        <option value="{{ $sdgItem->goal_number }}" {{ (string) ($selectedSdg ?? '') === (string) $sdgItem->goal_number ? 'selected' : '' }}>
+                            SDG {{ $sdgItem->goal_number }}: {{ $sdgItem->name }}
+                        </option>
+                    @endforeach
+                </select>
                 <select id="statusFilter" class="form-select form-select-sm rounded-pill extra-small border-secondary-subtle" style="width: 170px;">
                     <option value="all">All Statuses</option>
                     <option value="draft">Draft</option>
@@ -237,6 +245,7 @@ $(document).ready(function () {
             url: "{{ route('dss.rie.proposals.data', ['my_proposals' => $isMyProposals ? 1 : 0]) }}",
             data: function (d) {
                 d.status = $('#statusFilter').val();
+                d.sdg = $('#sdgFilter').val();
             }
         },
         columns: [
@@ -257,7 +266,7 @@ $(document).ready(function () {
         }
     });
 
-    $('#statusFilter').on('change', function () {
+    $('#statusFilter, #sdgFilter').on('change', function () {
         table.draw();
     });
 });

@@ -1,13 +1,19 @@
 <!DOCTYPE html>
+@php
+    $institution = $institution ?? \App\Services\DSS\TenantContext::getInstitution();
+    $theme = $theme ?? \App\Services\DSS\TenantContext::getTheme();
+    $activeUiTemplate = $theme->ui_template ?? 'flup_minimal';
+    $schoolAcronym = $institution->school_acronym ?: 'RIE-EXTEND';
+@endphp
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reset Password — IIPM-DSS Platform</title>
+    <title>Reset Password — {{ $schoolAcronym }} RIE System</title>
 
-    <!-- Bootstrap 5 CSS & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
+    <!-- Local Bootstrap 5 CSS & Icons -->
+    <link href="{{ asset('assets/libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/libs/mdi/css/materialdesignicons.min.css') }}" rel="stylesheet">
 
     <!-- Dynamic Theme Styles -->
     @include('layouts.dss.theme-styles')
@@ -18,28 +24,33 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: radial-gradient(circle at 10% 20%, rgba(125, 42, 232, 0.06) 0%, #f8fafc 60%, rgba(0, 196, 204, 0.04) 100%);
+            background: radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--dss-primary, #047857) 8%, transparent) 0%, #f8fafc 60%, color-mix(in srgb, var(--dss-secondary, #0284c7) 6%, transparent) 100%);
             padding: 2rem 1rem;
-            font-family: var(--dss-font);
+        }
+        body[data-ui-template="material_able"] .auth-container {
+            background: linear-gradient(145deg, var(--dss-primary, #047857) 0%, color-mix(in srgb, var(--dss-primary, #047857) 65%, #0f172a) 100%);
         }
 
         .auth-box {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            border-top: 3px solid var(--dss-primary, #7d2ae8);
-            box-shadow: 0 10px 30px -5px rgba(0,0,0,0.06), 0 4px 12px -2px rgba(0,0,0,0.03);
+            background: var(--dss-card-bg, #ffffff);
+            border-radius: var(--dss-card-radius, 16px);
+            border: 1px solid var(--dss-card-border, #e2e8f0);
+            border-top: 4px solid var(--dss-primary, #047857);
+            box-shadow: 0 12px 32px -6px rgba(15, 23, 42, 0.08);
             max-width: 460px;
             width: 100%;
-            padding: 2.75rem 2.25rem;
+            padding: 2.5rem 2.25rem;
+        }
+        body[data-ui-template="print_manzil"] .auth-box {
+            border-radius: 24px;
         }
     </style>
 </head>
-<body>
+<body data-ui-template="{{ $activeUiTemplate }}">
     <div class="auth-container">
         <div class="auth-box">
             <div class="text-center mb-4">
-                <div class="rounded-3 p-2 bg-dss-primary-soft text-dss-primary border border-dss-primary-subtle d-inline-flex align-items-center justify-content-center mb-3" style="width: 52px; height: 52px;">
+                <div class="rounded-3 p-2 bg-dss-primary-soft text-dss-primary border d-inline-flex align-items-center justify-content-center mb-3" style="width: 52px; height: 52px; border-color: var(--dss-primary-border) !important;">
                     <i class="mdi mdi-lock-reset fs-2"></i>
                 </div>
                 <h4 class="fw-bold text-dark mb-1" style="letter-spacing: -0.02em;">Reset Password</h4>
@@ -56,7 +67,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-dss-primary w-100 py-2 mb-3 shadow-xs fw-bold">
+                <button type="submit" class="btn btn-dss-primary w-100 py-2 mb-3 shadow-xs fw-bold" style="border-radius: var(--dss-btn-radius, 10px);">
                     <i class="mdi mdi-send-outline me-1"></i>Send Password Reset Link
                 </button>
 

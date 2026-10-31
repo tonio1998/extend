@@ -42,7 +42,7 @@
         $currentThemeObj = \App\Services\DSS\TenantContext::getTheme();
         $activeUiTemplate = $currentThemeObj->ui_template ?? 'flup_minimal';
         $rawTitle = trim($__env->yieldContent('title', 'Dashboard'));
-        $cleanPageTitle = trim(explode('—', $rawTitle)[0]);
+        $cleanPageTitle = html_entity_decode(trim(explode('—', $rawTitle)[0]), ENT_QUOTES | ENT_HTML5, 'UTF-8');
         if ($cleanPageTitle === '' || str_contains(strtolower($cleanPageTitle), 'decision intelligence')) {
             $cleanPageTitle = 'Dashboard';
         }

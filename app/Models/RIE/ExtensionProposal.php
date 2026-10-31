@@ -645,23 +645,47 @@ class ExtensionProposal extends Model
 
     public function getResolvedSdgAlignmentsAttribute(): array
     {
+        $sdgs = $this->sdg_alignments ?? [];
+        $indirectFromJson = is_array($sdgs) && isset($sdgs['indirect']) && is_array($sdgs['indirect'])
+            ? array_values(array_map('intval', $sdgs['indirect']))
+            : [];
+
         if ($this->relationLoaded('sdgs') && $this->sdgs->isNotEmpty()) {
+            $directFromPivot = $this->sdgs
+                ->filter(fn ($s) => (bool) ($s->pivot->is_primary ?? true) && ! in_array((int) $s->goal_number, $indirectFromJson, true))
+                ->pluck('goal_number')
+                ->map(fn ($n) => (int) $n)
+                ->values()
+                ->toArray();
+
+            $indirectFromPivot = $this->sdgs
+                ->filter(fn ($s) => (isset($s->pivot->is_primary) && ! $s->pivot->is_primary) || in_array((int) $s->goal_number, $indirectFromJson, true))
+                ->pluck('goal_number')
+                ->map(fn ($n) => (int) $n)
+                ->values()
+                ->toArray();
+
             return [
-                'selected' => $this->sdgs->pluck('goal_number')->map(fn ($n) => (int) $n)->values()->toArray(),
-                'narrative' => $this->relevance_narrative ?? '',
+                'selected' => $directFromPivot,
+                'indirect' => ! empty($indirectFromPivot) ? $indirectFromPivot : $indirectFromJson,
+                'narrative' => $this->relevance_narrative ?? (is_array($sdgs) ? ($sdgs['narrative'] ?? '') : ''),
             ];
         }
 
-        $sdgs = $this->sdg_alignments ?? [];
         if (! is_array($sdgs)) {
-            return ['selected' => [], 'narrative' => ''];
+            return ['selected' => [], 'indirect' => [], 'narrative' => ''];
         }
         if (isset($sdgs['selected'])) {
-            return $sdgs;
+            return [
+                'selected' => array_values(array_map('intval', (array) $sdgs['selected'])),
+                'indirect' => $indirectFromJson,
+                'narrative' => $this->relevance_narrative ?? ($sdgs['narrative'] ?? ''),
+            ];
         }
 
         return [
-            'selected' => array_values(array_filter($sdgs, fn ($v) => is_numeric($v) || is_string($v))),
+            'selected' => array_values(array_map('intval', array_filter($sdgs, fn ($v) => is_numeric($v) || is_string($v)))),
+            'indirect' => [],
             'narrative' => $this->relevance_narrative ?? '',
         ];
     }

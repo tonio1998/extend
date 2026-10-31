@@ -1,14 +1,19 @@
 <!DOCTYPE html>
+@php
+    $institution = $institution ?? \App\Services\DSS\TenantContext::getInstitution();
+    $theme = $theme ?? \App\Services\DSS\TenantContext::getTheme();
+    $activeUiTemplate = $theme->ui_template ?? 'flup_minimal';
+@endphp
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Institutional Tenant Registration — IIPM-DSS</title>
+    <title>Institutional Tenant Registration — RIE System</title>
 
-    <!-- Bootstrap 5 CSS & Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/css/materialdesignicons.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    <!-- Local Bootstrap 5 CSS & Icons -->
+    <link href="{{ asset('assets/libs/bootstrap/css/bootstrap.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/libs/mdi/css/materialdesignicons.min.css') }}" rel="stylesheet">
+    <link href="{{ asset('assets/libs/sweetalert2/sweetalert2.min.css') }}" rel="stylesheet">
 
     <!-- Dynamic Theme Styles -->
     @include('layouts.dss.theme-styles')
@@ -16,19 +21,21 @@
     <style>
         .register-container {
             min-height: 100vh;
-            background: radial-gradient(circle at 10% 20%, rgba(125, 42, 232, 0.06) 0%, #f8fafc 60%, rgba(0, 196, 204, 0.04) 100%);
+            background: radial-gradient(circle at 12% 20%, color-mix(in srgb, var(--dss-primary, #047857) 8%, transparent) 0%, #f8fafc 60%, color-mix(in srgb, var(--dss-secondary, #0284c7) 6%, transparent) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 3rem 1rem;
-            font-family: var(--dss-font);
+        }
+        body[data-ui-template="material_able"] .register-container {
+            background: linear-gradient(145deg, var(--dss-primary, #047857) 0%, color-mix(in srgb, var(--dss-primary, #047857) 65%, #0f172a) 100%);
         }
 
         .register-card {
-            background: #ffffff;
-            border-radius: 16px;
-            border: 1px solid #e2e8f0;
-            border-top: 3px solid var(--dss-primary, #7d2ae8);
+            background: var(--dss-card-bg, #ffffff);
+            border-radius: var(--dss-card-radius, 16px);
+            border: 1px solid var(--dss-card-border, #e2e8f0);
+            border-top: 4px solid var(--dss-primary, #047857);
             box-shadow: 0 20px 30px -10px rgba(0, 0, 0, 0.06), 0 8px 12px -4px rgba(0, 0, 0, 0.03);
             width: 100%;
             max-width: 820px;
@@ -36,7 +43,7 @@
         }
     </style>
 </head>
-<body>
+<body data-ui-template="{{ $activeUiTemplate }}">
     <div class="register-container">
         <div class="register-card">
             <!-- Header -->

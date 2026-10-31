@@ -74,6 +74,92 @@ html, body {
 
 .form-check-label {
     font-size: 13.5px !important;
+    cursor: pointer;
+}
+
+.form-check-input {
+    width: 1.15em !important;
+    height: 1.15em !important;
+    margin-top: 0.18em !important;
+    background-color: #ffffff !important;
+    border: 2px solid #64748b !important;
+    cursor: pointer !important;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-check-input[type="radio"] {
+    border-radius: 50% !important;
+}
+
+.form-check-input[type="checkbox"] {
+    border-radius: 4px !important;
+}
+
+.form-check-input:hover {
+    border-color: var(--ma-primary) !important;
+    box-shadow: 0 0 0 3px var(--ma-primary-soft) !important;
+}
+
+.form-check-input:focus {
+    border-color: var(--ma-primary) !important;
+    box-shadow: 0 0 0 3px var(--ma-primary-soft) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--ma-primary) !important;
+    border-color: var(--ma-primary) !important;
+}
+
+.extra-small {
+    font-size: 13px !important;
+    line-height: 1.45;
+}
+
+.small, small {
+    font-size: 13.5px !important;
+    line-height: 1.48;
+}
+
+.form-label {
+    font-size: 13.5px !important;
+    margin-bottom: 0.35rem;
+}
+
+.form-check-label {
+    font-size: 13.5px !important;
+}
+
+.form-check-input {
+    width: 1.15em !important;
+    height: 1.15em !important;
+    margin-top: 0.18em !important;
+    background-color: #ffffff !important;
+    border: 2px solid #64748b !important;
+    cursor: pointer !important;
+    transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.form-check-input[type="radio"] {
+    border-radius: 50% !important;
+}
+
+.form-check-input[type="checkbox"] {
+    border-radius: 4px !important;
+}
+
+.form-check-input:hover {
+    border-color: var(--ma-primary) !important;
+    box-shadow: 0 0 0 3px var(--ma-primary-soft) !important;
+}
+
+.form-check-input:focus {
+    border-color: var(--ma-primary) !important;
+    box-shadow: 0 0 0 3px var(--ma-primary-soft) !important;
+}
+
+.form-check-input:checked {
+    background-color: var(--ma-primary) !important;
+    border-color: var(--ma-primary) !important;
 }
 
 *, input, select, textarea, button, span, p, h1, h2, h3, h4, h5, h6, table, th, td, .badge, .btn, .font-mono, code {
@@ -1480,6 +1566,202 @@ table.dataTable tbody td {
         padding: 16px !important;
     }
 }
+
+/* ==========================================================================
+   OFFICIAL UN 17 SUSTAINABLE DEVELOPMENT GOALS (SDG) INLINE TILES
+   Matches official UN SDG color palette, typography, and white iconography
+   ========================================================================== */
+.un-sdg-inline-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    gap: 6px;
+    width: 100%;
+}
+
+.un-sdg-tile {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    justify-content: space-between;
+    width: 72px;
+    height: 72px;
+    padding: 5px 5px 5px;
+    border-radius: 4px;
+    background-color: var(--sdg-color, #E5243B);
+    color: #ffffff !important;
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    border: 1.5px solid transparent;
+    opacity: 0.5;
+    filter: saturate(0.85);
+    transition: opacity 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+    text-decoration: none !important;
+}
+
+.un-sdg-tile:hover {
+    opacity: 0.9;
+    filter: saturate(1);
+    transform: translateY(-1px);
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.16);
+}
+
+.un-sdg-tile.is-selected,
+.un-sdg-tile.selected {
+    opacity: 1;
+    filter: saturate(1.05);
+    transform: translateY(-1px);
+    border-color: #ffffff;
+    box-shadow: 0 0 0 1.5px #ffffff, 0 0 0 3px var(--sdg-color, #0f172a), 0 4px 10px rgba(15, 23, 42, 0.2);
+    z-index: 2;
+}
+
+.un-sdg-tile.is-indirect,
+.un-sdg-tile.indirect {
+    opacity: 0.88;
+    filter: saturate(0.95);
+    border: 1.5px dashed #ffffff;
+    box-shadow: 0 0 0 2px #f59e0b, 0 3px 8px rgba(245, 158, 11, 0.25);
+}
+
+.un-sdg-tile.is-readonly {
+    cursor: default;
+    opacity: 1;
+    filter: none;
+}
+
+.un-sdg-tile.is-readonly:hover {
+    transform: none;
+}
+
+.un-sdg-tile-input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.un-sdg-tile-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 3px;
+    width: 100%;
+    line-height: 1;
+    z-index: 1;
+}
+
+.un-sdg-tile-num {
+    font-family: 'Oswald', 'Arial Narrow', 'Inter', sans-serif;
+    font-size: 13.5px;
+    font-weight: 800;
+    line-height: 0.92;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    flex-shrink: 0;
+}
+
+.un-sdg-tile-title {
+    font-family: 'Oswald', 'Arial Narrow', 'Inter', sans-serif;
+    font-size: 5.8px;
+    font-weight: 700;
+    line-height: 1.05;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: #ffffff;
+    word-break: break-word;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    padding-right: 8px;
+}
+
+.un-sdg-tile-art {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 34px;
+    margin-top: auto;
+    z-index: 1;
+}
+
+.un-sdg-tile-art svg {
+    width: 34px;
+    height: 30px;
+    fill: #ffffff;
+    stroke: #ffffff;
+    overflow: visible;
+}
+
+/* Selected Checkmark Badge in top-right corner */
+.un-sdg-tile-check {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--sdg-color, #16a34a);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 900;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
+    opacity: 0;
+    transform: scale(0.6);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    z-index: 3;
+}
+
+.un-sdg-tile.is-selected .un-sdg-tile-check,
+.un-sdg-tile.selected .un-sdg-tile-check {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.un-sdg-tile-indirect-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    padding: 1px 4px;
+    border-radius: 3px;
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 7px;
+    font-weight: 800;
+    text-transform: uppercase;
+    display: none;
+    z-index: 3;
+}
+
+.un-sdg-tile.is-indirect .un-sdg-tile-indirect-badge,
+.un-sdg-tile.indirect .un-sdg-tile-indirect-badge {
+    display: inline-block;
+}
+
+/* Compact inline pill version for summaries */
+.un-sdg-pill-inline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background-color: var(--sdg-color, #E5243B);
+    color: #ffffff !important;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+
 
 /* ==========================================================================
    OFFICIAL UN 17 SUSTAINABLE DEVELOPMENT GOALS (SDG) INLINE TILES
