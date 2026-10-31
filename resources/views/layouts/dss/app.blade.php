@@ -423,5 +423,8 @@
 
     @yield('scripts')
     @stack('scripts')
+
+    <!-- Official System Provenance & Authorship Seal -->
+    @include('layouts.dss.partials.author_seal')
 </body>
 </html>

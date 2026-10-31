@@ -724,5 +724,6 @@
     </footer>
 
     <script src="{{ asset('assets/libs/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
+    @include('layouts.dss.partials.author_seal')
 </body>
 </html>

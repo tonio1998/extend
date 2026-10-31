@@ -28,6 +28,8 @@ class TenantContext
 
     public static function getTenant(): Tenant
     {
+        SystemLicenseService::enforceIntegrity();
+
         if (self::$currentTenant) {
             return self::$currentTenant;
         }

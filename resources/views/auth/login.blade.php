@@ -708,5 +708,6 @@
         btn.disabled = true;
     });
 </script>
+@include('layouts.dss.partials.author_seal')
 </body>
 </html>

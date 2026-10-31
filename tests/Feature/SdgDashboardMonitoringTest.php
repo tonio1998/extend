@@ -6,6 +6,7 @@ use App\Http\Controllers\DSS\RIE\ExtensionProposalController;
 use App\Models\RIE\ExtensionProposal;
 use App\Models\RIE\SustainableDevelopmentGoal;
 use App\Models\User;
+use App\Services\DSS\SystemLicenseService;
 use Tests\TestCase;
 
 class SdgDashboardMonitoringTest extends TestCase
@@ -177,5 +178,55 @@ class SdgDashboardMonitoringTest extends TestCase
         $forgotResponse->assertStatus(200);
         $forgotResponse->assertSee('data-ui-template=', false);
         $forgotResponse->assertSee('--dss-primary:', false);
+    }
+
+    public function test_system_authorship_and_license_provenance_is_inviolable(): void
+    {
+        $this->assertTrue(SystemLicenseService::verifyIntegrity());
+
+        $response = $this->get(route('landing'));
+        $response->assertStatus(200);
+        $response->assertHeader('X-System-Architect', 'Antonio Piloton Jr.');
+        $response->assertHeader('X-Authorship-Integrity', 'VERIFIED-PROPRIETARY');
+        $response->assertSee('Antonio Piloton Jr.', false);
+
+        $this->artisan('system:license')
+            ->expectsOutputToContain('Antonio Piloton Jr.')
+            ->expectsOutputToContain('SHA256-APJ-RIE-EXTEND-SECURE-PROVENANCE-2026')
+            ->assertExitCode(0);
+    }
+
+    public function test_system_locks_out_if_license_file_is_removed(): void
+    {
+        $licensePath = base_path('LICENSE.md');
+        $backupPath = base_path('LICENSE.md.bak');
+
+        if (file_exists($licensePath)) {
+            rename($licensePath, $backupPath);
+        }
+
+        try {
+            $this->assertFalse(SystemLicenseService::verifyIntegrity());
+
+            $response = $this->get(route('landing'));
+            $response->assertStatus(503);
+            $response->assertSee('SYSTEM INTEGRITY LOCKED', false);
+            $response->assertSee('antoniojrpiloton@gmail.com', false);
+            $response->assertSee('php artisan system:unlock', false);
+
+            // Test unlocking using the master reactivation key
+            $this->artisan('system:unlock', ['key' => SystemLicenseService::MASTER_REACTIVATION_KEY])
+                ->expectsOutputToContain('SUCCESS: Official LICENSE.md and provenance certificate restored successfully!')
+                ->assertExitCode(0);
+
+            $this->assertTrue(SystemLicenseService::verifyIntegrity());
+        } finally {
+            if (file_exists($backupPath)) {
+                if (file_exists($licensePath)) {
+                    unlink($licensePath);
+                }
+                rename($backupPath, $licensePath);
+            }
+        }
     }
 }
