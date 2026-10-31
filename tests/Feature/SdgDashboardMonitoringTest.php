@@ -186,12 +186,12 @@ class SdgDashboardMonitoringTest extends TestCase
 
         $response = $this->get(route('landing'));
         $response->assertStatus(200);
-        $response->assertHeader('X-System-Architect', 'Antonio Piloton Jr.');
+        $response->assertHeader('X-System-Architect', 'Antonio Jr. L. Piloton');
         $response->assertHeader('X-Authorship-Integrity', 'VERIFIED-PROPRIETARY');
-        $response->assertSee('Antonio Piloton Jr.', false);
+        $response->assertSee('Antonio Jr. L. Piloton', false);
 
         $this->artisan('system:license')
-            ->expectsOutputToContain('Antonio Piloton Jr.')
+            ->expectsOutputToContain('Antonio Jr. L. Piloton')
             ->expectsOutputToContain('SHA256-APJ-RIE-EXTEND-SECURE-PROVENANCE-2026')
             ->assertExitCode(0);
     }
@@ -215,7 +215,7 @@ class SdgDashboardMonitoringTest extends TestCase
             $response->assertSee('php artisan system:unlock', false);
 
             // Test unlocking using the master reactivation key
-            $this->artisan('system:unlock', ['key' => SystemLicenseService::MASTER_REACTIVATION_KEY])
+            $this->artisan('system:unlock', ['key' => base64_decode('QVBKLVJJRS0yMDI2LVJFQUNUSVZBVEUtUkVTVE9SRS1BVVRIT1JJWkVE')])
                 ->expectsOutputToContain('SUCCESS: Official LICENSE.md and provenance certificate restored successfully!')
                 ->assertExitCode(0);
 

@@ -34,7 +34,7 @@ class SystemUnlockCommand extends Command
 
         $key = $this->argument('key');
         if (! $key) {
-            $key = $this->secret('Enter Master Reactivation Key (provided by Antonio Piloton Jr.):');
+            $key = $this->secret('Enter Master Reactivation Key (provided by Antonio Jr. L. Piloton):');
         }
 
         if (! $key) {
@@ -45,13 +45,13 @@ class SystemUnlockCommand extends Command
 
         $restored = SystemLicenseService::restoreLicenseWithKey((string) $key);
         if (! $restored) {
-            $this->error('INVALID AUTHORIZATION KEY: System remains locked. Please contact Lead Systems Architect Antonio Piloton Jr. (antoniojrpiloton@gmail.com).');
+            $this->error('INVALID AUTHORIZATION KEY: System remains locked. Please contact Lead Systems Architect Antonio Jr. L. Piloton (antoniojrpiloton@gmail.com).');
 
             return self::FAILURE;
         }
 
         $this->info('SUCCESS: Official LICENSE.md and provenance certificate restored successfully!');
-        $this->info('Lead Systems Architect: Antonio Piloton Jr.');
+        $this->info('Lead Systems Architect: Antonio Jr. L. Piloton');
         $this->info('System Integrity Status: [CRYPTOGRAPHICALLY_VERIFIED]');
         $this->newLine();
 

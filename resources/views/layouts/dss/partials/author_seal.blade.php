@@ -1,6 +1,6 @@
 {{-- ============================================================================
      OFFICIAL SYSTEM PROVENANCE & AUTHORSHIP CERTIFICATE (TAMPER-EVIDENT SEAL)
-     Lead Systems Architect & Full-Stack Engineer: Antonio Piloton Jr.
+     Lead Systems Architect & Full-Stack Engineer: Antonio Jr. L. Piloton
      Protected by Philippine Intellectual Property Code (RA 8293)
      ============================================================================ --}}
 <div class="modal fade" id="systemProvenanceModal" tabindex="-1" aria-hidden="true" style="z-index: 10999;">
@@ -36,7 +36,7 @@
                         </span>
                     </div>
                     <div class="fs-4 fw-extrabold text-dark mb-0.5" style="letter-spacing: -0.02em;">
-                        Antonio Piloton Jr.
+                        Antonio Jr. L. Piloton
                     </div>
                     <div class="text-secondary extra-small fw-semibold">
                         Lead Systems Architect &bull; Full-Stack Software Engineer
@@ -64,7 +64,7 @@
                 </div>
 
                 <div class="p-3 rounded-3 border bg-light text-muted extra-small mb-4" style="line-height: 1.5; font-size: 11px;">
-                    <strong>Institutional Grant Notice:</strong> This software platform and its underlying codebase are turned over for sovereign institutional deployment. In accordance with moral and intellectual property rights, original authorship credits and architectural attribution remain the perpetual intellectual property of <strong>Antonio Piloton Jr.</strong>
+                    <strong>Institutional Grant Notice:</strong> This software platform and its underlying codebase are turned over for sovereign institutional deployment. In accordance with moral and intellectual property rights, original authorship credits and architectural attribution remain the perpetual intellectual property of <strong>Antonio Jr. L. Piloton</strong>.
                 </div>
 
                 <div class="d-flex justify-content-end">
@@ -84,7 +84,7 @@
         const authorStyle = 'color: #059669; font-size: 12px; font-weight: 700;';
         const subStyle = 'color: #64748b; font-size: 11px;';
         console.log('%c RIE-EXTEND PLATFORM ', titleStyle);
-        console.log('%c Lead Systems Architect & Developer: Antonio Piloton Jr. ', authorStyle);
+        console.log('%c Lead Systems Architect & Developer: Antonio Jr. L. Piloton ', authorStyle);
         console.log('%c Provenance Fingerprint: SHA256-APJ-RIE-EXTEND-SECURE-2026 \u2022 Protected by Intellectual Property Code of the Philippines (RA 8293) ', subStyle);
 
         // 2. Secret Key Combination: Ctrl + Shift + Alt + A (or Cmd + Shift + Alt + A on Mac)

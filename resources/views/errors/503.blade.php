@@ -124,7 +124,7 @@
                     AP
                 </div>
                 <div>
-                    <div class="fw-extrabold text-dark" style="font-size: 15px;">Antonio Piloton Jr.</div>
+                    <div class="fw-extrabold text-dark" style="font-size: 15px;">Antonio Jr. L. Piloton</div>
                     <div class="text-secondary small" style="font-size: 12px;">Lead Systems Architect &amp; Full-Stack Engineer</div>
                 </div>
             </div>
