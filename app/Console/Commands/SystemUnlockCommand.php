@@ -12,7 +12,7 @@ class SystemUnlockCommand extends Command
      *
      * @var string
      */
-    protected $signature = 'system:unlock {key? : Master Reactivation Key issued by Lead Architect Antonio Piloton Jr.}';
+    protected $signature = 'system:unlock {key? : Master Reactivation Key issued by Lead Architect Antonio Jr. L. Piloton}';
 
     /**
      * The console command description.

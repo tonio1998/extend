@@ -50,6 +50,17 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
         Route::get('/academic-programs', [Select2Controller::class, 'academicPrograms'])->name('academic_programs');
     });
     Route::prefix('documents')->name('documents.')->group(function () {
+        Route::get('/repository', [CentralizedDocumentUploadController::class, 'index'])->name('repository');
+
+        Route::prefix('uploads')->name('upload.')->group(function () {
+            Route::get('/', [CentralizedDocumentUploadController::class, 'index'])->name('index');
+            Route::post('/', [CentralizedDocumentUploadController::class, 'upload'])->name('store');
+            Route::get('/list', [CentralizedDocumentUploadController::class, 'list'])->name('list');
+            Route::get('/{id}/download', [CentralizedDocumentUploadController::class, 'download'])->name('download');
+            Route::get('/{id}/preview', [CentralizedDocumentUploadController::class, 'preview'])->name('preview');
+            Route::delete('/{id}', [CentralizedDocumentUploadController::class, 'destroy'])->name('destroy');
+        });
+
         Route::get('/{type}/{id}/view', [DocumentViewerController::class, 'view'])->name('view');
         Route::get('/{type}/{id}/pdf', [DocumentViewerController::class, 'pdf'])->name('pdf');
         Route::get('/{type}/{id}/preview', [DocumentViewerController::class, 'preview'])->name('preview');
@@ -61,16 +72,6 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
         Route::post('/{type}/{id}/comments', [DocumentViewerController::class, 'storeComment'])->name('comments.store');
         Route::post('/{type}/{id}/sign', [DocumentViewerController::class, 'signDocument'])->name('sign');
         Route::post('/{type}/{id}/request-revision', [DocumentViewerController::class, 'requestRevision'])->name('request_revision');
-
-        Route::prefix('uploads')->name('upload.')->group(function () {
-            Route::get('/', [CentralizedDocumentUploadController::class, 'index'])->name('index');
-            Route::post('/', [CentralizedDocumentUploadController::class, 'upload'])->name('store');
-            Route::get('/list', [CentralizedDocumentUploadController::class, 'list'])->name('list');
-            Route::get('/{id}/download', [CentralizedDocumentUploadController::class, 'download'])->name('download');
-            Route::get('/{id}/preview', [CentralizedDocumentUploadController::class, 'preview'])->name('preview');
-            Route::delete('/{id}', [CentralizedDocumentUploadController::class, 'destroy'])->name('destroy');
-        });
-        Route::get('/repository', [CentralizedDocumentUploadController::class, 'index'])->name('repository');
     });
     Route::get('/documents-repository', [CentralizedDocumentUploadController::class, 'index'])->name('document.repository');
 
@@ -90,6 +91,9 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/fetch-signatories', [ExtensionPlanController::class, 'getSignatoriesByProgram'])->name('signatories_by_program');
             Route::post('/{id}/connect-tracking', [ExtensionPlanController::class, 'connectTracking'])->name('connect_tracking');
             Route::get('/{id}/fetch-tracking', [ExtensionPlanController::class, 'fetchLiveTracking'])->name('fetch_tracking');
+            Route::post('/{id}/activities/{activityId}/upload-document', [ExtensionPlanController::class, 'uploadActivityDocument'])->name('activity.upload_document');
+            Route::delete('/{id}/activities/{activityId}/documents/{docId?}', [ExtensionPlanController::class, 'deleteActivityDocument'])->name('activity.delete_document');
+            Route::delete('/{id}/activities/{activityId}/delete-document', [ExtensionPlanController::class, 'deleteActivityDocument'])->name('activity.delete_document_legacy');
         });
 
         Route::prefix('proposals')->name('proposals.')->group(function () {
@@ -102,6 +106,7 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/{id}/edit', [ExtensionProposalController::class, 'edit'])->name('edit');
             Route::put('/{id}', [ExtensionProposalController::class, 'update'])->name('update');
             Route::get('/{id}/pdf', [ExtensionProposalController::class, 'pdf'])->name('pdf');
+            Route::get('/{id}/activity-design', [ExtensionProposalController::class, 'activityDesign'])->name('activity_design');
             Route::post('/{id}/sign', [ExtensionProposalController::class, 'sign'])->name('sign');
             Route::post('/{id}/technical', [ExtensionProposalController::class, 'updateTechnical'])->name('technical.update');
             Route::post('/{id}/signatories', [ExtensionProposalController::class, 'updateSignatories'])->name('signatories.update');
@@ -159,6 +164,9 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
 
         Route::get('/signatories', [CentralizedSignatoryController::class, 'index'])->name('signatories.index');
         Route::post('/signatories', [CentralizedSignatoryController::class, 'store'])->name('signatories.store');
+        Route::post('/signatories/document-type', [CentralizedSignatoryController::class, 'storeDocumentType'])->name('signatories.document_type.store');
+        Route::post('/signatories/update-layout', [CentralizedSignatoryController::class, 'updateLayout'])->name('signatories.update_layout');
+        Route::post('/signatories/quick-update/{id}', [CentralizedSignatoryController::class, 'updateItemQuick'])->name('signatories.quick_update');
         Route::put('/signatories/{id}', [CentralizedSignatoryController::class, 'update'])->name('signatories.update');
         Route::delete('/signatories/{id}', [CentralizedSignatoryController::class, 'destroy'])->name('signatories.destroy');
         Route::post('/signatories/seed-defaults', [CentralizedSignatoryController::class, 'seedDefaults'])->name('signatories.seed_defaults');
@@ -182,6 +190,8 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
 
         Route::get('/roles', [RolePermissionController::class, 'index'])->name('roles.index');
         Route::post('/roles', [RolePermissionController::class, 'storeRole'])->name('roles.store');
+        Route::put('/roles/{id}', [RolePermissionController::class, 'updateRole'])->name('roles.update');
+        Route::delete('/roles/{id}', [RolePermissionController::class, 'destroyRole'])->name('roles.destroy');
         Route::get('/roles/{id}/configure', [RolePermissionController::class, 'configureRole'])->name('roles.configure');
         Route::post('/roles/{id}/permissions', [RolePermissionController::class, 'updateRolePermissions'])->name('roles.permissions');
         Route::post('/roles/{id}/personnel', [RolePermissionController::class, 'updateRolePersonnel'])->name('roles.personnel');
@@ -189,6 +199,8 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
 
         Route::get('/permissions', [RolePermissionController::class, 'permissionsIndex'])->name('permissions.index');
         Route::post('/permissions', [RolePermissionController::class, 'storePermission'])->name('permissions.store');
+        Route::put('/permissions/{id}', [RolePermissionController::class, 'updatePermission'])->name('permissions.update');
+        Route::delete('/permissions/{id}', [RolePermissionController::class, 'destroyPermission'])->name('permissions.destroy');
         Route::post('/roles/permissions/store', [RolePermissionController::class, 'storePermission'])->name('roles.permissions.store');
 
         Route::get('/employees/data', [EmployeeManagementController::class, 'data'])->name('employees.data');

@@ -10,6 +10,8 @@ use App\Models\RIE\ExtensionAgenda;
 use App\Models\RIE\ExtensionBannerProgram;
 use App\Models\RIE\ExtensionPlan;
 use App\Models\RIE\ExtensionProposal;
+use App\Models\SaaS\DocumentSignatory;
+use App\Models\SaaS\DocumentSignatoryMatrix;
 use App\Models\SaaS\InstitutionSetting;
 use App\Models\SaaS\SignatoryMatrix;
 use App\Services\DSS\TenantContext;
@@ -1049,33 +1051,33 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         // 1. Centered Title
         $this->SetFont($this->fontFamily, 'B', 13.0);
         $this->Cell($w, 6.5, 'EXTENSION PLAN', 0, 1, 'C');
-        $this->Ln(3.0);
+        $this->Ln(3.5);
 
         // 2. Program & Extension Activities
-        $labelW = 48.0;
+        $labelW = 52.0;
         $valW = $w - $labelW;
 
-        $this->SetFont($this->fontFamily, 'B', 9.5);
-        $this->Cell($labelW, $lineH, 'PROGRAM:', 0, 0, 'L');
-        $this->SetFont($this->fontFamily, 'B', 9.5);
-        $this->MultiCell($valW, $lineH, $this->sanitizeText($plan->program_name), 0, 'L');
-        $this->Ln(1.0);
+        $this->SetFont($this->fontFamily, 'B', 11.0);
+        $this->Cell($labelW, 5.5, 'PROGRAM:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', 11.0);
+        $this->MultiCell($valW, 5.5, $this->sanitizeText($plan->program_name), 0, 'L');
+        $this->Ln(1.8);
 
-        $this->SetFont($this->fontFamily, 'B', 9.5);
-        $this->Cell($labelW, $lineH, 'EXTENSION ACTIVITIES:', 0, 0, 'L');
-        $this->SetFont($this->fontFamily, 'B', 9.5);
-        $this->MultiCell($valW, $lineH, $this->sanitizeText($plan->extension_activity), 0, 'L');
+        $this->SetFont($this->fontFamily, 'B', 11.0);
+        $this->Cell($labelW, 5.5, 'EXTENSION ACTIVITIES:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', 11.0);
+        $this->MultiCell($valW, 5.5, $this->sanitizeText($plan->extension_activity), 0, 'L');
         $this->Ln(3.0);
 
         // 3. Objectives
-        $this->SetFont($this->fontFamily, 'B', 10.0);
+        $this->SetFont($this->fontFamily, 'B', 11.0);
         $this->SetTextColor(15, 23, 42);
         $this->Cell($w, 5.5, 'Objectives:', 0, 1, 'L');
-        $this->Ln(1.0);
+        $this->Ln(1.2);
 
         $rawObj = trim($plan->objectives ?: '');
         $lines = preg_split('/\r\n|\r|\n/', $rawObj);
-        $this->SetFont($this->fontFamily, '', 9.0);
+        $this->SetFont($this->fontFamily, '', 11.0);
         $this->SetTextColor(30, 41, 59);
 
         foreach ($lines as $line) {
@@ -1087,26 +1089,27 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
             if (preg_match('/^(\d+[\.\)])\s*(.*)$/', $line, $m)) {
                 $num = $m[1];
                 $txt = $m[2];
-                $numW = 8.0;
+                $numW = 9.0;
                 $this->SetX($margin + 3.0);
-                $this->SetFont($this->fontFamily, 'B', 9.0);
-                $this->Cell($numW, 4.5, $num, 0, 0, 'L');
-                $this->SetFont($this->fontFamily, '', 9.0);
-                $this->MultiCell($w - 3.0 - $numW, 4.5, $this->sanitizeText($txt), 0, 'L');
+                $this->SetFont($this->fontFamily, 'B', 11.0);
+                $this->Cell($numW, 5.0, $num, 0, 0, 'L');
+                $this->SetFont($this->fontFamily, '', 11.0);
+                $this->MultiCell($w - 3.0 - $numW, 5.0, $this->sanitizeText($txt), 0, 'L');
                 $this->Ln(1.2);
             } else {
                 $this->SetX($margin + 2.0);
-                $this->MultiCell($w - 2.0, 4.5, $this->sanitizeText($line), 0, 'L');
+                $this->SetFont($this->fontFamily, '', 11.0);
+                $this->MultiCell($w - 2.0, 5.0, $this->sanitizeText($line), 0, 'L');
                 $this->Ln(1.5);
             }
         }
         $this->Ln(3.0);
 
         // 4. Schedule of Activities: Formal Table with automatic wrap and zero overlap
-        $this->SetFont($this->fontFamily, 'B', 10.0);
+        $this->SetFont($this->fontFamily, 'B', 11.0);
         $this->SetTextColor(15, 23, 42);
         $this->Cell($w, 5.5, 'Schedule of Activities:', 0, 1, 'L');
-        $this->Ln(1.5);
+        $this->Ln(1.8);
 
         // Column widths
         $col1W = $w - 58.0;
@@ -1121,22 +1124,17 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         $this->SetFillColor(241, 245, 249);
         $this->SetDrawColor(203, 213, 225);
         $this->SetLineWidth(0.3);
-        $this->SetFont($this->fontFamily, 'B', 8.5);
+        $this->SetFont($this->fontFamily, 'B', 10.0);
         $this->SetTextColor(30, 41, 59);
 
         $this->Cell($col1W, $headerH, '  Activity / Milestone Description', 1, 0, 'L', true);
         $this->Cell($col2W, $headerH, 'Target Date / Period', 1, 1, 'C', true);
 
-        $schedItems = [
-            'Submission of Extension Project Proposal' => $plan->sub_extension_proposal_date ? $plan->sub_extension_proposal_date->format('F d, Y') : null,
-            'Submission of Activity Design' => $plan->sub_activity_design_date ? $plan->sub_activity_design_date->format('F d, Y') : null,
-            'Submission of Purchase Request' => $plan->sub_purchase_request_date ? $plan->sub_purchase_request_date->format('F d, Y') : 'N/A',
-            'MOA Signing' => $plan->moa_signing_date ? $plan->moa_signing_date->format('F d, Y') : null,
-            'Arrival of Materials' => $plan->formatted_materials_arrival,
-            'Conduct of Extension Activity' => $plan->formatted_conduct_activity,
-            'Submission of Narrative Reports, Attendance, Evaluation & Cert. Commendation' => $plan->sub_narrative_report_date ? $plan->sub_narrative_report_date->format('F d, Y') : null,
-            'Conduct of Monitoring/Feedback' => $plan->formatted_monitoring_feedback,
-        ];
+        // Dynamic Milestones from Plan metadata with fallback to default timeline
+        $schedItems = [];
+        foreach ($plan->milestones_list as $m) {
+            $schedItems[$m['title']] = $m['target_date'] ?? null;
+        }
 
         $itemNo = 1;
         $this->SetLineWidth(0.25);
@@ -1147,17 +1145,17 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
             $itemNo++;
 
             $rowLineH = 4.2;
-            $lines1 = $this->calculateCellLines($fullLabel, $col1W, 8.5, '');
-            $lines2 = $this->calculateCellLines($valStr, $col2W, 8.5, '');
+            $lines1 = $this->calculateCellLines($fullLabel, $col1W, 9.5, '');
+            $lines2 = $this->calculateCellLines($valStr, $col2W, 9.5, '');
             $maxLines = max($lines1, $lines2);
-            $rowH = max(6.5, ($maxLines * $rowLineH) + 2.5);
+            $rowH = max(6.8, ($maxLines * $rowLineH) + 2.5);
 
             if ($this->GetY() + $rowH > $this->GetPageHeight() - $this->bottomMargin) {
                 $this->AddPage();
                 $this->SetFillColor(241, 245, 249);
                 $this->SetDrawColor(203, 213, 225);
                 $this->SetLineWidth(0.3);
-                $this->SetFont($this->fontFamily, 'B', 8.5);
+                $this->SetFont($this->fontFamily, 'B', 10.0);
                 $this->SetTextColor(30, 41, 59);
                 $this->Cell($col1W, $headerH, '  Activity / Milestone Description (Cont.)', 1, 0, 'L', true);
                 $this->Cell($col2W, $headerH, 'Target Date / Period', 1, 1, 'C', true);
@@ -1173,13 +1171,13 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
 
             $padY1 = $curY + (($rowH - ($lines1 * $rowLineH)) / 2.0);
             $this->SetXY($curX + 2.0, $padY1);
-            $this->SetFont($this->fontFamily, '', 8.5);
+            $this->SetFont($this->fontFamily, '', 9.5);
             $this->SetTextColor(30, 41, 59);
             $this->MultiCell($col1W - 4.0, $rowLineH, $this->sanitizeText($fullLabel), 0, 'L');
 
             $padY2 = $curY + (($rowH - ($lines2 * $rowLineH)) / 2.0);
             $this->SetXY($curX + $col1W + 1.5, $padY2);
-            $this->SetFont($this->fontFamily, '', 8.5);
+            $this->SetFont($this->fontFamily, '', 9.5);
             if ($valStr === 'To be scheduled') {
                 $this->SetTextColor(148, 163, 184);
             } else {
@@ -1194,14 +1192,14 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         $this->Ln(3.5);
 
         // 5. Project Scope & Resource Summary
-        if ($this->GetY() + 30.0 > $this->GetPageHeight() - $this->bottomMargin) {
+        if ($this->GetY() + 32.0 > $this->GetPageHeight() - $this->bottomMargin) {
             $this->AddPage();
         }
 
-        $this->SetFont($this->fontFamily, 'B', 10.0);
+        $this->SetFont($this->fontFamily, 'B', 11.0);
         $this->SetTextColor(15, 23, 42);
         $this->Cell($w, 5.5, 'Project Scope & Resource Summary:', 0, 1, 'L');
-        $this->Ln(1.5);
+        $this->Ln(1.8);
 
         $boxColW = $w / 2.0;
         $boxH = 12.0;
@@ -1257,173 +1255,51 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
 
         $this->SetY($curY + $boxH + 5.0);
 
-        // 6. Institutional Signatories
-        if ($this->GetY() + 55.0 > $this->GetPageHeight() - $this->bottomMargin) {
+        // 6. Institutional Signatories (Dynamic 12-Column CSS Grid Engine)
+        if ($this->GetY() + 45.0 > $this->GetPageHeight() - $this->bottomMargin) {
             $this->AddPage();
         }
 
-        $sigY = $this->GetY() + 3.0;
-        $halfW = floor($w / 2.0);
+        // Fetch runtime signatories from sys_document_signatories
+        $signatories = DocumentSignatory::where('document_type', $plan->getMorphClass())
+            ->where('document_id', $plan->getKey())
+            ->orderBy('sort_order', 'asc')
+            ->get();
 
-        $signatures = $plan->metadata['signatures'] ?? [];
-        $prepSig = $signatures['prepared'] ?? null;
-        $notedSig = $signatures['noted'] ?? null;
-        $apprSig = $signatures['approved'] ?? null;
+        if ($signatories->isEmpty()) {
+            ExtensionSignatoryResolver::snapshotToDocument($plan);
+            $signatories = DocumentSignatory::where('document_type', $plan->getMorphClass())
+                ->where('document_id', $plan->getKey())
+                ->orderBy('sort_order', 'asc')
+                ->get();
+        }
 
-        $renderSigImage = function (?string $base64Data, float $x, float $y, float $maxW, float $maxH): void {
-            if (empty($base64Data)) {
-                return;
-            }
-            try {
-                if (str_contains($base64Data, ',')) {
-                    $base64Data = explode(',', $base64Data, 2)[1];
+        // Dynamically align unsigned signatories with current central matrix layout
+        $matrices = DocumentSignatoryMatrix::where('tenant_id', $plan->tenant_id ?? 1)
+            ->where('is_active', true)
+            ->where(function ($q) {
+                $q->where('doc_type_id', 1)
+                    ->orWhere('process_type', 'Extension Plan');
+            })
+            ->orderBy('sort_order', 'asc')
+            ->get()
+            ->keyBy('sort_order');
+
+        if ($matrices->isNotEmpty()) {
+            foreach ($signatories as $sig) {
+                if (empty($sig->signed_at) && $matrices->has($sig->sort_order)) {
+                    $mat = $matrices->get($sig->sort_order);
+                    $sig->col_span = $mat->col_span ?: 12;
+                    $sig->alignment = $mat->alignment ?: 'left';
+                    if (! empty($mat->role_label)) {
+                        $sig->role_label = $mat->role_label;
+                    }
+                    $sig->save();
                 }
-                $bin = base64_decode($base64Data);
-                if ($bin) {
-                    $tmp = tempnam(sys_get_temp_dir(), 'sig_').'.png';
-                    file_put_contents($tmp, $bin);
-                    $this->Image($tmp, $x, $y, $maxW, $maxH);
-                    @unlink($tmp);
-                }
-            } catch (\Throwable $e) {
-                // Ignore image rendering error gracefully
             }
-        };
-
-        // ── 4-COLUMN DYNAMIC EXTENSION PLAN SIGNATORIES ──
-        $resolvedDynamic = ExtensionSignatoryResolver::resolveForPlan(
-            $plan->academic_program_id,
-            null,
-            $plan->preparedByUser
-        );
-
-        $prepLabel = 'Prepared by:';
-        $prepName = $plan->prepared_by_name ?: ($resolvedDynamic['prepared']['name'] ?? 'Project Leader');
-        $prepTitle = $plan->prepared_by_designation ?: ($resolvedDynamic['prepared']['designation'] ?? 'Project Leader');
-
-        $revLabel = 'Reviewed by:';
-        $revName = $plan->reviewed_by_name ?: ($resolvedDynamic['reviewed']['name'] ?? 'College Head for Extension');
-        $revTitle = $plan->reviewed_by_designation ?: ($resolvedDynamic['reviewed']['designation'] ?? 'College Head for Extension');
-
-        $notedLabel = 'Noted by:';
-        $notedName = $plan->noted_by_name ?: ($resolvedDynamic['noted']['name'] ?? 'College Dean');
-        $notedTitle = $plan->noted_by_designation ?: ($resolvedDynamic['noted']['designation'] ?? 'College Dean');
-
-        $concLabel = 'Concurred by:';
-        $conc1Name = $plan->concurred_by_name ?: ($resolvedDynamic['concurred_1']['name'] ?? 'EVER JOY G. RABADAN, MAEM, MSc.');
-        $conc1Title = $plan->concurred_by_designation ?: ($resolvedDynamic['concurred_1']['designation'] ?? 'University Extension Specialist V');
-
-        $conc2Name = $plan->concurred_by_2_name ?: ($resolvedDynamic['concurred_2']['name'] ?? 'ALVIE ELMA C. PLAZA, MA');
-        $conc2Title = $plan->concurred_by_2_designation ?: ($resolvedDynamic['concurred_2']['designation'] ?? 'University Extension Director');
-
-        $colW = floor($w / 4.0);
-        $pad = 2.0;
-        $innerW = $colW - ($pad * 2);
-
-        // Column 1: Prepared by
-        $x1 = $margin + $pad;
-        $this->SetXY($x1, $sigY);
-        $this->SetFont($this->fontFamily, 'B', 8.5);
-        $this->SetTextColor(51, 65, 85);
-        $this->Cell($innerW, 4.0, $prepLabel, 0, 1, 'L');
-
-        if ($prepSig && ! empty($prepSig['signature_img'])) {
-            $renderSigImage($prepSig['signature_img'], $x1, $sigY + 2.5, 30.0, 9.0);
         }
 
-        $this->SetXY($x1, $sigY + 12.0);
-        $this->SetFont($this->fontFamily, 'B', 8.0);
-        $this->SetTextColor(15, 23, 42);
-        $this->MultiCell($innerW, 3.6, strtoupper($this->sanitizeText($prepName)), 0, 'L');
-        $endY1 = $this->GetY();
-
-        $this->SetXY($x1, $endY1);
-        $this->SetFont($this->fontFamily, '', 7.5);
-        $this->SetTextColor(71, 85, 105);
-        $this->MultiCell($innerW, 3.2, $this->sanitizeText($prepTitle), 0, 'L');
-        $endY1 = $this->GetY();
-
-        // Column 2: Reviewed by (College Extension Head)
-        $x2 = $margin + $colW + $pad;
-        $this->SetXY($x2, $sigY);
-        $this->SetFont($this->fontFamily, 'B', 8.5);
-        $this->SetTextColor(51, 65, 85);
-        $this->Cell($innerW, 4.0, $revLabel, 0, 1, 'L');
-
-        $revSig = $signatures['reviewed'] ?? null;
-        if ($revSig && ! empty($revSig['signature_img'])) {
-            $renderSigImage($revSig['signature_img'], $x2, $sigY + 2.5, 30.0, 9.0);
-        }
-
-        $this->SetXY($x2, $sigY + 12.0);
-        $this->SetFont($this->fontFamily, 'B', 8.0);
-        $this->SetTextColor(15, 23, 42);
-        $this->MultiCell($innerW, 3.6, strtoupper($this->sanitizeText($revName)), 0, 'L');
-        $endY2 = $this->GetY();
-
-        $this->SetXY($x2, $endY2);
-        $this->SetFont($this->fontFamily, '', 7.5);
-        $this->SetTextColor(71, 85, 105);
-        $this->MultiCell($innerW, 3.2, $this->sanitizeText($revTitle), 0, 'L');
-        $endY2 = $this->GetY();
-
-        // Column 3: Noted by (College Dean / UnitHead)
-        $x3 = $margin + ($colW * 2) + $pad;
-        $this->SetXY($x3, $sigY);
-        $this->SetFont($this->fontFamily, 'B', 8.5);
-        $this->SetTextColor(51, 65, 85);
-        $this->Cell($innerW, 4.0, $notedLabel, 0, 1, 'L');
-
-        if ($notedSig && ! empty($notedSig['signature_img'])) {
-            $renderSigImage($notedSig['signature_img'], $x3, $sigY + 2.5, 30.0, 9.0);
-        }
-
-        $this->SetXY($x3, $sigY + 12.0);
-        $this->SetFont($this->fontFamily, 'B', 8.0);
-        $this->SetTextColor(15, 23, 42);
-        $this->MultiCell($innerW, 3.6, strtoupper($this->sanitizeText($notedName)), 0, 'L');
-        $endY3 = $this->GetY();
-
-        $this->SetXY($x3, $endY3);
-        $this->SetFont($this->fontFamily, '', 7.5);
-        $this->SetTextColor(71, 85, 105);
-        $this->MultiCell($innerW, 3.2, $this->sanitizeText($notedTitle), 0, 'L');
-        $endY3 = $this->GetY();
-
-        // Column 4: Concurred by (Institutional Extension Specialists & Director)
-        $x4 = $margin + ($colW * 3) + $pad;
-        $this->SetXY($x4, $sigY);
-        $this->SetFont($this->fontFamily, 'B', 8.5);
-        $this->SetTextColor(51, 65, 85);
-        $this->Cell($innerW, 4.0, $concLabel, 0, 1, 'L');
-
-        $this->SetXY($x4, $sigY + 12.0);
-        $this->SetFont($this->fontFamily, 'B', 8.0);
-        $this->SetTextColor(15, 23, 42);
-        $this->MultiCell($innerW, 3.6, strtoupper($this->sanitizeText($conc1Name)), 0, 'L');
-        $endY4a = $this->GetY();
-
-        $this->SetXY($x4, $endY4a);
-        $this->SetFont($this->fontFamily, '', 7.5);
-        $this->SetTextColor(71, 85, 105);
-        $this->MultiCell($innerW, 3.2, $this->sanitizeText($conc1Title), 0, 'L');
-        $endY4b = $this->GetY();
-
-        // 2nd Concurred Official (Director)
-        $this->SetXY($x4, $endY4b + 4.0);
-        $this->SetFont($this->fontFamily, 'B', 8.0);
-        $this->SetTextColor(15, 23, 42);
-        $this->MultiCell($innerW, 3.6, strtoupper($this->sanitizeText($conc2Name)), 0, 'L');
-        $endY4c = $this->GetY();
-
-        $this->SetXY($x4, $endY4c);
-        $this->SetFont($this->fontFamily, '', 7.5);
-        $this->SetTextColor(71, 85, 105);
-        $this->MultiCell($innerW, 3.2, $this->sanitizeText($conc2Title), 0, 'L');
-        $endY4d = $this->GetY();
-
-        $finalMaxY = max($endY1, $endY2, $endY3, $endY4d);
-        $this->SetY($finalMaxY + 5.0);
+        $this->render12ColSignatoryBlock($signatories, $w, $margin);
     }
 
     /**
@@ -2683,6 +2559,147 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         }
 
         $this->renderPolicyLegacySignatory();
+    }
+
+    /**
+     * Render signatories in a dynamic 12-column CSS-style grid layout.
+     * Supports col_span (1-12), alignment (left, center, right), signature line,
+     * digital signature image, uppercase bold names, and designations.
+     */
+    public function render12ColSignatoryBlock(iterable $signatories, ?float $w = null, ?float $margin = null): void
+    {
+        $w = $w ?? $this->contentWidth;
+        $margin = $margin ?? $this->leftMargin;
+
+        if (empty($signatories)) {
+            return;
+        }
+
+        // Group signatories into rows based on 12-column capacity
+        $rows = [];
+        $currentRow = [];
+        $currentCols = 0;
+
+        foreach ($signatories as $sig) {
+            $span = max(1, min(12, (int) ($sig->col_span ?: 6)));
+            if ($currentCols + $span > 12 && ! empty($currentRow)) {
+                $rows[] = $currentRow;
+                $currentRow = [];
+                $currentCols = 0;
+            }
+            $currentRow[] = [
+                'sig' => $sig,
+                'span' => $span,
+                'align' => strtolower($sig->alignment ?: 'left'),
+            ];
+            $currentCols += $span;
+        }
+        if (! empty($currentRow)) {
+            $rows[] = $currentRow;
+        }
+
+        $renderSigImage = function (?string $base64Data, float $x, float $y, float $maxW, float $maxH): void {
+            if (empty($base64Data)) {
+                return;
+            }
+            try {
+                if (str_contains($base64Data, ',')) {
+                    $base64Data = explode(',', $base64Data, 2)[1];
+                }
+                $bin = base64_decode($base64Data);
+                if ($bin) {
+                    $tmp = tempnam(sys_get_temp_dir(), 'sig_').'.png';
+                    file_put_contents($tmp, $bin);
+                    $this->Image($tmp, $x, $y, $maxW, $maxH);
+                    @unlink($tmp);
+                }
+            } catch (\Throwable $e) {
+                // Ignore image rendering error gracefully
+            }
+        };
+
+        foreach ($rows as $row) {
+            if ($this->GetY() + 40.0 > $this->GetPageHeight() - $this->bottomMargin) {
+                $this->AddPage();
+            }
+
+            $rowY = $this->GetY() + 4.0;
+            $currentX = $margin;
+            $rowMaxEndY = $rowY + 24.0;
+
+            foreach ($row as $item) {
+                $sig = $item['sig'];
+                $span = $item['span'];
+                $align = $item['align'];
+                $colWidth = ($span / 12.0) * $w;
+                $pad = 2.5;
+                $innerW = $colWidth - ($pad * 2);
+                $itemX = $currentX + $pad;
+
+                $fpdfAlign = ($align === 'center') ? 'C' : (($align === 'right') ? 'R' : 'L');
+
+                // A. Role Label
+                $this->SetXY($itemX, $rowY);
+                $this->SetFont($this->fontFamily, 'B', 10.0);
+                $this->SetTextColor(51, 65, 85);
+                $rawLabel = trim($sig->role_label ?? '');
+                $roleLabel = ($rawLabel === '.' || $rawLabel === '') ? '' : $this->sanitizeText($rawLabel);
+                if (! empty($roleLabel)) {
+                    $this->Cell($innerW, 4.2, $roleLabel, 0, 1, $fpdfAlign);
+                }
+
+                // B. Signature Space Geometry & Placement (No underline line)
+                $lineWidth = min(68.0, $innerW);
+                $lineX = match ($align) {
+                    'center' => $itemX + (($innerW - $lineWidth) / 2.0),
+                    'right' => $itemX + $innerW - $lineWidth,
+                    default => $itemX,
+                };
+                $nameY = $rowY + 16.0;
+
+                // C. Digital Signature Image (if signed)
+                if (! empty($sig->signature_img)) {
+                    $imgW = min(36.0, $lineWidth);
+                    $imgH = 11.0;
+                    $imgX = $lineX + (($lineWidth - $imgW) / 2.0);
+                    $imgY = $nameY - $imgH - 1.0;
+                    $renderSigImage($sig->signature_img, $imgX, $imgY, $imgW, $imgH);
+                }
+
+                // D. Signatory Name (Bold, Uppercase, Font Size 11.0)
+                $this->SetXY($itemX, $nameY);
+                $this->SetFont($this->fontFamily, 'B', 11.0);
+                $this->SetTextColor(15, 23, 42);
+                $name = $sig->signatory_name ?? ($sig->employee_name ?? 'Authorized Signatory');
+                $nameText = strtoupper($this->sanitizeText($name));
+                $this->MultiCell($innerW, 4.4, $nameText, 0, $fpdfAlign);
+                $nameEndY = $this->GetY();
+
+                // E. Designation (Font Size 9.0)
+                $desig = $sig->designation ?? '';
+                if (! empty($desig)) {
+                    $this->SetXY($itemX, $nameEndY);
+                    $this->SetFont($this->fontFamily, '', 9.0);
+                    $this->SetTextColor(71, 85, 105);
+                    $desigText = $this->sanitizeText($desig);
+                    $this->MultiCell($innerW, 3.6, $desigText, 0, $fpdfAlign);
+                }
+
+                // F. Office / Unit (if present, Font Size 8.5)
+                $office = $sig->office ?? '';
+                if (! empty($office)) {
+                    $this->SetXY($itemX, $this->GetY());
+                    $this->SetFont($this->fontFamily, '', 8.5);
+                    $this->SetTextColor(100, 116, 139);
+                    $this->MultiCell($innerW, 3.4, $this->sanitizeText($office), 0, $fpdfAlign);
+                }
+
+                $rowMaxEndY = max($rowMaxEndY, $this->GetY());
+                $currentX += $colWidth;
+            }
+
+            $this->SetY($rowMaxEndY + 5.0);
+        }
     }
 
     /**

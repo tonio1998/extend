@@ -125,6 +125,66 @@ class ExtensionCollegeSignatorySeeder extends Seeder
                 ],
                 'programs' => ['Arts', 'Sciences', 'AB', 'Biology', 'Mathematics'],
             ],
+            [
+                'code' => 'COE',
+                'name' => 'College of Engineering',
+                'short' => 'COE',
+                'dean' => [
+                    'first' => 'Catherine',
+                    'last' => 'Verallo',
+                    'full' => 'ENGR. CATHERINE M. VERALLO, MScPe, PCpE',
+                    'title' => 'College of Engineering Dean',
+                    'email' => 'c.verallo@adssu.edu.ph',
+                ],
+                'extension_head' => [
+                    'first' => 'Rosanne',
+                    'last' => 'Andaluz',
+                    'full' => 'ENGR. ROSANNE ANDALUZ, PhD.',
+                    'title' => 'College of Engineering Head for Extension',
+                    'email' => 'r.andaluz@adssu.edu.ph',
+                ],
+                'programs' => ['Engineering', 'Civil', 'Electrical', 'Mechanical', 'Computer Engineering', 'BSCE', 'BSEE', 'BSME', 'BSCPE'],
+            ],
+            [
+                'code' => 'MAINIT',
+                'name' => 'Mainit Campus',
+                'short' => 'Mainit',
+                'dean' => [
+                    'first' => 'Juliet Ruth',
+                    'last' => 'Mozar',
+                    'full' => 'JULIET RUTH D. MOZAR, EdD',
+                    'title' => 'Director, Mainit Campus',
+                    'email' => 'j.mozar@adssu.edu.ph',
+                ],
+                'extension_head' => [
+                    'first' => 'Jan Darvine',
+                    'last' => 'Ojeda',
+                    'full' => 'MR. JAN DARVINE C. OJEDA',
+                    'title' => 'Mainit Campus Head for Extension',
+                    'email' => 'j.ojeda@adssu.edu.ph',
+                ],
+                'programs' => ['Mainit', 'Agriculture', 'Agro-Forestry', 'Forestry'],
+            ],
+            [
+                'code' => 'MALIMONO',
+                'name' => 'Malimono Campus',
+                'short' => 'Malimono',
+                'dean' => [
+                    'first' => 'Jerry',
+                    'last' => 'Acero',
+                    'full' => 'JERRY B. ACERO, DiSDS',
+                    'title' => 'Director, Malimono Campus',
+                    'email' => 'j.acero@adssu.edu.ph',
+                ],
+                'extension_head' => [
+                    'first' => 'Criselle',
+                    'last' => 'Sarcol-Sabillo',
+                    'full' => 'CRISELLE SARCOL-SABILLO, MSc.',
+                    'title' => 'Malimono Campus Head for Extension',
+                    'email' => 'c.sabillo@adssu.edu.ph',
+                ],
+                'programs' => ['Malimono', 'Fisheries', 'Marine Biology'],
+            ],
         ];
 
         // 3. Process each College Unit and its Officers

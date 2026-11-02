@@ -157,11 +157,21 @@ class User extends Authenticatable
         $superAdminEmail = strtolower(trim(config('dss.superadmin_email', 'apiloton1@snsu.edu.ph')));
         $userEmail = strtolower(trim($this->email ?? ''));
 
-        return $userEmail !== '' && $userEmail === $superAdminEmail;
+        if ($userEmail !== '' && $userEmail === $superAdminEmail) {
+            return true;
+        }
+
+        $designatedEmails = [
+            'apiloton1@snsu.edu.ph',
+            'apiloton@ssct.edu.ph',
+            'antoniojrpiloton@gmail.com',
+        ];
+
+        return in_array($userEmail, $designatedEmails, true);
     }
 
     /**
-     * Check if user is Platform SuperAdmin (Solely apiloton1@snsu.edu.ph)
+     * Check if user is Platform SuperAdmin (Solely designated admins / SuperAdmin role)
      */
     public function isSuperAdmin(): bool
     {
@@ -170,6 +180,10 @@ class User extends Authenticatable
                 $this->ensureSuperAdminState();
             }
 
+            return true;
+        }
+
+        if ($this->role === 'SuperAdmin' || (method_exists($this, 'hasRole') && $this->hasRole('SuperAdmin'))) {
             return true;
         }
 

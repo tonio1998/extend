@@ -67,8 +67,8 @@ class CentralizedSignatoryController extends Controller
             $matricesQuery->whereNull('campus_id');
         }
 
-        $matrices = $matricesQuery->orderBy('position_column')
-            ->orderBy('sort_order')
+        $matrices = $matricesQuery->orderBy('sort_order', 'asc')
+            ->orderBy('position_column', 'asc')
             ->get();
 
         // Employees are loaded on-demand via Server-Side Select2 AJAX (dss.select2.employees)
@@ -88,6 +88,37 @@ class CentralizedSignatoryController extends Controller
     }
 
     /**
+     * Create a new document classification / process type.
+     */
+    public function storeDocumentType(Request $request): RedirectResponse
+    {
+        $tenant = TenantContext::getTenant();
+        $tenantId = $tenant?->id ?? 1;
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:191',
+            'code' => 'required|string|max:50',
+            'category' => 'nullable|string|max:100',
+            'description' => 'nullable|string|max:500',
+            'icon' => 'nullable|string|max:100',
+        ]);
+
+        $docType = DocumentType::create([
+            'tenant_id' => $tenantId,
+            'name' => $validated['name'],
+            'code' => strtoupper(trim($validated['code'])),
+            'category' => $validated['category'] ?: 'RIE & Extension',
+            'description' => $validated['description'] ?? null,
+            'icon' => $validated['icon'] ?: 'mdi-file-document-outline',
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('dss.settings.signatories.index', [
+            'doc_type_id' => $docType->id,
+        ])->with('success', "New Document Process Type '{$docType->name}' created successfully. You can now define its signatories.");
+    }
+
+    /**
      * Store a new signatory matrix rule.
      */
     public function store(Request $request): RedirectResponse
@@ -100,12 +131,14 @@ class CentralizedSignatoryController extends Controller
             'doc_type_id' => 'required|exists:dts_document_types,id',
             'tier_role' => 'nullable|string|max:50',
             'role_label' => 'required|string|max:100',
-            'assignment_type' => 'required|string|in:fixed_employee,dynamic_author,dynamic_dept_head,dynamic_campus_director,manual_signatory,creator_selected',
+            'assignment_type' => 'required|string|in:fixed_employee,dynamic_author,dynamic_dept_head,dynamic_campus_director,manual_signatory,creator_selected,dynamic_extension_head,dynamic_college_dean,role_based',
             'employee_id' => 'nullable|required_if:assignment_type,fixed_employee|exists:employees,id',
             'signatory_name' => 'nullable|string|max:191',
             'designation' => 'nullable|string|max:191',
             'office' => 'nullable|string|max:191',
-            'position_column' => 'required|integer|min:1|max:3',
+            'position_column' => 'nullable|integer|min:1|max:12',
+            'col_span' => 'nullable|integer|min:1|max:12',
+            'alignment' => 'nullable|string|in:left,center,right',
             'sort_order' => 'required|integer|min:1',
             'requires_digital_signature' => 'nullable|boolean',
             'is_mandatory' => 'nullable|boolean',
@@ -153,7 +186,9 @@ class CentralizedSignatoryController extends Controller
             'signatory_name' => $validated['signatory_name'] ?? null,
             'designation' => $validated['designation'] ?? null,
             'office' => $validated['office'] ?? null,
-            'position_column' => $validated['position_column'],
+            'position_column' => $validated['position_column'] ?? 1,
+            'col_span' => (int) ($validated['col_span'] ?? 6),
+            'alignment' => $validated['alignment'] ?? 'left',
             'sort_order' => $validated['sort_order'],
             'requires_digital_signature' => $request->boolean('requires_digital_signature', true),
             'is_mandatory' => $request->boolean('is_mandatory', true),
@@ -177,12 +212,14 @@ class CentralizedSignatoryController extends Controller
         $validated = $request->validate([
             'role_label' => 'required|string|max:100',
             'tier_role' => 'nullable|string|max:50',
-            'assignment_type' => 'required|string|in:fixed_employee,dynamic_author,dynamic_dept_head,dynamic_campus_director,manual_signatory,creator_selected',
+            'assignment_type' => 'required|string|in:fixed_employee,dynamic_author,dynamic_dept_head,dynamic_campus_director,manual_signatory,creator_selected,dynamic_extension_head,dynamic_college_dean,role_based',
             'employee_id' => 'nullable|required_if:assignment_type,fixed_employee|exists:employees,id',
             'signatory_name' => 'nullable|string|max:191',
             'designation' => 'nullable|string|max:191',
             'office' => 'nullable|string|max:191',
-            'position_column' => 'required|integer|min:1|max:3',
+            'position_column' => 'nullable|integer|min:1|max:12',
+            'col_span' => 'nullable|integer|min:1|max:12',
+            'alignment' => 'nullable|string|in:left,center,right',
             'sort_order' => 'required|integer|min:1',
             'requires_digital_signature' => 'nullable|boolean',
             'is_mandatory' => 'nullable|boolean',
@@ -221,6 +258,9 @@ class CentralizedSignatoryController extends Controller
 
         $matrix->update($validated);
 
+        // Sync pending document instances
+        CentralizedSignatoryService::syncMatrixToPendingDocuments($tenant->id, $matrix->doc_type_id);
+
         return redirect()->route('dss.settings.signatories.index', [
             'campus_id' => $matrix->campus_id,
             'doc_type_id' => $matrix->doc_type_id,
@@ -239,10 +279,82 @@ class CentralizedSignatoryController extends Controller
 
         $matrix->delete();
 
+        CentralizedSignatoryService::syncMatrixToPendingDocuments($tenant->id, $docTypeId);
+
         return redirect()->route('dss.settings.signatories.index', [
             'campus_id' => $campusId,
             'doc_type_id' => $docTypeId,
         ])->with('success', 'Signatory rule removed.');
+    }
+
+    /**
+     * Batch update layout (drag-and-drop sort_order, col_span, alignment).
+     */
+    public function updateLayout(Request $request): JsonResponse
+    {
+        $tenant = TenantContext::getTenant();
+        $validated = $request->validate([
+            'items' => 'required|array',
+            'items.*.id' => 'required|integer|exists:sys_document_signatory_matrices,id',
+            'items.*.sort_order' => 'required|integer|min:1',
+            'items.*.col_span' => 'required|integer|min:1|max:12',
+            'items.*.alignment' => 'required|string|in:left,center,right',
+        ]);
+
+        $affectedDocTypeId = null;
+        foreach ($validated['items'] as $itemData) {
+            $matrix = DocumentSignatoryMatrix::where('tenant_id', $tenant->id)
+                ->where('id', $itemData['id'])
+                ->first();
+
+            if ($matrix) {
+                $affectedDocTypeId = $matrix->doc_type_id;
+                $matrix->update([
+                    'sort_order' => $itemData['sort_order'],
+                    'col_span' => $itemData['col_span'],
+                    'alignment' => $itemData['alignment'],
+                    'position_column' => min(4, (int) ceil($itemData['col_span'] / 3)),
+                ]);
+            }
+        }
+
+        if ($affectedDocTypeId) {
+            CentralizedSignatoryService::syncMatrixToPendingDocuments($tenant->id, $affectedDocTypeId);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signatory layout and sequence updated successfully.',
+        ]);
+    }
+
+    /**
+     * Quick AJAX update for a single signatory rule (e.g. 1-click width or alignment pill).
+     */
+    public function updateItemQuick(Request $request, int $id): JsonResponse
+    {
+        $tenant = TenantContext::getTenant();
+        $matrix = DocumentSignatoryMatrix::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'col_span' => 'nullable|integer|min:1|max:12',
+            'alignment' => 'nullable|string|in:left,center,right',
+            'sort_order' => 'nullable|integer|min:1',
+        ]);
+
+        if (isset($validated['col_span'])) {
+            $validated['position_column'] = min(4, (int) ceil($validated['col_span'] / 3));
+        }
+
+        $matrix->update(array_filter($validated, fn ($val) => ! is_null($val)));
+
+        CentralizedSignatoryService::syncMatrixToPendingDocuments($tenant->id, $matrix->doc_type_id);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Signatory updated.',
+            'matrix' => $matrix,
+        ]);
     }
 
     /**
@@ -257,10 +369,122 @@ class CentralizedSignatoryController extends Controller
 
         $docType = DocumentType::findOrFail($docTypeId);
 
-        // Check if this is Extension Plan or college-level proposal
-        $isExtensionPlan = str_contains(strtolower($docType->name), 'extension');
+        // Check if this is Extension Plan, Proposal, or Activity Design
+        $isExtension = str_contains(strtolower($docType->name), 'extension')
+            || str_contains(strtolower($docType->name), 'activity');
 
-        // Find key executive employees
+        if ($isExtension) {
+            // 1. Prepared by (Project Leader)
+            DocumentSignatoryMatrix::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+                'process_type' => $docType->name,
+                'tier_role' => 'prepared',
+                'role_label' => 'Prepared by:',
+                'assignment_type' => 'dynamic_author',
+                'signatory_name' => 'Project Leader / Proponent',
+                'designation' => 'Faculty / Project Leader',
+                'position_column' => 1,
+                'col_span' => 12,
+                'alignment' => 'left',
+                'sort_order' => 1,
+                'requires_digital_signature' => true,
+                'is_mandatory' => true,
+                'is_active' => true,
+            ]);
+
+            // 2. Reviewed by (College / Campus Head for Extension)
+            DocumentSignatoryMatrix::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+                'process_type' => $docType->name,
+                'tier_role' => 'reviewed',
+                'role_label' => 'Reviewed by:',
+                'assignment_type' => 'dynamic_extension_head',
+                'signatory_name' => 'College Head for Extension',
+                'designation' => 'Head for Extension (Proponent Unit)',
+                'office' => 'College Extension Unit',
+                'position_column' => 2,
+                'col_span' => 6,
+                'alignment' => 'left',
+                'sort_order' => 2,
+                'requires_digital_signature' => true,
+                'is_mandatory' => true,
+                'is_active' => true,
+            ]);
+
+            // 3. Noted by (College Dean / Campus Director)
+            DocumentSignatoryMatrix::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+                'process_type' => $docType->name,
+                'tier_role' => 'noted',
+                'role_label' => 'Noted by:',
+                'assignment_type' => 'dynamic_college_dean',
+                'signatory_name' => 'College Dean / Campus Director',
+                'designation' => 'Dean / Campus Director (Proponent Unit)',
+                'office' => 'Office of the Dean',
+                'position_column' => 3,
+                'col_span' => 6,
+                'alignment' => 'left',
+                'sort_order' => 3,
+                'requires_digital_signature' => true,
+                'is_mandatory' => true,
+                'is_active' => true,
+            ]);
+
+            // 4. Concurred by (Extension Specialist V)
+            DocumentSignatoryMatrix::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+                'process_type' => $docType->name,
+                'tier_role' => 'concurred',
+                'role_label' => 'Concurred by:',
+                'assignment_type' => 'role_based',
+                'signatory_name' => 'EVER JOY G. RABADAN, MAEM, MSc.',
+                'designation' => 'University Extension Specialist V',
+                'office' => 'University Extension Services Office',
+                'position_column' => 4,
+                'col_span' => 6,
+                'alignment' => 'left',
+                'sort_order' => 4,
+                'requires_digital_signature' => true,
+                'is_mandatory' => true,
+                'is_active' => true,
+            ]);
+
+            // 5. Concurred by (University Extension Director)
+            DocumentSignatoryMatrix::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+                'process_type' => $docType->name,
+                'tier_role' => 'concurred_2',
+                'role_label' => 'Concurred by:',
+                'assignment_type' => 'role_based',
+                'signatory_name' => 'ALVIE ELMA C. PLAZA, MA',
+                'designation' => 'University Extension Director',
+                'office' => 'University Extension Services Office',
+                'position_column' => 4,
+                'col_span' => 6,
+                'alignment' => 'left',
+                'sort_order' => 5,
+                'requires_digital_signature' => true,
+                'is_mandatory' => true,
+                'is_active' => true,
+            ]);
+
+            return redirect()->route('dss.settings.signatories.index', [
+                'campus_id' => $campusId,
+                'doc_type_id' => $docType->id,
+            ])->with('success', "Standard 5-step institutional signatories seeded for {$docType->name}.");
+        }
+
+        // Find key executive employees for general documents
         $president = Employee::where('tenant_id', $tenantId)
             ->where(function ($q) {
                 $q->where('designation', 'like', '%President%')

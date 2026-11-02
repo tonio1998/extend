@@ -998,7 +998,7 @@
                                 <div class="shadow-sm font-sans text-break text-dark" style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 16px; border-bottom-right-radius: 4px !important; padding: 10px 14px;">
                                     <div class="d-flex align-items-center justify-content-end gap-1 mb-2">
                                         <span class="badge bg-danger text-white font-mono extra-small py-1 px-2 rounded-pill shadow-xs" style="font-size: 9.5px; font-weight: 600;">
-                                            <i class="mdi mdi-undo-variant me-0.5"></i> Revision Requested
+                                            <i class="mdi mdi-undo-variant me-1"></i> Revision Requested
                                         </span>
                                     </div>
                                     <div class="text-dark font-sans" style="font-size: 12.5px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(c.comment)}</div>
@@ -1020,7 +1020,7 @@
                                     <div class="shadow-sm font-sans text-break text-dark" style="background-color: #fff1f2; border: 1px solid #fecdd3; border-radius: 16px; border-bottom-left-radius: 4px !important; padding: 10px 14px;">
                                         <div class="d-flex align-items-center gap-1 mb-2">
                                             <span class="badge bg-danger text-white font-mono extra-small py-1 px-2 rounded-pill shadow-xs" style="font-size: 9.5px; font-weight: 600;">
-                                                <i class="mdi mdi-undo-variant me-0.5"></i> Revision Requested
+                                                <i class="mdi mdi-undo-variant me-1"></i> Revision Requested
                                             </span>
                                         </div>
                                         <div class="text-dark font-sans" style="font-size: 12.5px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(c.comment)}</div>
@@ -1037,7 +1037,7 @@
                                 <div class="shadow-sm font-sans text-break text-dark" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; border-bottom-right-radius: 4px !important; padding: 10px 14px;">
                                     <div class="d-flex align-items-center justify-content-end gap-1 mb-2">
                                         <span class="badge bg-success text-white font-mono extra-small py-1 px-2 rounded-pill shadow-xs" style="font-size: 9.5px; font-weight: 600;">
-                                            <i class="mdi mdi-check-decagram-outline me-0.5"></i> Endorsed
+                                            <i class="mdi mdi-check-decagram-outline me-1"></i> Endorsed
                                         </span>
                                     </div>
                                     <div class="text-dark font-sans" style="font-size: 12.5px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(c.comment)}</div>
@@ -1059,7 +1059,7 @@
                                     <div class="shadow-sm font-sans text-break text-dark" style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; border-bottom-left-radius: 4px !important; padding: 10px 14px;">
                                         <div class="d-flex align-items-center gap-1 mb-2">
                                             <span class="badge bg-success text-white font-mono extra-small py-1 px-2 rounded-pill shadow-xs" style="font-size: 9.5px; font-weight: 600;">
-                                                <i class="mdi mdi-check-decagram-outline me-0.5"></i> Endorsed
+                                                <i class="mdi mdi-check-decagram-outline me-1"></i> Endorsed
                                             </span>
                                         </div>
                                         <div class="text-dark font-sans" style="font-size: 12.5px; line-height: 1.5; white-space: pre-wrap;">${escapeHtml(c.comment)}</div>
@@ -1645,7 +1645,7 @@
                                             <td>
                                                 @if($doc->is_physically_signed)
                                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill extra-small px-2 py-1 font-mono mb-1 d-inline-block">
-                                                        <i class="mdi mdi-draw-pen me-0.5"></i> Wet-Signed Copy
+                                                        <i class="mdi mdi-draw-pen me-1"></i> Wet-Signed Copy
                                                     </span>
                                                 @endif
                                                 <div><span class="badge bg-light text-secondary border extra-small">{{ $doc->category_label }}</span></div>

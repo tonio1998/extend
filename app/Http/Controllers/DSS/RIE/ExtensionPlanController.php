@@ -8,7 +8,9 @@ use App\Http\Requests\RIE\UpdateExtensionPlanRequest;
 use App\Models\Accreditation\AcademicProgram;
 use App\Models\Employee;
 use App\Models\RIE\ExtensionPlan;
+use App\Models\RIE\ExtensionPlanActivity;
 use App\Models\SaaS\DocumentSignatory;
+use App\Models\SaaS\UploadedDocument;
 use App\Services\DSS\TenantContext;
 use App\Services\DTS\SnsuTrackingService;
 use App\Services\PDF\DocumentPdfGenerator;
@@ -21,6 +23,7 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Yajra\DataTables\Facades\DataTables;
 
@@ -303,35 +306,8 @@ class ExtensionPlanController extends Controller
         $progId = ! empty($validated['academic_program_id']) ? (int) $validated['academic_program_id'] : null;
         $resolvedSignatories = ExtensionSignatoryResolver::resolveForPlan($progId, null, $user);
 
-        $reviewedEmployeeId = $validated['reviewed_by_employee_id'] ?? $resolvedSignatories['reviewed']['employee_id'];
-        $reviewedByName = $validated['reviewed_by_name'] ?? $resolvedSignatories['reviewed']['name'];
-        $reviewedByDesignation = $validated['reviewed_by_designation'] ?? $resolvedSignatories['reviewed']['designation'];
-
-        $notedEmployeeId = $validated['noted_by_employee_id'] ?? $resolvedSignatories['noted']['employee_id'];
-        $notedByName = $validated['noted_by_name'] ?? $resolvedSignatories['noted']['name'];
-        $notedByDesignation = $validated['noted_by_designation'] ?? $resolvedSignatories['noted']['designation'];
-
-        $approvedEmployeeId = $validated['approved_by_employee_id'] ?? $notedEmployeeId;
-        $approvedByName = $validated['approved_by_name'] ?? $notedByName;
-        $approvedByDesignation = $validated['approved_by_designation'] ?? $notedByDesignation;
-
-        $concurredEmployeeId = $validated['concurred_by_employee_id'] ?? $resolvedSignatories['concurred_1']['employee_id'];
-        $concurredByName = $validated['concurred_by_name'] ?? $resolvedSignatories['concurred_1']['name'];
-        $concurredByDesignation = $validated['concurred_by_designation'] ?? $resolvedSignatories['concurred_1']['designation'];
-
-        $concurred2EmployeeId = $validated['concurred_by_2_employee_id'] ?? $resolvedSignatories['concurred_2']['employee_id'];
-        $concurred2ByName = $validated['concurred_by_2_name'] ?? $resolvedSignatories['concurred_2']['name'];
-        $concurred2ByDesignation = $validated['concurred_by_2_designation'] ?? $resolvedSignatories['concurred_2']['designation'];
-
-        $notedEmployee = $notedEmployeeId ? Employee::with(['department'])->find($notedEmployeeId) : null;
-        $approvedEmployee = $approvedEmployeeId ? Employee::with(['department'])->find($approvedEmployeeId) : null;
-        $reviewedEmployee = $reviewedEmployeeId ? Employee::with(['department'])->find($reviewedEmployeeId) : null;
-
-        $preparedByName = $user->name;
+        $preparedByName = $user->employee?->full_name ?: $user->name;
         $preparedByEmployeeId = $user->employee_id;
-        if ($user->employee) {
-            $preparedByName = $user->employee->full_name;
-        }
         $preparedByDesignation = 'Project Leader';
 
         $actionType = $request->input('action_type', 'submit');
@@ -430,25 +406,64 @@ class ExtensionPlanController extends Controller
                 'prepared_by_designation' => $preparedByDesignation,
                 'prepared_at' => now(),
                 'reviewed_by_user_id' => $resolvedSignatories['reviewed']['user_id'] ?? null,
-                'reviewed_by_employee_id' => $reviewedEmployeeId,
-                'reviewed_by_name' => $reviewedByName,
-                'reviewed_by_designation' => $reviewedByDesignation,
-                'noted_by_employee_id' => $notedEmployeeId,
-                'noted_by_name' => $notedByName,
-                'noted_by_designation' => $notedByDesignation,
-                'approved_by_employee_id' => $approvedEmployeeId,
-                'approved_by_name' => $approvedByName,
-                'approved_by_designation' => $approvedByDesignation,
-                'concurred_by_employee_id' => $concurredEmployeeId,
-                'concurred_by_name' => $concurredByName,
-                'concurred_by_designation' => $concurredByDesignation,
-                'concurred_by_2_employee_id' => $concurred2EmployeeId,
-                'concurred_by_2_name' => $concurred2ByName,
-                'concurred_by_2_designation' => $concurred2ByDesignation,
+                'reviewed_by_employee_id' => $resolvedSignatories['reviewed']['employee_id'] ?? null,
+                'reviewed_by_name' => $resolvedSignatories['reviewed']['name'] ?? null,
+                'reviewed_by_designation' => $resolvedSignatories['reviewed']['designation'] ?? null,
+                'noted_by_employee_id' => $resolvedSignatories['noted']['employee_id'] ?? null,
+                'noted_by_name' => $resolvedSignatories['noted']['name'] ?? null,
+                'noted_by_designation' => $resolvedSignatories['noted']['designation'] ?? null,
+                'approved_by_employee_id' => $resolvedSignatories['noted']['employee_id'] ?? null,
+                'approved_by_name' => $resolvedSignatories['noted']['name'] ?? null,
+                'approved_by_designation' => $resolvedSignatories['noted']['designation'] ?? null,
+                'concurred_by_employee_id' => $resolvedSignatories['concurred_1']['employee_id'] ?? null,
+                'concurred_by_name' => $resolvedSignatories['concurred_1']['name'] ?? null,
+                'concurred_by_designation' => $resolvedSignatories['concurred_1']['designation'] ?? null,
+                'concurred_by_2_employee_id' => $resolvedSignatories['concurred_2']['employee_id'] ?? null,
+                'concurred_by_2_name' => $resolvedSignatories['concurred_2']['name'] ?? null,
+                'concurred_by_2_designation' => $resolvedSignatories['concurred_2']['designation'] ?? null,
                 'status' => $planStatus,
             ]);
 
+            // Save dynamic activities/milestones into separate table
+            $rawMilestones = $request->input('milestones', []);
+            $cleanMilestones = [];
+            if (is_array($rawMilestones)) {
+                $mOrder = 1;
+                foreach ($rawMilestones as $m) {
+                    $mTitle = trim($m['title'] ?? '');
+                    if ($mTitle !== '') {
+                        $targetDate = trim($m['target_date'] ?? '');
+                        $dateParsed = ExtensionPlanActivity::parseDateRange($targetDate);
+
+                        ExtensionPlanActivity::create([
+                            'tenant_id' => $tenantId,
+                            'extension_plan_id' => $plan->id,
+                            'sort_order' => $mOrder++,
+                            'title' => $mTitle,
+                            'target_date' => $targetDate ?: null,
+                            'start_date' => $dateParsed['start_date'],
+                            'end_date' => $dateParsed['end_date'],
+                            'is_na' => $dateParsed['is_na'],
+                            'status' => 'pending',
+                        ]);
+
+                        $cleanMilestones[] = [
+                            'num' => $mOrder - 1,
+                            'title' => $mTitle,
+                            'target_date' => $targetDate,
+                        ];
+                    }
+                }
+            }
+            if (! empty($cleanMilestones)) {
+                $meta = $plan->metadata ?? [];
+                $meta['milestones'] = $cleanMilestones;
+                $plan->metadata = $meta;
+                $plan->save();
+            }
+
             try {
+                ExtensionSignatoryResolver::snapshotToDocument($plan);
                 CentralizedSignatoryService::instantiateForDocument(
                     $plan,
                     'Extension Plan',
@@ -513,12 +528,21 @@ class ExtensionPlanController extends Controller
             'uploadedDocuments.auditTrails',
             'physicallySignedDocument',
             'documentAuditTrails.user',
+            'documentSignatories.employee',
+            'documentSignatories.signedByUser',
+            'activities.uploadedByUser',
+            'activities.uploadedDocument',
         ];
         if (Schema::hasTable('dts_records') && Schema::hasTable('dts_record_routes')) {
             $relations[] = 'dtsRecord.routes.unit';
         }
 
         $plan = ExtensionPlan::with($relations)->findOrFail($planId);
+
+        if ($plan->documentSignatories->isEmpty()) {
+            ExtensionSignatoryResolver::snapshotToDocument($plan);
+            $plan->load(['documentSignatories.employee', 'documentSignatories.signedByUser']);
+        }
 
         if (empty($plan->reviewed_by_name) || empty($plan->concurred_by_name)) {
             $resolved = ExtensionSignatoryResolver::resolveForPlan($plan->academic_program_id, null, $plan->preparedByUser);
@@ -698,12 +722,16 @@ class ExtensionPlanController extends Controller
             ->orderBy('last_name', 'asc')
             ->get();
 
+        $defaultSignatories = ExtensionSignatoryResolver::resolve($institution, $user, $plan->academic_program_id);
+        $plan->load(['activities']);
+
         return view('dss.rie.extension_plans.edit', compact(
             'plan',
             'institution',
             'user',
             'academicPrograms',
-            'employees'
+            'employees',
+            'defaultSignatories'
         ));
     }
 
@@ -722,9 +750,6 @@ class ExtensionPlanController extends Controller
         }
 
         $validated = $request->validated();
-        $notedEmployee = Employee::with(['department'])->findOrFail($validated['noted_by_employee_id']);
-        $approvedEmployee = Employee::with(['department'])->findOrFail($validated['approved_by_employee_id']);
-
         $actionType = $request->input('action_type', 'draft');
         $planStatus = $actionType === 'submit' ? 'submitted' : ($plan->status === 'submitted' ? 'submitted' : 'draft');
 
@@ -757,15 +782,68 @@ class ExtensionPlanController extends Controller
             'target_beneficiaries_count' => (int) $validated['target_beneficiaries_count'],
             'proposed_budget' => (float) $validated['proposed_budget'],
             'extensionists_count' => (int) $validated['extensionists_count'],
-            'noted_by_employee_id' => $notedEmployee->id,
-            'noted_by_name' => $notedEmployee->full_name,
-            'noted_by_designation' => $validated['noted_by_designation'] ?: ($notedEmployee->designation ?? 'Head, Extension Services'),
-            'approved_by_employee_id' => $approvedEmployee->id,
-            'approved_by_name' => $approvedEmployee->full_name,
-            'approved_by_designation' => $validated['approved_by_designation'] ?: ($approvedEmployee->designation ?? 'College Dean'),
             'tracking_number' => array_key_exists('tracking_number', $validated) ? (! empty($validated['tracking_number']) ? trim((string) $validated['tracking_number']) : null) : $plan->tracking_number,
             'status' => $planStatus,
         ]);
+
+        // Save dynamic activities/milestones into separate table
+        $rawMilestones = $request->input('milestones', []);
+        $cleanMilestones = [];
+        if (is_array($rawMilestones)) {
+            $plan->activities()->delete();
+            $mOrder = 1;
+            foreach ($rawMilestones as $m) {
+                $mTitle = trim($m['title'] ?? '');
+                if ($mTitle !== '') {
+                    $targetDate = trim($m['target_date'] ?? '');
+                    $dateParsed = ExtensionPlanActivity::parseDateRange($targetDate);
+
+                    ExtensionPlanActivity::create([
+                        'tenant_id' => $plan->tenant_id ?? 1,
+                        'extension_plan_id' => $plan->id,
+                        'sort_order' => $mOrder++,
+                        'title' => $mTitle,
+                        'target_date' => $targetDate ?: null,
+                        'start_date' => $dateParsed['start_date'],
+                        'end_date' => $dateParsed['end_date'],
+                        'is_na' => $dateParsed['is_na'],
+                        'status' => 'pending',
+                    ]);
+
+                    $cleanMilestones[] = [
+                        'num' => $mOrder - 1,
+                        'title' => $mTitle,
+                        'target_date' => $targetDate,
+                    ];
+                }
+            }
+        }
+        $meta = $plan->metadata ?? [];
+        if (! empty($cleanMilestones)) {
+            $meta['milestones'] = $cleanMilestones;
+        } else {
+            unset($meta['milestones']);
+        }
+        $plan->metadata = $meta;
+        $plan->save();
+
+        // Dynamically refresh document signatories from the central matrix if draft or submitted
+        if ($plan->status === 'draft' || $plan->status === 'submitted') {
+            try {
+                ExtensionSignatoryResolver::snapshotToDocument($plan);
+                CentralizedSignatoryService::instantiateForDocument(
+                    $plan,
+                    'Extension Plan',
+                    $plan->tenant_id ?? 1,
+                    $plan->campus_id,
+                    $user,
+                    [],
+                    true
+                );
+            } catch (\Throwable $e) {
+                report($e);
+            }
+        }
 
         if (method_exists($plan, 'recordAuditTrail')) {
             $plan->recordAuditTrail(
@@ -874,6 +952,363 @@ class ExtensionPlanController extends Controller
         return response()->json([
             'success' => true,
             'data' => $liveData,
+        ]);
+    }
+
+    /**
+     * Upload wet-signed document proof for a specific milestone activity.
+     */
+    public function uploadActivityDocument(Request $request, string $id, int $activityId): JsonResponse
+    {
+        $planId = function_exists('dss_decrypt_id') ? dss_decrypt_id($id) : (int) $id;
+        $plan = ExtensionPlan::findOrFail($planId);
+
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Your session has expired. Please refresh the page and log in again.'], 401);
+        }
+        if (! $plan->canUploadMilestoneProofBy($user)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized to upload documents for this Extension Plan.'], 403);
+        }
+
+        // Sanitize and filter Google Drive links before validation
+        if ($request->has('gdrive_urls') && is_array($request->input('gdrive_urls'))) {
+            $cleaned = [];
+            foreach ($request->input('gdrive_urls') as $u) {
+                $trimmed = trim((string) $u);
+                if ($trimmed !== '') {
+                    if (! preg_match('#^https?://#i', $trimmed)) {
+                        $trimmed = 'https://'.$trimmed;
+                    }
+                    $cleaned[] = $trimmed;
+                }
+            }
+            $request->merge(['gdrive_urls' => $cleaned]);
+        }
+        if ($request->filled('gdrive_url')) {
+            $trimmed = trim((string) $request->input('gdrive_url'));
+            if (! preg_match('#^https?://#i', $trimmed)) {
+                $trimmed = 'https://'.$trimmed;
+            }
+            $request->merge(['gdrive_url' => $trimmed]);
+        }
+
+        $validated = $request->validate([
+            'file' => 'nullable|file|max:51200|mimes:pdf',
+            'files' => 'nullable|array',
+            'files.*' => 'nullable|file|max:51200|mimes:pdf',
+            'gdrive_url' => 'nullable|string|max:2000',
+            'gdrive_urls' => 'nullable|array',
+            'gdrive_urls.*' => 'nullable|string|max:1000',
+            'remarks' => 'nullable|string|max:500',
+        ], [
+            'file.mimes' => 'Only PDF documents (.pdf) are accepted.',
+            'files.*.mimes' => 'All uploaded files must be in PDF format (.pdf).',
+        ]);
+
+        $activity = ExtensionPlanActivity::where('extension_plan_id', $plan->id)->findOrFail($activityId);
+        $tenant = TenantContext::getTenant();
+        $tenantId = $tenant?->id ?? $plan->tenant_id ?? 1;
+
+        // Collect all physical files
+        $uploadedFiles = [];
+        if ($request->hasFile('files')) {
+            $uploadedFiles = array_filter((array) $request->file('files'));
+        }
+        if ($request->hasFile('file')) {
+            $uploadedFiles[] = $request->file('file');
+        }
+
+        // Collect all Google Drive links
+        $gdriveLinks = [];
+        if (! empty($validated['gdrive_urls']) && is_array($validated['gdrive_urls'])) {
+            foreach ($validated['gdrive_urls'] as $url) {
+                $trimmed = trim((string) $url);
+                if ($trimmed !== '') {
+                    $gdriveLinks[] = $trimmed;
+                }
+            }
+        }
+        if (! empty($validated['gdrive_url'])) {
+            $split = preg_split('/[\r\n,]+/', (string) $validated['gdrive_url']);
+            foreach ($split as $u) {
+                $trimmed = trim((string) $u);
+                if ($trimmed !== '' && (str_starts_with($trimmed, 'http://') || str_starts_with($trimmed, 'https://'))) {
+                    $gdriveLinks[] = $trimmed;
+                }
+            }
+        }
+        $gdriveLinks = array_values(array_unique($gdriveLinks));
+
+        if (empty($uploadedFiles) && empty($gdriveLinks)) {
+            return response()->json(['success' => false, 'message' => 'Please provide at least one document file or Google Drive link.'], 422);
+        }
+
+        $createdDocs = [];
+        $lastDoc = null;
+
+        // 1. Process physical files
+        foreach ($uploadedFiles as $file) {
+            $originalFilename = $file->getClientOriginalName();
+            $extension = strtolower($file->getClientOriginalExtension());
+            $mimeType = $file->getMimeType();
+            $fileSize = $file->getSize();
+            $sha256Hash = hash_file('sha256', $file->getRealPath());
+
+            $storedFilename = time().'_'.uniqid().'.'.$extension;
+            $folder = "extension_plans/{$plan->id}/milestones";
+            $filePath = $file->storeAs($folder, $storedFilename, 'public');
+            $disk = 'public';
+
+            $doc = UploadedDocument::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $plan->campus_id ?? $user->campus_id,
+                'uploaded_by_user_id' => $user->id,
+                'uploader_name' => $user->name,
+                'module' => 'rie',
+                'category' => 'wet_signed_milestone',
+                'documentable_type' => ExtensionPlanActivity::class,
+                'documentable_id' => $activity->id,
+                'title' => pathinfo($originalFilename, PATHINFO_FILENAME),
+                'original_filename' => $originalFilename,
+                'stored_filename' => $storedFilename,
+                'file_path' => $filePath,
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
+                'extension' => $extension,
+                'disk' => $disk,
+                'sha256_hash' => $sha256Hash,
+                'is_physically_signed' => true,
+                'signed_date' => now()->toDateString(),
+                'signatory_notes' => $validated['remarks'] ?? "Milestone proof scan uploaded by {$user->name}",
+                'version' => '1.0',
+                'status' => 'active',
+                'metadata' => [
+                    'plan_id' => $plan->id,
+                    'plan_code' => $plan->plan_code,
+                    'activity_id' => $activity->id,
+                    'activity_title' => $activity->title,
+                    'is_external' => false,
+                ],
+            ]);
+
+            $createdDocs[] = $doc;
+            $lastDoc = $doc;
+        }
+
+        // 2. Process Google Drive links
+        foreach ($gdriveLinks as $url) {
+            $isGdrive = str_contains($url, 'drive.google.com');
+            $originalFilename = $isGdrive ? "Google Drive: {$activity->title}" : "Cloud Document: {$activity->title}";
+            $extension = $isGdrive ? 'gdrive' : 'url';
+            $mimeType = 'application/vnd.google-apps.document';
+            $fileSize = 0;
+            $sha256Hash = hash('sha256', $url);
+
+            $doc = UploadedDocument::create([
+                'tenant_id' => $tenantId,
+                'campus_id' => $plan->campus_id ?? $user->campus_id,
+                'uploaded_by_user_id' => $user->id,
+                'uploader_name' => $user->name,
+                'module' => 'rie',
+                'category' => 'wet_signed_milestone',
+                'documentable_type' => ExtensionPlanActivity::class,
+                'documentable_id' => $activity->id,
+                'title' => "Public Cloud Link: {$activity->title}",
+                'original_filename' => $originalFilename,
+                'stored_filename' => $url,
+                'file_path' => $url,
+                'file_size' => $fileSize,
+                'mime_type' => $mimeType,
+                'extension' => $extension,
+                'disk' => 'external',
+                'sha256_hash' => $sha256Hash,
+                'is_physically_signed' => true,
+                'signed_date' => now()->toDateString(),
+                'signatory_notes' => $validated['remarks'] ?? "Public Google Drive document verification linked by {$user->name}",
+                'version' => '1.0',
+                'status' => 'active',
+                'metadata' => [
+                    'plan_id' => $plan->id,
+                    'plan_code' => $plan->plan_code,
+                    'activity_id' => $activity->id,
+                    'activity_title' => $activity->title,
+                    'is_external' => true,
+                    'is_gdrive' => $isGdrive,
+                    'external_url' => $url,
+                ],
+            ]);
+
+            $createdDocs[] = $doc;
+            $lastDoc = $doc;
+        }
+
+        if ($lastDoc) {
+            $activity->update([
+                'file_path' => $lastDoc->file_path,
+                'file_name' => $lastDoc->original_filename,
+                'file_size' => $lastDoc->file_size,
+                'mime_type' => $lastDoc->mime_type,
+                'uploaded_at' => now(),
+                'uploaded_by_user_id' => $user->id,
+                'uploaded_document_id' => $lastDoc->id,
+                'status' => 'completed',
+                'completed_at' => now(),
+                'remarks' => $validated['remarks'] ?? $activity->remarks,
+            ]);
+        }
+
+        $countTotal = count($createdDocs);
+        $countFiles = count($uploadedFiles);
+        $countLinks = count($gdriveLinks);
+
+        $summaryText = "Attached {$countTotal} document(s) ({$countFiles} file(s), {$countLinks} Google Drive link(s)) for milestone '{$activity->title}' by {$user->name}.";
+
+        if (method_exists($plan, 'recordAuditTrail')) {
+            $plan->recordAuditTrail(
+                'Milestone Proof Uploaded',
+                $summaryText,
+                $user,
+                $lastDoc?->id
+            );
+        }
+
+        $freshPlan = $plan->fresh();
+        $activity->refresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Successfully attached {$countTotal} document(s) to '{$activity->title}'.",
+            'activity' => [
+                'id' => $activity->id,
+                'title' => $activity->title,
+                'file_name' => $activity->file_name,
+                'file_url' => $activity->file_url,
+                'preview_url' => $activity->preview_url,
+                'formatted_file_size' => $activity->formatted_file_size,
+                'file_icon' => $activity->file_icon,
+                'uploaded_at' => $activity->uploaded_at?->format('M d, Y h:i A'),
+                'uploaded_by' => $user->name,
+                'status' => 'completed',
+                'is_completed' => true,
+                'documents' => $activity->documents_list,
+                'documents_count' => count($activity->documents_list),
+            ],
+            'progress' => [
+                'percentage' => $freshPlan->progress_percentage,
+                'completed_count' => $freshPlan->completed_milestones_count,
+                'active_count' => $freshPlan->active_milestones_count,
+                'status' => $freshPlan->progress_status,
+                'color' => $freshPlan->progress_color,
+            ],
+        ]);
+    }
+
+    /**
+     * Delete/remove wet-signed document proof for a milestone activity.
+     */
+    public function deleteActivityDocument(Request $request, string $id, int $activityId, ?int $docId = null): JsonResponse
+    {
+        $planId = function_exists('dss_decrypt_id') ? dss_decrypt_id($id) : (int) $id;
+        $plan = ExtensionPlan::findOrFail($planId);
+
+        $user = Auth::user();
+        if (! $user) {
+            return response()->json(['success' => false, 'message' => 'Your session has expired. Please refresh the page and log in again.'], 401);
+        }
+        if (! $plan->canUploadMilestoneProofBy($user)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized to remove document proof.'], 403);
+        }
+
+        $activity = ExtensionPlanActivity::where('extension_plan_id', $plan->id)->findOrFail($activityId);
+
+        $targetDocId = $docId ?: ((int) $request->input('document_id') ?: null);
+
+        if ($targetDocId) {
+            $targetDoc = UploadedDocument::where('id', $targetDocId)
+                ->where('documentable_type', ExtensionPlanActivity::class)
+                ->where('documentable_id', $activity->id)
+                ->first();
+
+            if (! $targetDoc && $activity->uploaded_document_id === $targetDocId) {
+                $targetDoc = UploadedDocument::find($targetDocId);
+            }
+
+            if ($targetDoc) {
+                if ($targetDoc->disk === 'public' && Storage::disk('public')->exists($targetDoc->file_path)) {
+                    Storage::disk('public')->delete($targetDoc->file_path);
+                }
+                $targetDoc->delete();
+            }
+        } else {
+            // Delete all attached documents
+            $allDocs = UploadedDocument::where('documentable_type', ExtensionPlanActivity::class)
+                ->where('documentable_id', $activity->id)
+                ->get();
+
+            foreach ($allDocs as $d) {
+                if ($d->disk === 'public' && Storage::disk('public')->exists($d->file_path)) {
+                    Storage::disk('public')->delete($d->file_path);
+                }
+                $d->delete();
+            }
+
+            if ($activity->file_path && Storage::disk('public')->exists($activity->file_path)) {
+                Storage::disk('public')->delete($activity->file_path);
+            }
+        }
+
+        // Check if any documents remain
+        $remaining = UploadedDocument::where('documentable_type', ExtensionPlanActivity::class)
+            ->where('documentable_id', $activity->id)
+            ->latest('id')
+            ->first();
+
+        if ($remaining) {
+            $activity->update([
+                'uploaded_document_id' => $remaining->id,
+                'file_path' => $remaining->file_path,
+                'file_name' => $remaining->original_filename,
+                'file_size' => $remaining->file_size,
+                'mime_type' => $remaining->mime_type,
+                'status' => 'completed',
+            ]);
+        } else {
+            $activity->update([
+                'file_path' => null,
+                'file_name' => null,
+                'file_size' => null,
+                'mime_type' => null,
+                'uploaded_at' => null,
+                'uploaded_by_user_id' => null,
+                'uploaded_document_id' => null,
+                'status' => 'pending',
+                'completed_at' => null,
+            ]);
+        }
+
+        if (method_exists($plan, 'recordAuditTrail')) {
+            $plan->recordAuditTrail(
+                'Milestone Proof Removed',
+                "Document proof for milestone '{$activity->title}' was updated/removed by {$user->name}.",
+                $user
+            );
+        }
+
+        $freshPlan = $plan->fresh();
+
+        return response()->json([
+            'success' => true,
+            'message' => "Document proof for '{$activity->title}' updated.",
+            'activity_id' => $activity->id,
+            'remaining_count' => count($activity->documents_list),
+            'progress' => [
+                'percentage' => $freshPlan->progress_percentage,
+                'completed_count' => $freshPlan->completed_milestones_count,
+                'active_count' => $freshPlan->active_milestones_count,
+                'status' => $freshPlan->progress_status,
+                'color' => $freshPlan->progress_color,
+            ],
         ]);
     }
 }

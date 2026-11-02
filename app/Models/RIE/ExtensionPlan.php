@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -169,6 +170,16 @@ class ExtensionPlan extends Model
         return $this->belongsTo(Employee::class, 'concurred_by_2_employee_id');
     }
 
+    public function activities(): HasMany
+    {
+        return $this->hasMany(ExtensionPlanActivity::class, 'extension_plan_id')->orderBy('sort_order', 'asc');
+    }
+
+    public function milestones(): HasMany
+    {
+        return $this->activities();
+    }
+
     public function getFormattedBudgetAttribute(): string
     {
         return '₱'.number_format((float) $this->proposed_budget, 2);
@@ -240,6 +251,151 @@ class ExtensionPlan extends Model
         }
 
         return (string) ($this->conduct_activity_date ?: '____________');
+    }
+
+    /**
+     * Get dynamic activities/milestones list from separate table with fallback.
+     *
+     * @return array<int, array{id?: int, num: int, title: string, target_date: ?string, is_na?: bool, status?: string, is_completed?: bool, file_name?: ?string, file_url?: ?string, preview_url?: ?string, formatted_file_size?: ?string, file_icon?: ?string, uploaded_at?: ?string}>
+     */
+    public function getMilestonesListAttribute(): array
+    {
+        $activities = $this->relationLoaded('activities')
+            ? $this->activities
+            : $this->activities()->with(['uploadedByUser', 'uploadedDocument'])->get();
+
+        if ($activities->isNotEmpty()) {
+            return $activities->map(function (ExtensionPlanActivity $act, $idx) {
+                return [
+                    'id' => $act->id,
+                    'num' => $act->sort_order ?: ($idx + 1),
+                    'title' => $act->title,
+                    'target_date' => $act->target_date,
+                    'is_na' => (bool) $act->is_na || strtolower(trim((string) $act->target_date)) === 'n/a',
+                    'status' => $act->status,
+                    'is_completed' => (bool) $act->is_completed,
+                    'file_name' => $act->file_name,
+                    'file_url' => $act->file_url,
+                    'preview_url' => $act->preview_url,
+                    'formatted_file_size' => $act->formatted_file_size,
+                    'file_icon' => $act->file_icon,
+                    'uploaded_at' => $act->uploaded_at?->format('M d, Y h:i A'),
+                    'uploaded_by' => $act->uploadedByUser?->name,
+                    'remarks' => $act->remarks,
+                    'documents' => $act->documents_list,
+                    'documents_count' => count($act->documents_list),
+                ];
+            })->values()->all();
+        }
+
+        $raw = $this->metadata['milestones'] ?? null;
+        if (! empty($raw) && is_array($raw)) {
+            $formatted = [];
+            $idx = 1;
+            foreach ($raw as $m) {
+                $isNa = strtolower(trim($m['target_date'] ?? '')) === 'n/a';
+                $formatted[] = [
+                    'id' => null,
+                    'num' => $idx++,
+                    'title' => $m['title'] ?? 'Milestone',
+                    'target_date' => $m['target_date'] ?? null,
+                    'is_na' => $isNa,
+                    'status' => 'pending',
+                    'is_completed' => false,
+                    'file_name' => null,
+                    'file_url' => null,
+                    'preview_url' => null,
+                    'formatted_file_size' => null,
+                    'file_icon' => null,
+                    'uploaded_at' => null,
+                    'uploaded_by' => null,
+                    'remarks' => null,
+                ];
+            }
+
+            return $formatted;
+        }
+
+        return [
+            ['id' => null, 'num' => 1, 'title' => 'Submission of Extension Project Proposal', 'target_date' => $this->sub_extension_proposal_date?->format('F d, Y'), 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 2, 'title' => 'Submission of Activity Design', 'target_date' => $this->sub_activity_design_date?->format('F d, Y'), 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 3, 'title' => 'Submission of Purchase Request', 'target_date' => $this->sub_purchase_request_date?->format('F d, Y'), 'is_na' => true, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 4, 'title' => 'MOA Signing', 'target_date' => $this->moa_signing_date?->format('F d, Y'), 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 5, 'title' => 'Arrival of Materials', 'target_date' => $this->formatted_materials_arrival, 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 6, 'title' => 'Conduct of Extension Activity', 'target_date' => $this->formatted_conduct_activity, 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 7, 'title' => 'Submission of Narrative Reports, Attendance, Evaluation & Cert. Commendation', 'target_date' => $this->sub_narrative_report_date?->format('F d, Y'), 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+            ['id' => null, 'num' => 8, 'title' => 'Conduct of Monitoring/Feedback', 'target_date' => $this->formatted_monitoring_feedback, 'is_na' => false, 'status' => 'pending', 'is_completed' => false, 'file_name' => null, 'file_url' => null, 'preview_url' => null, 'formatted_file_size' => null, 'file_icon' => null, 'uploaded_at' => null, 'uploaded_by' => null, 'remarks' => null],
+        ];
+    }
+
+    /**
+     * Total count of active (non-N/A) milestone activities.
+     */
+    public function getActiveMilestonesCountAttribute(): int
+    {
+        $milestones = $this->milestones_list;
+
+        return count(array_filter($milestones, fn ($m) => empty($m['is_na'])));
+    }
+
+    /**
+     * Total count of completed milestones (with proof uploaded or completed status).
+     */
+    public function getCompletedMilestonesCountAttribute(): int
+    {
+        $milestones = $this->milestones_list;
+
+        return count(array_filter($milestones, fn ($m) => empty($m['is_na']) && ! empty($m['is_completed'])));
+    }
+
+    /**
+     * Overall extension project lifecycle progress percentage.
+     */
+    public function getProgressPercentageAttribute(): int
+    {
+        $active = $this->active_milestones_count;
+        if ($active <= 0) {
+            return 0;
+        }
+
+        $completed = $this->completed_milestones_count;
+
+        return min(100, (int) round(($completed / $active) * 100));
+    }
+
+    /**
+     * Progress status text label.
+     */
+    public function getProgressStatusAttribute(): string
+    {
+        $pct = $this->progress_percentage;
+        if ($pct >= 100) {
+            return 'Completed';
+        }
+        if ($pct > 0) {
+            return 'In Progress';
+        }
+
+        return 'Not Started';
+    }
+
+    /**
+     * Bootstrap theme color for progress.
+     */
+    public function getProgressColorAttribute(): string
+    {
+        $pct = $this->progress_percentage;
+        if ($pct >= 100) {
+            return 'success';
+        }
+        if ($pct >= 50) {
+            return 'primary';
+        }
+        if ($pct > 0) {
+            return 'info';
+        }
+
+        return 'secondary';
     }
 
     public function getCalendarEventsAttribute(): array
@@ -386,5 +542,17 @@ class ExtensionPlan extends Model
         }
 
         return $this->status === 'draft' && $this->prepared_by_user_id === $user->id;
+    }
+
+    public function canUploadMilestoneProofBy(?User $user): bool
+    {
+        if (! $user) {
+            return false;
+        }
+
+        // All authenticated personnel within the institution (Project Leaders, Proponents,
+        // Faculty, Reviewers, Signatories, Coordinators, Staff, Admins, and SuperAdmins)
+        // are authorized to upload and compile wet-signed milestone evidence.
+        return true;
     }
 }

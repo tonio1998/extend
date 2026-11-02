@@ -2,434 +2,387 @@
 
 @section('title', 'Configure Role: ' . $role->name . ' — Institutional Roles — SNSU')
 
+@section('styles')
+<link rel="stylesheet" href="{{ asset('assets/libs/datatables/css/dataTables.bootstrap5.min.css') }}">
+@endsection
+
 @section('content')
+@php
+    $domainIcons = [
+        'Extension Program Management' => 'mdi-lightbulb-on-outline',
+        'Proposal Submission & Evaluation' => 'mdi-file-document-edit-outline',
+        'Approval Workflow & Endorsements' => 'mdi-draw-pen',
+        'Implementation, Activities & Monitoring' => 'mdi-calendar-check-outline',
+        'Accomplishment, Impact & Analytics' => 'mdi-chart-areaspline',
+        'Document Repository & Tracking' => 'mdi-folder-file-outline',
+        'Budget & Financial Monitoring' => 'mdi-cash-multiple',
+        'Governance & Audit Trail' => 'mdi-shield-lock-outline',
+        'General System Permissions' => 'mdi-cog-outline',
+    ];
+
+    // Build flat array of all permissions with their domain and grant status
+    $flatPermissions = [];
+    $accountedPerms = [];
+
+    foreach ($permissionCatalog as $catTitle => $catItems) {
+        foreach ($catItems as $pKey => $pDesc) {
+            $permModel = $allPermissions->firstWhere('name', $pKey);
+            if ($permModel) {
+                $flatPermissions[] = [
+                    'id' => $permModel->id,
+                    'key' => $pKey,
+                    'description' => $pDesc,
+                    'domain' => $catTitle,
+                    'is_granted' => in_array($pKey, $rolePermissionNames),
+                ];
+                $accountedPerms[] = $pKey;
+            }
+        }
+    }
+
+    $otherPerms = $allPermissions->whereNotIn('name', $accountedPerms);
+    foreach ($otherPerms as $op) {
+        $flatPermissions[] = [
+            'id' => $op->id,
+            'key' => $op->name,
+            'description' => $op->name,
+            'domain' => 'General System Permissions',
+            'is_granted' => in_array($op->name, $rolePermissionNames),
+        ];
+    }
+
+    $totalGrantedPerms = collect($flatPermissions)->where('is_granted', true)->count();
+    $totalPermsCount = count($flatPermissions);
+
+    $assignedUserIdsList = $assignedUsers->pluck('id')->values()->all();
+@endphp
+
 <div class="container-fluid p-0">
-    <!-- Breadcrumb & Top Bar -->
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    {{-- Breadcrumb & Top Bar --}}
+    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb mb-0 extra-small font-mono">
                 <li class="breadcrumb-item"><a href="{{ route('dss.dashboard') }}" class="text-decoration-none text-muted">DSS Home</a></li>
                 <li class="breadcrumb-item"><a href="{{ route('dss.settings.roles.index') }}" class="text-decoration-none text-muted">Roles Catalog</a></li>
-                <li class="breadcrumb-item active text-primary fw-bold" aria-current="page">{{ $role->name }}</li>
+                <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ $role->name }}</li>
             </ol>
         </nav>
 
-        <a href="{{ route('dss.settings.roles.index') }}" class="btn btn-sm btn-white border shadow-2xs text-muted fw-bold font-mono px-3 d-flex align-items-center gap-1.5">
+        <a href="{{ route('dss.settings.roles.index') }}" class="btn btn-sm btn-light border rounded-pill px-3 py-1 extra-small fw-semibold shadow-2xs d-inline-flex align-items-center gap-1 text-secondary">
             <i class="mdi mdi-arrow-left"></i>
             <span>Back to Roles Catalog</span>
         </a>
     </div>
 
-    <!-- Role Studio Header -->
-    <div class="role-studio-header mb-4">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div class="d-flex align-items-center gap-3">
-                <div class="role-icon-box">
-                    <i class="mdi mdi-shield-account-outline fs-2"></i>
+    {{-- Compact Executive Role Hero Header Card --}}
+    <div class="card border rounded-3 p-3 mb-3 shadow-2xs bg-white">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono px-2 py-1 extra-small">
+                        <i class="mdi mdi-shield-account-outline me-1"></i>INSTITUTIONAL ROLE
+                    </span>
+                    <span class="badge bg-light text-muted border font-mono px-2 py-1 extra-small">
+                        Guard: {{ $role->guard_name }}
+                    </span>
+                    <span class="badge bg-light text-muted border font-mono px-2 py-1 extra-small">
+                        {{ $tenant->school_acronym ?: $tenant->name }}
+                    </span>
                 </div>
-                <div>
-                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                        <h4 class="fw-bold text-dark mb-0 font-mono">{{ $role->name }}</h4>
-                        <span class="badge bg-light text-dark border font-mono px-2 py-0.5" style="font-size: 11px;">
-                            Guard: {{ $role->guard_name }}
-                        </span>
-                        <span class="badge bg-secondary-subtle text-secondary border font-mono px-2 py-0.5" style="font-size: 11px;">
-                            Tenant Team #{{ $tenant->id }} ({{ $tenant->school_acronym ?: $tenant->name }})
-                        </span>
-                    </div>
-                    <p class="text-muted small mb-0">
-                        Interactive Drag &amp; Drop Studio for assigning institutional personnel and configuring system authority matrices.
-                    </p>
+                <h5 class="fw-bold text-dark mb-0 font-mono" style="letter-spacing: -0.02em;">
+                    {{ $role->name }}
+                </h5>
+                <div class="text-muted extra-small mt-1">
+                    Toggle switches in the last column to grant or revoke capabilities and assign institutional personnel.
                 </div>
             </div>
 
             <div class="d-flex align-items-center gap-2 flex-wrap">
-                <div class="bg-white border rounded-3 px-3 py-2 text-center shadow-2xs">
-                    <div class="extra-small text-muted font-mono text-uppercase">Assigned Personnel</div>
-                    <div class="h5 fw-bold text-dark mb-0 font-mono" id="hero-assigned-users-count">{{ $assignedUsers->count() }}</div>
+                {{-- Segmented View Switcher --}}
+                <div class="d-inline-flex align-items-center gap-1 p-1 bg-light rounded-pill border shadow-2xs">
+                    <button type="button" class="btn btn-xs rounded-pill px-3 py-1 extra-small fw-bold role-tab-btn active btn-dark text-white" id="btnTabPerms" onclick="switchRoleStudioTab('permissions', this)">
+                        <i class="mdi mdi-shield-key-outline me-1"></i>Capabilities Matrix (<span id="tabPermsCount">{{ $totalGrantedPerms }}</span>)
+                    </button>
+                    <button type="button" class="btn btn-xs rounded-pill px-3 py-1 extra-small fw-semibold text-secondary role-tab-btn" id="btnTabUsers" onclick="switchRoleStudioTab('personnel', this)">
+                        <i class="mdi mdi-account-group-outline me-1"></i>Assigned Personnel (<span id="tabUsersCount">{{ $assignedUsers->count() }}</span>)
+                    </button>
                 </div>
-                <div class="bg-white border rounded-3 px-3 py-2 text-center shadow-2xs">
-                    <div class="extra-small text-muted font-mono text-uppercase">Granted Capabilities</div>
-                    <div class="h5 fw-bold text-primary mb-0 font-mono" id="hero-assigned-perms-count">{{ $assignedPermissions->count() }}</div>
+
+                {{-- Compact Metric Badge --}}
+                <div class="px-3 py-1 bg-light rounded-3 border text-center shadow-2xs font-mono extra-small">
+                    <span class="text-muted">Granted: </span>
+                    <strong class="text-primary" id="heroPermsGranted">{{ $totalGrantedPerms }}</strong>
+                    <span class="text-muted">/ {{ $totalPermsCount }}</span>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Studio Tabs Navigation -->
-    <ul class="nav nav-tabs mb-3 border-bottom" id="roleStudioTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active d-flex align-items-center gap-2" id="tab-personnel-btn" data-bs-toggle="tab" data-bs-target="#tab-personnel" type="button" role="tab">
-                <i class="mdi mdi-account-group-outline fs-5"></i>
-                <span>Institutional Personnel (Drag &amp; Drop)</span>
-                <span class="badge bg-primary-subtle text-primary rounded-pill font-mono" id="tab-personnel-badge">{{ $assignedUsers->count() }}</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link d-flex align-items-center gap-2" id="tab-permissions-btn" data-bs-toggle="tab" data-bs-target="#tab-permissions" type="button" role="tab">
-                <i class="mdi mdi-shield-key-outline fs-5"></i>
-                <span>Capabilities Matrix (Drag &amp; Drop)</span>
-                <span class="badge bg-secondary-subtle text-secondary rounded-pill font-mono" id="tab-perms-badge">{{ $assignedPermissions->count() }}</span>
-            </button>
-        </li>
-    </ul>
+    {{-- ===================================================================== --}}
+    {{-- PANE 1: CAPABILITIES MATRIX DATATABLE (SWITCH IN LAST COLUMN)         --}}
+    {{-- ===================================================================== --}}
+    <div id="panePermissions" class="role-studio-pane">
+        <div class="card border rounded-3 bg-white shadow-2xs mb-4 overflow-hidden">
+            {{-- Toolbar Header --}}
+            <div class="p-2 px-3 border-bottom bg-light">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-xl-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge {{ $isSuperAdmin ? 'bg-primary-subtle text-primary border border-primary-subtle' : 'bg-warning-subtle text-warning-emphasis border border-warning-subtle' }} font-mono extra-small">
+                                <i class="mdi {{ $isSuperAdmin ? 'mdi-shield-crown' : 'mdi-shield-lock-outline' }} me-1"></i>
+                                {{ $isSuperAdmin ? 'SuperAdmin Mode' : 'Read-Only Mode' }}
+                            </span>
+                            <span id="perms-dirty-indicator" class="badge bg-warning text-dark font-mono d-none extra-small">
+                                <i class="mdi mdi-alert-circle-outline me-1"></i>Unsaved Changes
+                            </span>
+                        </div>
+                    </div>
 
-    <!-- Tab Contents -->
-    <div class="tab-content" id="roleStudioTabsContent">
-        <!-- ========================================================================= -->
-        <!-- TAB 1: INSTITUTIONAL PERSONNEL ASSIGNMENT (DRAG & DROP)                    -->
-        <!-- ========================================================================= -->
-        <div class="tab-pane fade show active" id="tab-personnel" role="tabpanel">
-            <div class="alert alert-info py-2 px-3 mb-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2 small">
-                    <i class="mdi mdi-gesture-swipe fs-5 text-info"></i>
-                    <span>
-                        <strong>Drag &amp; Drop:</strong> Move institutional users between the <strong>Available</strong> and <strong>Assigned</strong> columns. You can also click the quick action buttons on each card.
-                    </span>
+                    <div class="col-12 col-xl-8">
+                        <div class="d-flex align-items-center justify-content-xl-end gap-2 flex-wrap flex-md-nowrap">
+                            {{-- Search Filter --}}
+                            <div class="input-group input-group-sm flex-grow-1 flex-md-grow-0" style="min-width: 180px; max-width: 240px;">
+                                <span class="input-group-text bg-white border-end-0 text-muted ps-2 pe-1" style="border-radius: 8px 0 0 8px;">
+                                    <i class="mdi mdi-magnify" style="font-size: 14px;"></i>
+                                </span>
+                                <input type="text" id="permSearchInput" class="form-control form-control-sm border-start-0 ps-1" placeholder="Search permissions..." autocomplete="off" style="border-radius: 0 8px 8px 0; font-size: 11.5px;">
+                            </div>
+
+                            {{-- Domain / Module Filter --}}
+                            <select id="permDomainFilter" class="form-select form-select-sm flex-grow-1 flex-md-grow-0" style="font-size: 11.5px; min-width: 160px; max-width: 210px; border-radius: 8px;">
+                                <option value="">All Functional Modules</option>
+                                @foreach($permissionCatalog as $dTitle => $dItems)
+                                    <option value="{{ $dTitle }}">{{ $dTitle }}</option>
+                                @endforeach
+                            </select>
+
+                            {{-- Status Filter --}}
+                            <select id="permStatusFilter" class="form-select form-select-sm flex-grow-1 flex-md-grow-0" style="font-size: 11.5px; min-width: 115px; max-width: 135px; border-radius: 8px;">
+                                <option value="">All Statuses</option>
+                                <option value="GRANTED">Granted Only</option>
+                                <option value="REVOKED">Revoked Only</option>
+                            </select>
+
+                            {{-- Save Matrix Button --}}
+                            @if($isSuperAdmin)
+                                <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 extra-small fw-bold shadow-2xs d-inline-flex align-items-center gap-1 flex-shrink-0" id="btn-save-perms" onclick="savePermissionsMatrix()">
+                                    <i class="mdi mdi-content-save-outline"></i>
+                                    <span id="btn-save-perms-text">Save Matrix</span>
+                                </button>
+                            @endif
+                        </div>
+                    </div>
                 </div>
+            </div>
+
+            {{-- Bulk Actions (SuperAdmin) --}}
+            @if($isSuperAdmin)
+                <div class="px-3 py-1 bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2 extra-small">
+                    <span class="text-muted font-mono" style="font-size: 11px;">Quick Actions for Visible Capabilities:</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 extra-small fw-semibold" onclick="bulkToggleVisiblePermissions(true)">
+                            <i class="mdi mdi-check-all me-1"></i>Grant All Filtered
+                        </button>
+                        <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-semibold" onclick="bulkToggleVisiblePermissions(false)">
+                            <i class="mdi mdi-close me-1"></i>Revoke All Filtered
+                        </button>
+                    </div>
+                </div>
+            @endif
+
+            {{-- Capabilities DataTable --}}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" id="permissionsTable" style="width: 100%; font-size: 12px;">
+                    <thead class="table-light extra-small text-uppercase text-muted">
+                        <tr>
+                            <th class="ps-3" style="width: 220px;">Functional Module</th>
+                            <th style="width: 220px;">Permission Key</th>
+                            <th>Description / Authority Scope</th>
+                            <th style="width: 100px;">Status</th>
+                            <th class="pe-3 text-end" style="width: 90px;">Grant</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($flatPermissions as $p)
+                            @php
+                                $isGranted = $p['is_granted'];
+                                $slug = Str::slug($p['key']);
+                            @endphp
+                            <tr class="perm-table-row {{ $isGranted ? 'bg-success-subtle bg-opacity-10' : '' }}" id="row-perm-{{ $slug }}">
+                                <td class="ps-3">
+                                    <span class="badge bg-light text-dark border font-mono extra-small">
+                                        <i class="mdi {{ $domainIcons[$p['domain']] ?? 'mdi-shield-check-outline' }} text-primary me-1"></i>
+                                        {{ $p['domain'] }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <code class="fw-bold font-mono text-dark" style="font-size: 11.5px;">{{ $p['key'] }}</code>
+                                </td>
+                                <td>
+                                    <span class="text-muted" style="line-height: 1.4;">{{ $p['description'] }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ $isGranted ? 'bg-success text-white' : 'bg-light text-muted border' }} font-mono perm-badge-label" id="badge-perm-{{ $slug }}" style="font-size: 9.5px; padding: 2px 6px;">
+                                        {{ $isGranted ? 'GRANTED' : 'REVOKED' }}
+                                    </span>
+                                </td>
+                                <td class="pe-3 text-end">
+                                    <div class="form-check form-switch m-0 d-inline-flex justify-content-end align-items-center">
+                                        <input class="form-check-input perm-switch dss-switch"
+                                               type="checkbox"
+                                               role="switch"
+                                               id="switch-{{ $slug }}"
+                                               value="{{ $p['key'] }}"
+                                               {{ $isGranted ? 'checked' : '' }}
+                                               {{ !$isSuperAdmin ? 'disabled' : '' }}
+                                               onchange="onPermSwitchToggle(this)"
+                                               title="{{ $isGranted ? 'Revoke Permission' : 'Grant Permission' }}">
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    {{-- ===================================================================== --}}
+    {{-- PANE 2: PERSONNEL ASSIGNMENT DATATABLE (SWITCH IN LAST COLUMN)        --}}
+    {{-- ===================================================================== --}}
+    <div id="panePersonnel" class="role-studio-pane d-none">
+        <div class="card border rounded-3 bg-white shadow-2xs mb-4 overflow-hidden">
+            {{-- Toolbar Header --}}
+            <div class="p-2 px-3 border-bottom bg-light">
+                <div class="row g-2 align-items-center">
+                    <div class="col-12 col-xl-4">
+                        <div class="d-flex align-items-center gap-2">
+                            <strong class="text-dark" style="font-size: 12.5px;">Institutional Personnel Assignment</strong>
+                            <span id="personnel-dirty-indicator" class="badge bg-warning text-dark font-mono d-none extra-small">
+                                <i class="mdi mdi-alert-circle-outline me-1"></i>Unsaved Changes
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-xl-8">
+                        <div class="d-flex align-items-center justify-content-xl-end gap-2 flex-wrap flex-md-nowrap">
+                            {{-- Search Filter --}}
+                            <div class="input-group input-group-sm flex-grow-1 flex-md-grow-0" style="min-width: 180px; max-width: 240px;">
+                                <span class="input-group-text bg-white border-end-0 text-muted ps-2 pe-1" style="border-radius: 8px 0 0 8px;">
+                                    <i class="mdi mdi-magnify" style="font-size: 14px;"></i>
+                                </span>
+                                <input type="text" id="userSearchInput" class="form-control form-control-sm border-start-0 ps-1" placeholder="Search personnel..." autocomplete="off" style="border-radius: 0 8px 8px 0; font-size: 11.5px;">
+                            </div>
+
+                            {{-- Campus Filter --}}
+                            <select id="userCampusFilter" class="form-select form-select-sm flex-grow-1 flex-md-grow-0" style="font-size: 11.5px; min-width: 150px; max-width: 190px; border-radius: 8px;">
+                                <option value="">All Campuses</option>
+                                @foreach($campuses as $campus)
+                                    <option value="{{ $campus->campus_name }}">{{ $campus->campus_name }}</option>
+                                @endforeach
+                            </select>
+
+                            {{-- Role Assignment Status Filter --}}
+                            <select id="userStatusFilter" class="form-select form-select-sm flex-grow-1 flex-md-grow-0" style="font-size: 11.5px; min-width: 130px; max-width: 155px; border-radius: 8px;">
+                                <option value="">All Personnel</option>
+                                <option value="ASSIGNED">Assigned Only</option>
+                                <option value="UNASSIGNED">Unassigned Only</option>
+                            </select>
+
+                            {{-- Save Personnel Button --}}
+                            <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 py-1 extra-small fw-bold shadow-2xs d-inline-flex align-items-center gap-1 flex-shrink-0" id="btn-save-personnel" onclick="savePersonnelAssignments()">
+                                <i class="mdi mdi-content-save-outline"></i>
+                                <span id="btn-save-personnel-text">Save Personnel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {{-- Bulk Actions (Personnel) --}}
+            <div class="px-3 py-1 bg-white border-bottom d-flex align-items-center justify-content-between flex-wrap gap-2 extra-small">
+                <span class="text-muted font-mono" style="font-size: 11px;">Quick Actions for Visible Personnel:</span>
                 <div class="d-flex align-items-center gap-2">
-                    <span id="personnel-dirty-indicator" class="badge bg-warning text-dark font-mono d-none">
-                        <i class="mdi mdi-circle-medium"></i> Unsaved Changes
-                    </span>
-                    <button type="button" class="btn btn-sm btn-dss-primary px-3 shadow-xs font-mono fw-bold d-flex align-items-center gap-1.5" onclick="savePersonnelAssignments()">
-                        <i class="mdi mdi-content-save-outline"></i>
-                        <span id="btn-save-personnel-text">Save Personnel Assignments</span>
+                    <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2 py-1 extra-small fw-semibold" onclick="bulkToggleVisiblePersonnel(true)">
+                        <i class="mdi mdi-check-all me-1"></i>Assign All Filtered
+                    </button>
+                    <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-semibold" onclick="bulkToggleVisiblePersonnel(false)">
+                        <i class="mdi mdi-close me-1"></i>Unassign All Filtered
                     </button>
                 </div>
             </div>
 
-            <div class="row g-3">
-                <!-- Column 1: Available Personnel -->
-                <div class="col-lg-6">
-                    <div class="drag-drop-card">
-                        <div class="drag-drop-card-header">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="mdi mdi-account-multiple-outline text-muted fs-5"></i>
-                                    <h6 class="fw-bold text-dark mb-0">Available Personnel</h6>
-                                </div>
-                                <span class="badge bg-light text-dark border font-mono" id="badge-avail-users-count">
-                                    {{ $availableUsers->count() }} Users
-                                </span>
-                            </div>
-
-                            <!-- User Search Bar -->
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="mdi mdi-magnify"></i></span>
-                                <input type="text" id="search-avail-users" class="form-control border-start-0" placeholder="Search by name, email, department..." oninput="filterUserList('available')">
-                                <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearUserSearch('available')">
-                                    <i class="mdi mdi-close"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Drop Container: Available Users -->
-                        <div class="drag-drop-list-container" id="available-users-container">
-                            <div class="empty-drop-placeholder" id="placeholder-avail-users">
-                                <i class="mdi mdi-check-all fs-1 text-success opacity-50 mb-2"></i>
-                                <h6 class="text-dark fw-bold mb-1">All Personnel Assigned</h6>
-                                <p class="small text-muted mb-0">Every registered institutional user has been allocated to this role.</p>
-                            </div>
-
-                            @foreach($availableUsers as $user)
-                                @php
-                                    $initials = collect(explode(' ', trim($user->name)))
-                                        ->filter()
-                                        ->map(fn($part) => strtoupper(substr($part, 0, 1)))
-                                        ->take(2)
-                                        ->implode('');
-                                    $uCampusName = $user->campus?->campus_name ?? $user->campus?->name ?? '';
-                                    $uDeptName = $user->department?->unit_name ?: ($user->department?->dept_name ?? $user->department?->name ?? '');
-                                @endphp
-                                <div class="dnd-item-card user-card-item" data-user-id="{{ $user->id }}" data-name="{{ strtolower($user->name) }}" data-email="{{ strtolower($user->email) }}" data-dept="{{ strtolower($uDeptName) }}" data-campus="{{ strtolower($uCampusName) }}">
-                                    <div class="d-flex align-items-center justify-content-between gap-2">
-                                        <div class="d-flex align-items-center gap-2.5 flex-grow-1 overflow-hidden">
-                                            <i class="mdi mdi-drag drag-handle" title="Drag to assign"></i>
-                                            <div class="user-avatar-circle">
-                                                {{ $initials ?: 'U' }}
-                                            </div>
-                                            <div class="overflow-hidden">
-                                                <div class="fw-bold text-dark text-truncate small" title="{{ $user->name }}">{{ $user->name }}</div>
-                                                <div class="extra-small text-muted font-mono text-truncate" title="{{ $user->email }}">{{ $user->email }}</div>
-                                                <div class="d-flex align-items-center gap-1 mt-1 flex-wrap">
-                                                    @if($uCampusName)
-                                                        <span class="badge bg-light text-muted border extra-small font-mono py-0">{{ $uCampusName }}</span>
-                                                    @endif
-                                                    @if($uDeptName)
-                                                        <span class="badge bg-light text-muted border extra-small font-mono py-0">{{ $uDeptName }}</span>
-                                                    @endif
-                                                    <span class="badge bg-secondary-subtle text-secondary extra-small font-mono py-0">Current: {{ $user->role ?: 'Unassigned' }}</span>
-                                                </div>
-                                            </div>
+            {{-- Personnel DataTable --}}
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0" id="personnelTable" style="width: 100%; font-size: 12px;">
+                    <thead class="table-light extra-small text-uppercase text-muted">
+                        <tr>
+                            <th class="ps-3" style="width: 220px;">Personnel Name</th>
+                            <th style="width: 200px;">Email / User ID</th>
+                            <th style="width: 160px;">Campus</th>
+                            <th>Department / Unit</th>
+                            <th style="width: 110px;">Status</th>
+                            <th class="pe-3 text-end" style="width: 90px;">Assign</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($allTenantUsers as $user)
+                            @php
+                                $isAssigned = in_array($user->id, $assignedUserIdsList);
+                                $initials = collect(explode(' ', trim($user->name)))
+                                    ->filter()
+                                    ->map(fn($part) => strtoupper(substr($part, 0, 1)))
+                                    ->take(2)
+                                    ->implode('');
+                                $uCampusName = $user->campus?->campus_name ?? $user->campus?->name ?? 'University-Wide';
+                                $uDeptName = $user->department?->unit_name ?: ($user->department?->dept_name ?? $user->department?->name ?? 'Unassigned Unit');
+                            @endphp
+                            <tr class="user-table-row {{ $isAssigned ? 'bg-success-subtle bg-opacity-10' : '' }}" id="row-user-{{ $user->id }}">
+                                <td class="ps-3">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center text-success fw-bold font-mono shadow-2xs flex-shrink-0" style="width: 26px; height: 26px; background: #dcfce7; font-size: 10px;">
+                                            {{ $initials ?: 'U' }}
                                         </div>
-                                        <button type="button" class="btn btn-xs btn-outline-primary py-1 px-2 font-mono flex-shrink-0" onclick="moveUserCard({{ $user->id }}, 'assigned')">
-                                            <span>Assign</span>
-                                            <i class="mdi mdi-arrow-right ms-1"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Column 2: Assigned Personnel to this Role -->
-                <div class="col-lg-6">
-                    <div class="drag-drop-card" style="border-color: #a7f3d0;">
-                        <div class="drag-drop-card-header" style="background: #f0fdf4; border-bottom-color: #dcfce7;">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="mdi mdi-account-check-outline text-success fs-5"></i>
-                                    <h6 class="fw-bold text-dark mb-0">Assigned to {{ $role->name }}</h6>
-                                </div>
-                                <span class="badge bg-success-subtle text-success border border-success-subtle font-mono" id="badge-assigned-users-count">
-                                    {{ $assignedUsers->count() }} Assigned
-                                </span>
-                            </div>
-
-                            <!-- Assigned User Search Bar -->
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="mdi mdi-magnify"></i></span>
-                                <input type="text" id="search-assigned-users" class="form-control border-start-0" placeholder="Filter assigned personnel..." oninput="filterUserList('assigned')">
-                                <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearUserSearch('assigned')">
-                                    <i class="mdi mdi-close"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Drop Container: Assigned Users -->
-                        <div class="drag-drop-list-container" id="assigned-users-container" style="background: #f0fdf4;">
-                            <div class="empty-drop-placeholder" id="placeholder-assigned-users">
-                                <i class="mdi mdi-account-arrow-right-outline fs-1 text-muted opacity-50 mb-2"></i>
-                                <h6 class="text-dark fw-bold mb-1">No Personnel Assigned Yet</h6>
-                                <p class="small text-muted mb-0">Drag user cards from the left column here to assign them to {{ $role->name }}.</p>
-                            </div>
-
-                            @foreach($assignedUsers as $user)
-                                @php
-                                    $initials = collect(explode(' ', trim($user->name)))
-                                        ->filter()
-                                        ->map(fn($part) => strtoupper(substr($part, 0, 1)))
-                                        ->take(2)
-                                        ->implode('');
-                                    $uCampusName = $user->campus?->campus_name ?? $user->campus?->name ?? '';
-                                    $uDeptName = $user->department?->unit_name ?: ($user->department?->dept_name ?? $user->department?->name ?? '');
-                                @endphp
-                                <div class="dnd-item-card user-card-item" data-user-id="{{ $user->id }}" data-name="{{ strtolower($user->name) }}" data-email="{{ strtolower($user->email) }}" data-dept="{{ strtolower($uDeptName) }}" data-campus="{{ strtolower($uCampusName) }}">
-                                    <div class="d-flex align-items-center justify-content-between gap-2">
-                                        <div class="d-flex align-items-center gap-2.5 flex-grow-1 overflow-hidden">
-                                            <i class="mdi mdi-drag drag-handle" title="Drag to remove or reorder"></i>
-                                            <div class="user-avatar-circle" style="background: #dcfce7; color: #166534;">
-                                                {{ $initials ?: 'U' }}
-                                            </div>
-                                            <div class="overflow-hidden">
-                                                <div class="fw-bold text-dark text-truncate small" title="{{ $user->name }}">{{ $user->name }}</div>
-                                                <div class="extra-small text-muted font-mono text-truncate" title="{{ $user->email }}">{{ $user->email }}</div>
-                                                <div class="d-flex align-items-center gap-1 mt-1 flex-wrap">
-                                                    @if($uCampusName)
-                                                        <span class="badge bg-light text-muted border extra-small font-mono py-0">{{ $uCampusName }}</span>
-                                                    @endif
-                                                    @if($uDeptName)
-                                                        <span class="badge bg-light text-muted border extra-small font-mono py-0">{{ $uDeptName }}</span>
-                                                    @endif
-                                                    <span class="badge bg-success-subtle text-success extra-small font-mono py-0">Role: {{ $role->name }}</span>
-                                                </div>
-                                            </div>
+                                        <div>
+                                            <strong class="text-dark">{{ $user->name }}</strong>
                                         </div>
-                                        <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2 font-mono flex-shrink-0" onclick="moveUserCard({{ $user->id }}, 'available')">
-                                            <i class="mdi mdi-close me-1"></i>
-                                            <span>Remove</span>
-                                        </button>
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- ========================================================================= -->
-        <!-- TAB 2: CAPABILITIES MATRIX (DRAG & DROP)                                  -->
-        <!-- ========================================================================= -->
-        <div class="tab-pane fade" id="tab-permissions" role="tabpanel">
-            <div class="alert @if($isSuperAdmin) alert-info @else alert-warning @endif py-2 px-3 mb-3 border d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div class="d-flex align-items-center gap-2 small">
-                    <i class="mdi @if($isSuperAdmin) mdi-shield-crown text-warning @else mdi-shield-lock-outline text-warning @endif fs-5"></i>
-                    <span>
-                        @if($isSuperAdmin)
-                            <strong>SuperAdmin Authority:</strong> Drag system capabilities between <strong>Available</strong> and <strong>Granted</strong> columns to configure role authorization.
-                        @else
-                            <strong>Read-Only Inspection:</strong> Only the SuperAdmin can alter the capabilities matrix of global roles. Institutional Admins can assign existing roles and grant direct permissions to users in <a href="{{ route('dss.settings.users.index') }}" class="fw-bold text-dark text-decoration-underline">User Management</a>.
-                        @endif
-                    </span>
-                </div>
-                <div class="d-flex align-items-center gap-2">
-                    <span id="perms-dirty-indicator" class="badge bg-warning text-dark font-mono d-none">
-                        <i class="mdi mdi-circle-medium"></i> Unsaved Changes
-                    </span>
-                    @if($isSuperAdmin)
-                        <button type="button" class="btn btn-sm btn-dss-primary px-3 shadow-xs font-mono fw-bold d-flex align-items-center gap-1.5" onclick="savePermissionsMatrix()">
-                            <i class="mdi mdi-content-save-outline"></i>
-                            <span id="btn-save-perms-text">Save Permissions Matrix</span>
-                        </button>
-                    @endif
-                </div>
-            </div>
-
-            <!-- Domain Category Filter Pills -->
-            <div class="d-flex align-items-center gap-1.5 mb-3 flex-wrap">
-                <span class="extra-small text-muted font-mono me-1">Filter Domain:</span>
-                <span class="filter-tab-pill active" data-domain="all" onclick="filterByPermDomain('all')">All Domains</span>
-                @foreach($permissionCatalog as $domain => $domainPerms)
-                    <span class="filter-tab-pill" data-domain="{{ Str::slug($domain) }}" onclick="filterByPermDomain('{{ Str::slug($domain) }}')">
-                        {{ $domain }}
-                    </span>
-                @endforeach
-            </div>
-
-            <div class="row g-3">
-                <!-- Column 1: Available Capabilities -->
-                <div class="col-lg-6">
-                    <div class="drag-drop-card">
-                        <div class="drag-drop-card-header">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="mdi mdi-key-outline text-muted fs-5"></i>
-                                    <h6 class="fw-bold text-dark mb-0">Available Capabilities</h6>
-                                </div>
-                                <span class="badge bg-light text-dark border font-mono" id="badge-avail-perms-count">
-                                    {{ $availablePermissions->count() }} Items
-                                </span>
-                            </div>
-
-                            <!-- Perm Search -->
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="mdi mdi-magnify"></i></span>
-                                <input type="text" id="search-avail-perms" class="form-control border-start-0" placeholder="Search capabilities by key or description..." oninput="filterPermList('available')">
-                                <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearPermSearch('available')">
-                                    <i class="mdi mdi-close"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Drop Container: Available Perms -->
-                        <div class="drag-drop-list-container" id="available-perms-container">
-                            <div class="empty-drop-placeholder" id="placeholder-avail-perms">
-                                <i class="mdi mdi-check-all fs-1 text-success opacity-50 mb-2"></i>
-                                <h6 class="text-dark fw-bold mb-1">All Capabilities Granted</h6>
-                                <p class="small text-muted mb-0">Every available system permission has been assigned to this role.</p>
-                            </div>
-
-                            @foreach($availablePermissions as $perm)
-                                @php
-                                    $domainTitle = 'Institutional Governance & Administration';
-                                    $desc = $perm->name;
-                                    foreach($permissionCatalog as $dTitle => $dPerms) {
-                                        if (isset($dPerms[$perm->name])) {
-                                            $domainTitle = $dTitle;
-                                            $desc = $dPerms[$perm->name];
-                                            break;
-                                        }
-                                    }
-                                @endphp
-                                <div class="dnd-item-card perm-card-item" data-perm-name="{{ $perm->name }}" data-domain="{{ Str::slug($domainTitle) }}" data-text="{{ strtolower($perm->name . ' ' . $desc . ' ' . $domainTitle) }}">
-                                    <div class="d-flex align-items-center justify-content-between gap-2">
-                                        <div class="d-flex align-items-start gap-2 flex-grow-1 overflow-hidden">
-                                            @if($isSuperAdmin)
-                                                <i class="mdi mdi-drag drag-handle mt-1" title="Drag to grant"></i>
-                                            @endif
-                                            <div class="overflow-hidden">
-                                                <div class="d-flex align-items-center gap-1.5 flex-wrap mb-1">
-                                                    <span class="badge bg-secondary-subtle text-secondary extra-small font-mono py-0">{{ $domainTitle }}</span>
-                                                    <code class="fw-bold text-dark font-mono small">{{ $perm->name }}</code>
-                                                </div>
-                                                <div class="small text-muted">{{ $desc }}</div>
-                                            </div>
-                                        </div>
-                                        @if($isSuperAdmin)
-                                            <button type="button" class="btn btn-xs btn-outline-primary py-1 px-2 font-mono flex-shrink-0" onclick="movePermCard('{{ $perm->name }}', 'assigned')">
-                                                <span>Grant</span>
-                                                <i class="mdi mdi-arrow-right ms-1"></i>
-                                            </button>
-                                        @endif
+                                </td>
+                                <td>
+                                    <span class="font-mono text-dark">{{ $user->email }}</span>
+                                    <span class="text-muted extra-small font-mono">#{{ $user->id }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-dark border font-mono extra-small">
+                                        {{ $uCampusName }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light text-secondary border font-mono text-truncate extra-small" style="max-width: 180px;">
+                                        {{ $uDeptName }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge {{ $isAssigned ? 'bg-success text-white' : 'bg-light text-muted border' }} font-mono user-badge-label" id="badge-user-{{ $user->id }}" style="font-size: 9.5px; padding: 2px 6px;">
+                                        {{ $isAssigned ? 'ASSIGNED' : 'UNASSIGNED' }}
+                                    </span>
+                                </td>
+                                <td class="pe-3 text-end">
+                                    <div class="form-check form-switch m-0 d-inline-flex justify-content-end align-items-center">
+                                        <input class="form-check-input user-switch dss-switch"
+                                               type="checkbox"
+                                               role="switch"
+                                               id="switch-user-{{ $user->id }}"
+                                               value="{{ $user->id }}"
+                                               {{ $isAssigned ? 'checked' : '' }}
+                                               onchange="onUserSwitchToggle(this)"
+                                               title="{{ $isAssigned ? 'Revoke Assignment' : 'Assign to Role' }}">
                                     </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Column 2: Granted Capabilities to Role -->
-                <div class="col-lg-6">
-                    <div class="drag-drop-card" style="border-color: #bfdbfe;">
-                        <div class="drag-drop-card-header" style="background: #eff6ff; border-bottom-color: #dbeafe;">
-                            <div class="d-flex align-items-center justify-content-between mb-2">
-                                <div class="d-flex align-items-center gap-2">
-                                    <i class="mdi mdi-shield-check text-primary fs-5"></i>
-                                    <h6 class="fw-bold text-dark mb-0">Granted to {{ $role->name }}</h6>
-                                </div>
-                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono" id="badge-assigned-perms-count">
-                                    {{ $assignedPermissions->count() }} Capabilities
-                                </span>
-                            </div>
-
-                            <!-- Assigned Perm Search -->
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-white border-end-0 text-muted"><i class="mdi mdi-magnify"></i></span>
-                                <input type="text" id="search-assigned-perms" class="form-control border-start-0" placeholder="Filter granted capabilities..." oninput="filterPermList('assigned')">
-                                <button class="btn btn-outline-secondary border-start-0" type="button" onclick="clearPermSearch('assigned')">
-                                    <i class="mdi mdi-close"></i>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Drop Container: Assigned Perms -->
-                        <div class="drag-drop-list-container" id="assigned-perms-container" style="background: #eff6ff;">
-                            <div class="empty-drop-placeholder" id="placeholder-assigned-perms">
-                                <i class="mdi mdi-shield-alert-outline fs-1 text-muted opacity-50 mb-2"></i>
-                                <h6 class="text-dark fw-bold mb-1">No Capabilities Granted</h6>
-                                <p class="small text-muted mb-0">Drag capabilities from the left column here to authorize {{ $role->name }}.</p>
-                            </div>
-
-                            @foreach($assignedPermissions as $perm)
-                                @php
-                                    $domainTitle = 'Institutional Governance & Administration';
-                                    $desc = $perm->name;
-                                    foreach($permissionCatalog as $dTitle => $dPerms) {
-                                        if (isset($dPerms[$perm->name])) {
-                                            $domainTitle = $dTitle;
-                                            $desc = $dPerms[$perm->name];
-                                            break;
-                                        }
-                                    }
-                                @endphp
-                                <div class="dnd-item-card perm-card-item" data-perm-name="{{ $perm->name }}" data-domain="{{ Str::slug($domainTitle) }}" data-text="{{ strtolower($perm->name . ' ' . $desc . ' ' . $domainTitle) }}">
-                                    <div class="d-flex align-items-center justify-content-between gap-2">
-                                        <div class="d-flex align-items-start gap-2 flex-grow-1 overflow-hidden">
-                                            @if($isSuperAdmin)
-                                                <i class="mdi mdi-drag drag-handle mt-1" title="Drag to remove"></i>
-                                            @endif
-                                            <div class="overflow-hidden">
-                                                <div class="d-flex align-items-center gap-1.5 flex-wrap mb-1">
-                                                    <span class="badge bg-primary-subtle text-primary extra-small font-mono py-0">{{ $domainTitle }}</span>
-                                                    <code class="fw-bold text-dark font-mono small">{{ $perm->name }}</code>
-                                                </div>
-                                                <div class="small text-muted">{{ $desc }}</div>
-                                            </div>
-                                        </div>
-                                        @if($isSuperAdmin)
-                                            <button type="button" class="btn btn-xs btn-outline-danger py-1 px-2 font-mono flex-shrink-0" onclick="movePermCard('{{ $perm->name }}', 'available')">
-                                                <i class="mdi mdi-close me-1"></i>
-                                                <span>Revoke</span>
-                                            </button>
-                                        @endif
-                                    </div>
-                                </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -437,352 +390,162 @@
 @endsection
 
 @section('scripts')
-<!-- SortableJS CDN -->
-<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
-
+<script src="{{ asset('assets/libs/datatables/js/jquery.dataTables.min.js') }}"></script>
+<script src="{{ asset('assets/libs/datatables/js/dataTables.bootstrap5.min.js') }}"></script>
 <script>
     const roleId = {{ $role->id }};
     const isSuperAdmin = {{ $isSuperAdmin ? 'true' : 'false' }};
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-    let currentPermDomainFilter = 'all';
+    // In-memory state of granted permissions & assigned users
+    let rolePermissions = new Set(@json($rolePermissionNames));
+    let roleUserIds = new Set(@json($assignedUserIdsList));
 
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize Sortable for Personnel Assignment
-        initPersonnelSortable();
+    let permsTable;
+    let usersTable;
 
-        // Initialize Sortable for Capabilities Matrix
-        initPermissionsSortable();
+    function switchRoleStudioTab(tab, btn) {
+        document.querySelectorAll('.role-studio-pane').forEach(el => el.classList.add('d-none'));
+        document.querySelectorAll('.role-tab-btn').forEach(b => {
+            b.classList.remove('active', 'btn-dark', 'text-white');
+            b.classList.add('text-secondary');
+        });
 
-        // Update initial counters and empty placeholders
-        updatePersonnelCounters();
-        updatePermCounters();
+        if (btn) {
+            btn.classList.add('active', 'btn-dark', 'text-white');
+            btn.classList.remove('text-secondary');
+        }
+
+        if (tab === 'permissions') {
+            document.getElementById('panePermissions')?.classList.remove('d-none');
+            permsTable?.columns.adjust().draw(false);
+        } else {
+            document.getElementById('panePersonnel')?.classList.remove('d-none');
+            usersTable?.columns.adjust().draw(false);
+        }
+    }
+
+    $(document).ready(function() {
+        // 1. Initialize Capabilities DataTable
+        permsTable = $('#permissionsTable').DataTable({
+            pageLength: 25,
+            lengthMenu: [[15, 25, 50, -1], [15, 25, 50, "All"]],
+            order: [[0, 'asc'], [1, 'asc']],
+            autoWidth: false,
+            language: {
+                search: "",
+                emptyTable: "No capabilities found.",
+                zeroRecords: "No matching capabilities found."
+            },
+            dom: "<'row'<'col-sm-12'tr>><'p-3 border-top bg-light d-flex justify-content-between align-items-center flex-wrap gap-2'<'text-muted extra-small font-mono'i><'d-flex justify-content-end'p>>"
+        });
+
+        $('#permSearchInput').on('keyup', function() {
+            permsTable.search(this.value).draw();
+        });
+
+        $('#permDomainFilter').on('change', function() {
+            permsTable.column(0).search(this.value ? '^' + this.value + '$' : '', true, false).draw();
+        });
+
+        $('#permStatusFilter').on('change', function() {
+            permsTable.column(3).search(this.value ? '^' + this.value + '$' : '', true, false).draw();
+        });
+
+        // 2. Initialize Personnel DataTable
+        usersTable = $('#personnelTable').DataTable({
+            pageLength: 25,
+            lengthMenu: [[15, 25, 50, 100, -1], [15, 25, 50, 100, "All"]],
+            order: [[4, 'asc'], [0, 'asc']],
+            autoWidth: false,
+            language: {
+                search: "",
+                emptyTable: "No institutional personnel found in registry.",
+                zeroRecords: "No matching personnel found."
+            },
+            dom: "<'row'<'col-sm-12'tr>><'p-3 border-top bg-light d-flex justify-content-between align-items-center flex-wrap gap-2'<'text-muted extra-small font-mono'i><'d-flex justify-content-end'p>>"
+        });
+
+        $('#userSearchInput').on('keyup', function() {
+            usersTable.search(this.value).draw();
+        });
+
+        $('#userCampusFilter').on('change', function() {
+            usersTable.column(2).search(this.value ? '^' + this.value + '$' : '', true, false).draw();
+        });
+
+        $('#userStatusFilter').on('change', function() {
+            usersTable.column(4).search(this.value ? '^' + this.value + '$' : '', true, false).draw();
+        });
     });
 
     /* ========================================================================= */
-    /* 1. PERSONNEL ASSIGNMENT DRAG & DROP LOGIC                                */
+    /* 1. CAPABILITIES TOGGLE LOGIC                                              */
     /* ========================================================================= */
-    function initPersonnelSortable() {
-        const availEl = document.getElementById('available-users-container');
-        const assignedEl = document.getElementById('assigned-users-container');
+    function onPermSwitchToggle(switchEl) {
+        if (!isSuperAdmin) return;
+        const isChecked = switchEl.checked;
+        const permKey = switchEl.value;
+        const slug = slugify(permKey);
+        const row = document.getElementById('row-perm-' + slug);
+        const badge = document.getElementById('badge-perm-' + slug);
 
-        if (!availEl || !assignedEl) return;
-
-        Sortable.create(availEl, {
-            group: 'personnel-transfer',
-            animation: 180,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            dragClass: 'sortable-drag',
-            handle: '.drag-handle, .user-card-item',
-            onEnd: function(evt) {
-                if (evt.from !== evt.to) {
-                    toggleUserCardBtn(evt.item, evt.to.id === 'assigned-users-container' ? 'assigned' : 'available');
-                }
-                updatePersonnelCounters();
-                markPersonnelDirty();
-            }
-        });
-
-        Sortable.create(assignedEl, {
-            group: 'personnel-transfer',
-            animation: 180,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            dragClass: 'sortable-drag',
-            handle: '.drag-handle, .user-card-item',
-            onEnd: function(evt) {
-                if (evt.from !== evt.to) {
-                    toggleUserCardBtn(evt.item, evt.to.id === 'assigned-users-container' ? 'assigned' : 'available');
-                }
-                updatePersonnelCounters();
-                markPersonnelDirty();
-            }
-        });
-    }
-
-    function toggleUserCardBtn(card, targetContainer) {
-        const btn = card.querySelector('button');
-        const avatar = card.querySelector('.user-avatar-circle');
-        const userId = card.getAttribute('data-user-id');
-
-        if (targetContainer === 'assigned') {
-            if (btn) {
-                btn.className = 'btn btn-xs btn-outline-danger py-1 px-2 font-mono flex-shrink-0';
-                btn.setAttribute('onclick', `moveUserCard(${userId}, 'available')`);
-                btn.innerHTML = '<i class="mdi mdi-close me-1"></i><span>Remove</span>';
-            }
-            if (avatar) {
-                avatar.style.background = '#dcfce7';
-                avatar.style.color = '#166534';
+        if (isChecked) {
+            rolePermissions.add(permKey);
+            if (row) row.classList.add('bg-success-subtle', 'bg-opacity-10');
+            if (badge) {
+                badge.className = 'badge bg-success text-white font-mono perm-badge-label';
+                badge.textContent = 'GRANTED';
             }
         } else {
-            if (btn) {
-                btn.className = 'btn btn-xs btn-outline-primary py-1 px-2 font-mono flex-shrink-0';
-                btn.setAttribute('onclick', `moveUserCard(${userId}, 'assigned')`);
-                btn.innerHTML = '<span>Assign</span><i class="mdi mdi-arrow-right ms-1"></i>';
-            }
-            if (avatar) {
-                avatar.style.background = '#e2e8f0';
-                avatar.style.color = '#334155';
+            rolePermissions.delete(permKey);
+            if (row) row.classList.remove('bg-success-subtle', 'bg-opacity-10');
+            if (badge) {
+                badge.className = 'badge bg-light text-muted border font-mono perm-badge-label';
+                badge.textContent = 'REVOKED';
             }
         }
-    }
 
-    function moveUserCard(userId, target) {
-        const card = document.querySelector(`.user-card-item[data-user-id="${userId}"]`);
-        if (!card) return;
-
-        const targetContainer = document.getElementById(target === 'assigned' ? 'assigned-users-container' : 'available-users-container');
-        if (!targetContainer) return;
-
-        targetContainer.appendChild(card);
-        toggleUserCardBtn(card, target);
-        updatePersonnelCounters();
-        markPersonnelDirty();
-    }
-
-    function updatePersonnelCounters() {
-        const availCards = document.querySelectorAll('#available-users-container .user-card-item');
-        const assignedCards = document.querySelectorAll('#assigned-users-container .user-card-item');
-
-        const availCount = availCards.length;
-        const assignedCount = assignedCards.length;
-
-        document.getElementById('badge-avail-users-count').textContent = `${availCount} Users`;
-        document.getElementById('badge-assigned-users-count').textContent = `${assignedCount} Assigned`;
-        document.getElementById('hero-assigned-users-count').textContent = assignedCount;
-        document.getElementById('tab-personnel-badge').textContent = assignedCount;
-
-        // Toggle placeholders
-        const availPlaceholder = document.getElementById('placeholder-avail-users');
-        const assignedPlaceholder = document.getElementById('placeholder-assigned-users');
-
-        if (availPlaceholder) availPlaceholder.style.display = availCount === 0 ? 'block' : 'none';
-        if (assignedPlaceholder) assignedPlaceholder.style.display = assignedCount === 0 ? 'block' : 'none';
-    }
-
-    function markPersonnelDirty() {
-        const indicator = document.getElementById('personnel-dirty-indicator');
-        if (indicator) indicator.classList.remove('d-none');
-    }
-
-    function filterUserList(col) {
-        const query = document.getElementById(col === 'assigned' ? 'search-assigned-users' : 'search-avail-users').value.toLowerCase().trim();
-        const containerId = col === 'assigned' ? 'assigned-users-container' : 'available-users-container';
-        const cards = document.querySelectorAll(`#${containerId} .user-card-item`);
-
-        cards.forEach(card => {
-            const name = card.getAttribute('data-name') || '';
-            const email = card.getAttribute('data-email') || '';
-            const dept = card.getAttribute('data-dept') || '';
-            const campus = card.getAttribute('data-campus') || '';
-
-            const matches = !query || name.includes(query) || email.includes(query) || dept.includes(query) || campus.includes(query);
-            card.style.display = matches ? 'block' : 'none';
-        });
-    }
-
-    function clearUserSearch(col) {
-        const input = document.getElementById(col === 'assigned' ? 'search-assigned-users' : 'search-avail-users');
-        if (input) {
-            input.value = '';
-            filterUserList(col);
+        // Update row data in DataTable cache for search/filtering
+        if (permsTable && row) {
+            permsTable.row(row).invalidate();
         }
+
+        updateOverallPermCounters();
+        document.getElementById('perms-dirty-indicator')?.classList.remove('d-none');
     }
 
-    function savePersonnelAssignments() {
-        const assignedCards = document.querySelectorAll('#assigned-users-container .user-card-item');
-        const userIds = Array.from(assignedCards).map(card => parseInt(card.getAttribute('data-user-id'))).filter(id => !isNaN(id));
-
-        const btnText = document.getElementById('btn-save-personnel-text');
-        const origText = btnText.textContent;
-        btnText.textContent = 'Saving...';
-
-        fetch("{{ route('dss.settings.roles.personnel', $role->id) }}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': csrfToken,
-                'Accept': 'application/json'
-            },
-            body: JSON.stringify({ user_ids: userIds })
-        })
-        .then(res => res.json())
-        .then(data => {
-            btnText.textContent = origText;
-            if (data.result) {
-                document.getElementById('personnel-dirty-indicator').classList.add('d-none');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Personnel Updated!',
-                    text: data.message,
-                    confirmButtonColor: 'var(--dss-primary)',
-                    timer: 2000
-                });
-            } else {
-                Swal.fire('Error', data.message || 'Failed to update personnel assignment.', 'error');
-            }
-        })
-        .catch(err => {
-            btnText.textContent = origText;
-            Swal.fire('Error', 'An error occurred while saving personnel assignments.', 'error');
-        });
-    }
-
-    /* ========================================================================= */
-    /* 2. CAPABILITIES MATRIX DRAG & DROP LOGIC                                  */
-    /* ========================================================================= */
-    function initPermissionsSortable() {
+    function bulkToggleVisiblePermissions(grant) {
         if (!isSuperAdmin) return;
-
-        const availEl = document.getElementById('available-perms-container');
-        const assignedEl = document.getElementById('assigned-perms-container');
-
-        if (!availEl || !assignedEl) return;
-
-        Sortable.create(availEl, {
-            group: 'perms-transfer',
-            animation: 180,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            dragClass: 'sortable-drag',
-            handle: '.drag-handle, .perm-card-item',
-            onEnd: function(evt) {
-                if (evt.from !== evt.to) {
-                    togglePermCardBtn(evt.item, evt.to.id === 'assigned-perms-container' ? 'assigned' : 'available');
-                }
-                updatePermCounters();
-                markPermDirty();
-            }
-        });
-
-        Sortable.create(assignedEl, {
-            group: 'perms-transfer',
-            animation: 180,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            dragClass: 'sortable-drag',
-            handle: '.drag-handle, .perm-card-item',
-            onEnd: function(evt) {
-                if (evt.from !== evt.to) {
-                    togglePermCardBtn(evt.item, evt.to.id === 'assigned-perms-container' ? 'assigned' : 'available');
-                }
-                updatePermCounters();
-                markPermDirty();
+        $('#permissionsTable tbody tr:visible').each(function() {
+            const sw = $(this).find('.perm-switch')[0];
+            if (sw && sw.checked !== grant) {
+                sw.checked = grant;
+                onPermSwitchToggle(sw);
             }
         });
     }
 
-    function togglePermCardBtn(card, targetContainer) {
-        if (!isSuperAdmin) return;
-        const btn = card.querySelector('button');
-        const permName = card.getAttribute('data-perm-name');
-
-        if (targetContainer === 'assigned') {
-            if (btn) {
-                btn.className = 'btn btn-xs btn-outline-danger py-1 px-2 font-mono flex-shrink-0';
-                btn.setAttribute('onclick', `movePermCard('${permName}', 'available')`);
-                btn.innerHTML = '<i class="mdi mdi-close me-1"></i><span>Revoke</span>';
-            }
-        } else {
-            if (btn) {
-                btn.className = 'btn btn-xs btn-outline-primary py-1 px-2 font-mono flex-shrink-0';
-                btn.setAttribute('onclick', `movePermCard('${permName}', 'assigned')`);
-                btn.innerHTML = '<span>Grant</span><i class="mdi mdi-arrow-right ms-1"></i>';
-            }
-        }
-    }
-
-    function movePermCard(permName, target) {
-        if (!isSuperAdmin) return;
-        const card = document.querySelector(`.perm-card-item[data-perm-name="${permName}"]`);
-        if (!card) return;
-
-        const targetContainer = document.getElementById(target === 'assigned' ? 'assigned-perms-container' : 'available-perms-container');
-        if (!targetContainer) return;
-
-        targetContainer.appendChild(card);
-        togglePermCardBtn(card, target);
-        updatePermCounters();
-        markPermDirty();
-    }
-
-    function updatePermCounters() {
-        const availCards = document.querySelectorAll('#available-perms-container .perm-card-item');
-        const assignedCards = document.querySelectorAll('#assigned-perms-container .perm-card-item');
-
-        const availCount = availCards.length;
-        const assignedCount = assignedCards.length;
-
-        document.getElementById('badge-avail-perms-count').textContent = `${availCount} Items`;
-        document.getElementById('badge-assigned-perms-count').textContent = `${assignedCount} Capabilities`;
-        document.getElementById('hero-assigned-perms-count').textContent = assignedCount;
-        document.getElementById('tab-perms-badge').textContent = assignedCount;
-
-        const availPlaceholder = document.getElementById('placeholder-avail-perms');
-        const assignedPlaceholder = document.getElementById('placeholder-assigned-perms');
-
-        if (availPlaceholder) availPlaceholder.style.display = availCount === 0 ? 'block' : 'none';
-        if (assignedPlaceholder) assignedPlaceholder.style.display = assignedCount === 0 ? 'block' : 'none';
-    }
-
-    function markPermDirty() {
-        const indicator = document.getElementById('perms-dirty-indicator');
-        if (indicator) indicator.classList.remove('d-none');
-    }
-
-    function filterByPermDomain(domainSlug) {
-        currentPermDomainFilter = domainSlug;
-
-        document.querySelectorAll('.filter-tab-pill').forEach(pill => {
-            if (pill.getAttribute('data-domain') === domainSlug) {
-                pill.classList.add('active');
-            } else {
-                pill.classList.remove('active');
-            }
-        });
-
-        filterPermList('available');
-        filterPermList('assigned');
-    }
-
-    function filterPermList(col) {
-        const query = document.getElementById(col === 'assigned' ? 'search-assigned-perms' : 'search-avail-perms').value.toLowerCase().trim();
-        const containerId = col === 'assigned' ? 'assigned-perms-container' : 'available-perms-container';
-        const cards = document.querySelectorAll(`#${containerId} .perm-card-item`);
-
-        cards.forEach(card => {
-            const domain = card.getAttribute('data-domain') || '';
-            const text = card.getAttribute('data-text') || '';
-
-            const matchesDomain = (currentPermDomainFilter === 'all') || (domain === currentPermDomainFilter);
-            const matchesQuery = !query || text.includes(query);
-
-            card.style.display = (matchesDomain && matchesQuery) ? 'block' : 'none';
-        });
-    }
-
-    function clearPermSearch(col) {
-        const input = document.getElementById(col === 'assigned' ? 'search-assigned-perms' : 'search-avail-perms');
-        if (input) {
-            input.value = '';
-            filterPermList(col);
-        }
+    function updateOverallPermCounters() {
+        const total = rolePermissions.size;
+        const heroCounter = document.getElementById('heroPermsGranted');
+        const tabCounter = document.getElementById('tabPermsCount');
+        if (heroCounter) heroCounter.textContent = total;
+        if (tabCounter) tabCounter.textContent = total;
     }
 
     function savePermissionsMatrix() {
         if (!isSuperAdmin) {
-            Swal.fire('Unauthorized', 'Only the SuperAdmin can modify the permissions capability matrix.', 'warning');
+            if (window.Swal) Swal.fire('Unauthorized', 'Only the SuperAdmin can modify the permissions capability matrix.', 'warning');
             return;
         }
 
-        const assignedCards = document.querySelectorAll('#assigned-perms-container .perm-card-item');
-        const permNames = Array.from(assignedCards).map(card => card.getAttribute('data-perm-name')).filter(Boolean);
-
+        const permNames = Array.from(rolePermissions);
+        const btn = document.getElementById('btn-save-perms');
         const btnText = document.getElementById('btn-save-perms-text');
-        const origText = btnText.textContent;
-        btnText.textContent = 'Saving Matrix...';
+        const origText = btnText ? btnText.textContent : 'Save Matrix';
+        if (btnText) btnText.textContent = 'Saving Matrix...';
+        if (btn) btn.disabled = true;
 
         fetch("{{ route('dss.settings.roles.permissions', $role->id) }}", {
             method: 'POST',
@@ -795,24 +558,129 @@
         })
         .then(res => res.json())
         .then(data => {
-            btnText.textContent = origText;
+            if (btnText) btnText.textContent = origText;
+            if (btn) btn.disabled = false;
             if (data.result) {
-                document.getElementById('perms-dirty-indicator').classList.add('d-none');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Permissions Matrix Saved!',
-                    text: data.message,
-                    confirmButtonColor: 'var(--dss-primary)',
-                    timer: 2000
-                });
+                document.getElementById('perms-dirty-indicator')?.classList.add('d-none');
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Capabilities Saved!',
+                        text: data.message,
+                        confirmButtonColor: '#00674f',
+                        timer: 2000
+                    });
+                }
             } else {
-                Swal.fire('Error', data.message || 'Failed to update permissions matrix.', 'error');
+                if (window.Swal) Swal.fire('Error', data.message || 'Failed to update capabilities matrix.', 'error');
             }
         })
         .catch(err => {
-            btnText.textContent = origText;
-            Swal.fire('Error', 'An error occurred while saving the permissions matrix.', 'error');
+            if (btnText) btnText.textContent = origText;
+            if (btn) btn.disabled = false;
+            if (window.Swal) Swal.fire('Error', 'An error occurred while saving the capabilities matrix.', 'error');
         });
+    }
+
+    /* ========================================================================= */
+    /* 2. PERSONNEL TOGGLE LOGIC                                                 */
+    /* ========================================================================= */
+    function onUserSwitchToggle(switchEl) {
+        const isChecked = switchEl.checked;
+        const userId = parseInt(switchEl.value);
+        const row = document.getElementById('row-user-' + userId);
+        const badge = document.getElementById('badge-user-' + userId);
+
+        if (isChecked) {
+            roleUserIds.add(userId);
+            if (row) row.classList.add('bg-success-subtle', 'bg-opacity-10');
+            if (badge) {
+                badge.className = 'badge bg-success text-white font-mono user-badge-label';
+                badge.textContent = 'ASSIGNED';
+            }
+        } else {
+            roleUserIds.delete(userId);
+            if (row) row.classList.remove('bg-success-subtle', 'bg-opacity-10');
+            if (badge) {
+                badge.className = 'badge bg-light text-muted border font-mono user-badge-label';
+                badge.textContent = 'UNASSIGNED';
+            }
+        }
+
+        if (usersTable && row) {
+            usersTable.row(row).invalidate();
+        }
+
+        updateOverallUserCounters();
+        document.getElementById('personnel-dirty-indicator')?.classList.remove('d-none');
+    }
+
+    function bulkToggleVisiblePersonnel(assign) {
+        $('#personnelTable tbody tr:visible').each(function() {
+            const sw = $(this).find('.user-switch')[0];
+            if (sw && sw.checked !== assign) {
+                sw.checked = assign;
+                onUserSwitchToggle(sw);
+            }
+        });
+    }
+
+    function updateOverallUserCounters() {
+        const total = roleUserIds.size;
+        const tabUsers = document.getElementById('tabUsersCount');
+        if (tabUsers) tabUsers.textContent = total;
+    }
+
+    function savePersonnelAssignments() {
+        const userIds = Array.from(roleUserIds);
+        const btn = document.getElementById('btn-save-personnel');
+        const btnText = document.getElementById('btn-save-personnel-text');
+        const origText = btnText ? btnText.textContent : 'Save Personnel';
+        if (btnText) btnText.textContent = 'Saving...';
+        if (btn) btn.disabled = true;
+
+        fetch("{{ route('dss.settings.roles.personnel', $role->id) }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ user_ids: userIds })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (btnText) btnText.textContent = origText;
+            if (btn) btn.disabled = false;
+            if (data.result) {
+                document.getElementById('personnel-dirty-indicator')?.classList.add('d-none');
+                if (window.Swal) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Personnel Updated!',
+                        text: data.message,
+                        confirmButtonColor: '#00674f',
+                        timer: 2000
+                    });
+                }
+            } else {
+                if (window.Swal) Swal.fire('Error', data.message || 'Failed to update personnel assignment.', 'error');
+            }
+        })
+        .catch(err => {
+            if (btnText) btnText.textContent = origText;
+            if (btn) btn.disabled = false;
+            if (window.Swal) Swal.fire('Error', 'An error occurred while saving personnel assignments.', 'error');
+        });
+    }
+
+    function slugify(text) {
+        return text.toString().toLowerCase()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w\-]+/g, '')
+            .replace(/\-\-+/g, '-')
+            .replace(/^-+/, '')
+            .replace(/-+$/, '');
     }
 </script>
 @endsection

@@ -3,7 +3,10 @@
 namespace App\Services\Signatories;
 
 use App\Models\Dts\DocumentType;
+use App\Models\Dts\Unit;
 use App\Models\Employee;
+use App\Models\RIE\ExtensionPlan;
+use App\Models\RIE\ExtensionProposal;
 use App\Models\SaaS\DocumentSignatory;
 use App\Models\SaaS\DocumentSignatoryMatrix;
 use App\Models\User;
@@ -109,7 +112,15 @@ class CentralizedSignatoryService
      */
     protected static function hydrateDynamicAssignees(Collection $matrices, ?User $author, ?int $campusId): Collection
     {
-        return $matrices->map(function (DocumentSignatoryMatrix $item) use ($author) {
+        $authorUnit = null;
+        if ($author) {
+            $deptId = $author->employee?->department_id ?: $author->dept_id;
+            if ($deptId) {
+                $authorUnit = Unit::find($deptId);
+            }
+        }
+
+        return $matrices->map(function (DocumentSignatoryMatrix $item) use ($author, $authorUnit) {
             $clone = clone $item;
 
             if ($item->assignment_type === 'dynamic_author' && $author) {
@@ -117,10 +128,41 @@ class CentralizedSignatoryService
                 $clone->user_id = $author->id;
                 $clone->signatory_name = $author->employee?->full_name ?: $author->name;
                 $clone->designation = $author->primaryDesignation?->designation_title ?: ($author->designation ?: 'Project Leader');
-                $clone->office = $author->dtsUnit()?->name;
+                $clone->office = $authorUnit?->unit_name ?: $author->dtsUnit()?->name;
+            } elseif (in_array($item->assignment_type, ['dynamic_extension_head', 'dynamic_dept_extension_head'])) {
+                if ($authorUnit) {
+                    $clone->signatory_name = $authorUnit->extension_head_name;
+                    $clone->designation = $authorUnit->extension_head_title ?: ($authorUnit->short_name ? $authorUnit->short_name.' Head for Extension' : 'College Head for Extension');
+                    $clone->office = $authorUnit->unit_name;
+                    $clone->employee_id = $authorUnit->extension_head_employee_id;
+                    $clone->user_id = $authorUnit->extension_head_employee_id ? User::where('employee_id', $authorUnit->extension_head_employee_id)->value('id') : null;
+                }
+            } elseif (in_array($item->assignment_type, ['dynamic_college_dean', 'dynamic_dept_head'])) {
+                if ($authorUnit) {
+                    $clone->signatory_name = $authorUnit->head_name;
+                    $clone->designation = $authorUnit->head_title ?: ($authorUnit->short_name ? $authorUnit->short_name.' Dean' : 'College Dean');
+                    $clone->office = $authorUnit->unit_name;
+                    $clone->employee_id = $authorUnit->head_employee_id;
+                    $clone->user_id = $authorUnit->head_employee_id ? User::where('employee_id', $authorUnit->head_employee_id)->value('id') : null;
+                }
+            } elseif ($item->assignment_type === 'role_based' && (! empty($item->role_label) || ! empty($item->designation))) {
+                $searchTerm = $item->designation ?: $item->role_label;
+                $emp = Employee::where(function ($q) use ($searchTerm) {
+                    $q->where('designation', 'like', "%{$searchTerm}%")
+                        ->orWhere('first_name', 'like', "%{$searchTerm}%")
+                        ->orWhere('last_name', 'like', "%{$searchTerm}%");
+                })->first();
+
+                if ($emp) {
+                    $clone->employee_id = $emp->id;
+                    $clone->user_id = User::where('employee_id', $emp->id)->value('id');
+                    $clone->signatory_name = $emp->full_name;
+                    $clone->designation = $emp->designation ?: $item->designation;
+                }
             } elseif ($item->employee) {
                 $clone->signatory_name = $item->employee->full_name;
                 $clone->designation = $item->employee->designation ?: $item->designation;
+                $clone->user_id = $clone->user_id ?: User::where('employee_id', $item->employee->id)->value('id');
             } elseif ($item->user) {
                 $clone->signatory_name = $item->user->name;
                 $clone->designation = $item->designation ?: $item->user->designation;
@@ -564,5 +606,49 @@ class CentralizedSignatoryService
         }
 
         return $query->get();
+    }
+
+    /**
+     * Propagate layout changes (col_span, alignment, role_label, sort_order)
+     * from the central matrix to all active unsigned document instances.
+     */
+    public static function syncMatrixToPendingDocuments(int $tenantId, int $docTypeId): void
+    {
+        $matrices = DocumentSignatoryMatrix::where('tenant_id', $tenantId)
+            ->where('doc_type_id', $docTypeId)
+            ->where('is_active', true)
+            ->orderBy('sort_order', 'asc')
+            ->get()
+            ->keyBy('sort_order');
+
+        if ($matrices->isEmpty()) {
+            return;
+        }
+
+        $docType = DocumentType::find($docTypeId);
+        if (! $docType) {
+            return;
+        }
+
+        $morphClasses = match ($docType->name) {
+            'Extension Plan' => [ExtensionPlan::class, 'extension_plan', 'ExtensionPlan'],
+            'Extension Proposal' => [ExtensionProposal::class, 'extension_proposal', 'ExtensionProposal'],
+            default => [$docType->name],
+        };
+
+        $pendingSigs = DocumentSignatory::where('tenant_id', $tenantId)
+            ->whereIn('document_type', $morphClasses)
+            ->whereNull('signed_at')
+            ->get();
+
+        foreach ($pendingSigs as $sig) {
+            if ($matrices->has($sig->sort_order)) {
+                $mat = $matrices->get($sig->sort_order);
+                $sig->col_span = $mat->col_span ?: 12;
+                $sig->alignment = $mat->alignment ?: 'left';
+                $sig->role_label = $mat->role_label ?: $sig->role_label;
+                $sig->save();
+            }
+        }
     }
 }

@@ -163,6 +163,22 @@ class RolePermissionController extends Controller
         $roles = Role::all();
         $permissionCatalog = self::getPermissionCatalog();
 
+        // Auto-backfill module and description for catalog permissions if null
+        foreach ($permissionCatalog as $modName => $items) {
+            foreach ($items as $k => $desc) {
+                Permission::where('name', $k)
+                    ->where(function ($q) {
+                        $q->whereNull('description')->orWhereNull('module');
+                    })
+                    ->update([
+                        'module' => $modName,
+                        'description' => $desc,
+                    ]);
+            }
+        }
+
+        $permissions = Permission::with('roles')->orderBy('name')->get();
+
         $users = User::where('tenant_id', $tenant->id)
             ->with('permissions')
             ->get();
@@ -197,12 +213,14 @@ class RolePermissionController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:80|unique:roles,name',
+            'description' => 'nullable|string|max:255',
             'permissions' => 'nullable|array',
             'permissions.*' => 'string|exists:permissions,name',
         ]);
 
-        $role = Role::firstOrCreate([
+        $role = Role::create([
             'name' => trim($validated['name']),
+            'description' => trim($validated['description'] ?? '') ?: null,
             'guard_name' => 'web',
         ]);
 
@@ -215,6 +233,78 @@ class RolePermissionController extends Controller
             'message' => "Role '{$role->name}' configured successfully!",
             'role' => $role->load('permissions'),
             'redirect_url' => route('dss.settings.roles.configure', $role->id),
+        ]);
+    }
+
+    public function updateRole(Request $request, $id)
+    {
+        if (! self::isSuperAdminUser()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Unauthorized: Only SuperAdmin can modify institutional roles.',
+            ], 403);
+        }
+
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $role = Role::findOrFail($id);
+
+        if ($role->name === 'SuperAdmin') {
+            return response()->json([
+                'result' => false,
+                'message' => 'Action Prohibited: The SuperAdmin system role cannot be renamed or altered.',
+            ], 422);
+        }
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:80|unique:roles,name,'.$role->id,
+            'description' => 'nullable|string|max:255',
+        ]);
+
+        $role->update([
+            'name' => trim($validated['name']),
+            'description' => trim($validated['description'] ?? '') ?: null,
+        ]);
+
+        return response()->json([
+            'result' => true,
+            'message' => "Role '{$role->name}' updated successfully!",
+            'role' => $role,
+        ]);
+    }
+
+    public function destroyRole(Request $request, $id)
+    {
+        if (! self::isSuperAdminUser()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Unauthorized: Only SuperAdmin can delete institutional roles.',
+            ], 403);
+        }
+
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $role = Role::withCount('users')->findOrFail($id);
+
+        if ($role->name === 'SuperAdmin') {
+            return response()->json([
+                'result' => false,
+                'message' => 'Action Prohibited: The SuperAdmin system role is protected and cannot be deleted.',
+            ], 422);
+        }
+
+        if ($role->users_count > 0) {
+            return response()->json([
+                'result' => false,
+                'message' => "Cannot delete role '{$role->name}' because {$role->users_count} institutional personnel are currently assigned to it. Please reassign them first.",
+            ], 422);
+        }
+
+        $roleName = $role->name;
+        $role->syncPermissions([]);
+        $role->delete();
+
+        return response()->json([
+            'result' => true,
+            'message' => "Role '{$roleName}' has been permanently deleted.",
         ]);
     }
 
@@ -293,6 +383,7 @@ class RolePermissionController extends Controller
         $assignedUserIds = $role->users->pluck('id')->toArray();
         $assignedUsers = $allTenantUsers->filter(fn ($u) => in_array($u->id, $assignedUserIds) || $u->role === $role->name);
         $availableUsers = $allTenantUsers->filter(fn ($u) => ! in_array($u->id, $assignedUserIds) && $u->role !== $role->name);
+        $campuses = Campus::where('tenant_id', $tenant->id)->get();
 
         return view('dss.settings.roles.configure', compact(
             'role',
@@ -305,8 +396,10 @@ class RolePermissionController extends Controller
             'assignedPermissions',
             'availablePermissions',
             'rolePermissionNames',
+            'allTenantUsers',
             'assignedUsers',
-            'availableUsers'
+            'availableUsers',
+            'campuses'
         ));
     }
 
@@ -383,12 +476,16 @@ class RolePermissionController extends Controller
 
         $validated = $request->validate([
             'name' => 'required|string|max:120|unique:permissions,name',
+            'module' => 'nullable|string|max:120',
+            'description' => 'nullable|string|max:500',
             'roles' => 'nullable|array',
             'roles.*' => 'string',
         ]);
 
-        $permission = Permission::firstOrCreate([
+        $permission = Permission::create([
             'name' => trim(strtolower($validated['name'])),
+            'module' => trim($validated['module'] ?? '') ?: 'General System Permissions',
+            'description' => trim($validated['description'] ?? '') ?: null,
             'guard_name' => 'web',
         ]);
 
@@ -405,6 +502,62 @@ class RolePermissionController extends Controller
             'result' => true,
             'message' => "Permission '{$permission->name}' registered successfully!",
             'permission' => $permission,
+        ]);
+    }
+
+    public function updatePermission(Request $request, $id)
+    {
+        if (! self::isSuperAdminUser()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Unauthorized: Only SuperAdmin can modify permissions.',
+            ], 403);
+        }
+
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $permission = Permission::findOrFail($id);
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:120|unique:permissions,name,'.$permission->id,
+            'module' => 'nullable|string|max:120',
+            'description' => 'nullable|string|max:500',
+        ]);
+
+        $permission->update([
+            'name' => trim(strtolower($validated['name'])),
+            'module' => trim($validated['module'] ?? '') ?: 'General System Permissions',
+            'description' => trim($validated['description'] ?? '') ?: null,
+        ]);
+
+        return response()->json([
+            'result' => true,
+            'message' => "Permission '{$permission->name}' updated successfully!",
+            'permission' => $permission,
+        ]);
+    }
+
+    public function destroyPermission(Request $request, $id)
+    {
+        if (! self::isSuperAdminUser()) {
+            return response()->json([
+                'result' => false,
+                'message' => 'Unauthorized: Only SuperAdmin can delete permissions.',
+            ], 403);
+        }
+
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $permission = Permission::withCount('roles')->findOrFail($id);
+
+        $rolesCount = $permission->roles_count;
+        $permissionName = $permission->name;
+
+        // Detach from all roles and delete
+        $permission->roles()->detach();
+        $permission->delete();
+
+        return response()->json([
+            'result' => true,
+            'message' => "Permission '{$permissionName}' deleted successfully (detached from {$rolesCount} roles).",
         ]);
     }
 

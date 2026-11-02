@@ -88,6 +88,14 @@ class UploadedDocument extends Model
 
     public function getFileIconAttribute(): string
     {
+        if ($this->disk === 'external' || str_starts_with((string) $this->file_path, 'http')) {
+            if (str_contains((string) $this->file_path, 'drive.google.com') || $this->extension === 'gdrive') {
+                return 'mdi-google-drive text-success';
+            }
+
+            return 'mdi-link-variant text-primary';
+        }
+
         $ext = strtolower($this->extension ?: pathinfo($this->file_path ?? '', PATHINFO_EXTENSION));
 
         return match ($ext) {
@@ -104,6 +112,10 @@ class UploadedDocument extends Model
 
     public function getIsPreviewableAttribute(): bool
     {
+        if ($this->disk === 'external' || str_starts_with((string) $this->file_path, 'http')) {
+            return true;
+        }
+
         $ext = strtolower($this->extension ?: pathinfo($this->file_path ?? '', PATHINFO_EXTENSION));
 
         return in_array($ext, ['pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'txt']);
@@ -111,17 +123,27 @@ class UploadedDocument extends Model
 
     public function getDownloadUrlAttribute(): string
     {
+        if ($this->disk === 'external' || str_starts_with((string) $this->file_path, 'http')) {
+            return $this->file_path;
+        }
+
         return route('dss.documents.upload.download', $this->id);
     }
 
     public function getPreviewUrlAttribute(): string
     {
+        if ($this->disk === 'external' || str_starts_with((string) $this->file_path, 'http')) {
+            return $this->file_path;
+        }
+
         return route('dss.documents.upload.preview', $this->id);
     }
 
     public function getCategoryLabelAttribute(): string
     {
         return match ($this->category) {
+            'wet_signed_milestone' => 'Wet-Signed Milestone Evidence',
+            'milestone_evidence' => 'Milestone Evidence',
             'physically_signed_plan' => 'Physically Signed Copy',
             'activity_design' => 'Activity Design',
             'moa_mou' => 'MOA / MOU Copy',

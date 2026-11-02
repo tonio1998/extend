@@ -256,15 +256,43 @@ class ExtensionProposalController extends Controller
                     .'</span>';
             })
             ->addColumn('actions', function (ExtensionProposal $proposal) {
-                $viewUrl = route('dss.rie.proposals.show', $proposal->getRouteKey());
-                $pdfUrl = route('dss.rie.proposals.pdf', $proposal->getRouteKey());
+                $key = $proposal->getRouteKey();
+                $viewUrl = route('dss.rie.proposals.show', $key);
+                $editUrl = route('dss.rie.proposals.edit', $key);
+                $pdfUrl = route('dss.rie.proposals.pdf', $key);
+                $accomplishmentUrl = route('dss.rie.proposals.accomplishment.report', $key);
 
-                $btn = '<div class="d-inline-flex align-items-center gap-1">';
-                $btn .= '<a href="'.$viewUrl.'" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-1 extra-small fw-semibold" title="View Proposal Workbench"><i class="mdi mdi-eye-outline me-0.5"></i> View</a>';
-                $btn .= '<a href="'.$pdfUrl.'" target="_blank" class="btn btn-xs btn-light border rounded-pill px-2 py-1 extra-small text-secondary" title="View PDF Format"><i class="mdi mdi-file-pdf-box text-danger"></i></a>';
-                $btn .= '</div>';
+                $dtsItem = '';
+                if ($proposal->tracking_number) {
+                    $trackUrl = route('document.track', $proposal->tracking_number);
+                    $dtsItem = '<li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-primary" href="'.$trackUrl.'" target="_blank"><i class="mdi mdi-radar fs-6"></i><span>Track in DTS ('.e($proposal->tracking_number).')</span></a></li>';
+                }
 
-                return $btn;
+                $user = Auth::user();
+                $canEdit = $proposal->status === 'draft' || ($user && $user->can('rie.proposals.manage'));
+
+                return '
+                    <div class="d-flex align-items-center gap-1">
+                        <a href="'.$viewUrl.'" class="btn btn-sm btn-dss-primary px-2 py-1 fw-semibold d-inline-flex align-items-center gap-1" title="Open Proposal Workbench">
+                            <i class="mdi mdi-eye-outline"></i>
+                        </a>
+                        <div class="dropdown d-inline-block">
+                            <button type="button" class="btn btn-sm btn-light border text-dark px-2 py-1 dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" data-bs-boundary="viewport" data-bs-popper-config=\'{"strategy":"fixed"}\' title="Operations & Documents">
+                                <i class="mdi mdi-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-start shadow-lg border extra-small p-1" style="min-width: 220px; z-index: 1065;">
+                                <li class="dropdown-header extra-small text-uppercase fw-bold text-muted py-1 font-mono">Proposal Operations</li>
+                                <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$viewUrl.'"><i class="mdi mdi-view-dashboard-outline text-primary fs-6"></i><span>Proposal Workbench</span></a></li>
+                                '.($canEdit ? '<li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-warning-emphasis" href="'.$editUrl.'"><i class="mdi mdi-pencil-outline fs-6"></i><span>Edit Proposal</span></a></li>' : '').'
+                                <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$accomplishmentUrl.'"><i class="mdi mdi-trophy-outline text-success fs-6"></i><span>Terminal / Accomplishment</span></a></li>
+                                '.$dtsItem.'
+                                <li><hr class="dropdown-divider my-1"></li>
+                                <li class="dropdown-header extra-small text-uppercase fw-bold text-muted py-1 font-mono">Official Documents</li>
+                                <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$pdfUrl.'" target="_blank"><i class="mdi mdi-file-pdf-box text-danger fs-6"></i><span>Official 7-Page PDF</span></a></li>
+                            </ul>
+                        </div>
+                    </div>
+                ';
             })
             ->rawColumns(['code_link', 'plan_reference', 'title_display', 'leader_display', 'budget_display', 'status_badge', 'actions'])
             ->make(true);
@@ -1345,6 +1373,8 @@ class ExtensionProposalController extends Controller
         $relations = [
             'extensionPlan.academicProgram.campus',
             'extensionPlan.campus',
+            'extensionPlan.activities.uploadedByUser',
+            'extensionPlan.activities.uploadedDocument',
             'academicProgram',
             'campus',
             'projectLeaderUser',
@@ -1382,7 +1412,7 @@ class ExtensionProposalController extends Controller
             : collect();
 
         $activeTab = $request->query('tab', 'overview');
-        $validTabs = ['overview', 'technical', 'routing', 'pdf', 'attachments', 'accomplishment'];
+        $validTabs = ['overview', 'activities', 'technical', 'routing', 'pdf', 'attachments', 'accomplishment'];
         if (! in_array($activeTab, $validTabs, true)) {
             $activeTab = 'overview';
         }
@@ -2322,5 +2352,36 @@ class ExtensionProposalController extends Controller
             'source' => 'DSS Institutional Semantic Engine',
             'data' => $fallback,
         ]);
+    }
+
+    /**
+     * Render the official Activity Design for this extension proposal.
+     */
+    public function activityDesign(Request $request, string $id): View
+    {
+        $proposalId = function_exists('dss_decrypt_id') ? dss_decrypt_id($id) : (int) $id;
+        $proposal = ExtensionProposal::with([
+            'extensionPlan.academicProgram.campus',
+            'extensionPlan.campus',
+            'extensionPlan.activities.uploadedByUser',
+            'extensionPlan.activities.uploadedDocument',
+            'academicProgram',
+            'campus',
+            'projectLeaderUser',
+            'projectLeaderEmployee',
+            'documentSignatories.employee',
+            'documentSignatories.signedByUser',
+        ])->findOrFail($proposalId);
+
+        $institution = TenantContext::getInstitution();
+        $plan = $proposal->extensionPlan;
+        $activities = $plan?->milestones_list ?? [];
+        $signatories = CentralizedSignatoryService::getSignatoriesForDocument($proposal);
+
+        // Check if an uploaded wet-signed Activity Design exists
+        $wetSignedDoc = $plan?->activities()->where('title', 'like', '%Activity Design%')->first()?->uploadedDocument
+            ?: $proposal->uploadedDocuments()->where('category', 'activity_design')->first();
+
+        return view('dss.rie.extension_proposals.activity_design', compact('proposal', 'plan', 'institution', 'activities', 'signatories', 'wetSignedDoc'));
     }
 }

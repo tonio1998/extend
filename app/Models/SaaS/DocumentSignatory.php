@@ -188,6 +188,33 @@ class DocumentSignatory extends Model
         return false;
     }
 
+    /**
+     * Determine if this signatory's turn has arrived in sequential order.
+     * All prior signatories with a lower sort_order that are mandatory must be signed first.
+     */
+    public function isReadyToSign(): bool
+    {
+        if ($this->isSigned()) {
+            return false;
+        }
+
+        // Check if any mandatory signatory with earlier sort_order is still pending
+        return ! static::where('document_type', $this->document_type)
+            ->where('document_id', $this->document_id)
+            ->where('sort_order', '<', $this->sort_order)
+            ->where('is_mandatory', true)
+            ->where('status', '!=', 'signed')
+            ->exists();
+    }
+
+    /**
+     * Check if the given user can sign this step right now (user is authorized AND sequential turn has arrived).
+     */
+    public function canSignNow(?User $user): bool
+    {
+        return $this->canBeSignedBy($user) && $this->isReadyToSign();
+    }
+
     public function getDocumentTitleAttribute(): string
     {
         $doc = $this->document;

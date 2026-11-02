@@ -501,13 +501,25 @@ class ExtensionCalendarController extends Controller
 
         $totalScheduledEventsCount = count($calendarEvents);
 
+        $categoryCounts = [
+            'all' => $totalScheduledEventsCount,
+            'proposal_duration' => count(array_filter($calendarEvents, fn ($e) => ($e['category'] ?? '') === 'proposal_duration')),
+            'conduct_activity' => count(array_filter($calendarEvents, fn ($e) => ($e['category'] ?? '') === 'conduct_activity')),
+            'materials_procurement' => count(array_filter($calendarEvents, fn ($e) => ($e['category'] ?? '') === 'materials_procurement')),
+            'moa_signing' => count(array_filter($calendarEvents, fn ($e) => ($e['category'] ?? '') === 'moa_signing')),
+            'monitoring_report' => count(array_filter($calendarEvents, fn ($e) => ($e['category'] ?? '') === 'monitoring_report')),
+        ];
+
         return [
+            'institution' => $institution,
+            'theme' => $theme ?? TenantContext::getTheme(),
             'campuses' => $campuses,
             'availableYears' => $availableYears,
             'selectedPeriod' => $selectedPeriod,
             'selectedCampus' => $selectedCampus,
             'selectedStatus' => $selectedStatus,
             'selectedCategory' => $selectedCategory,
+            'categoryCounts' => $categoryCounts,
             'calendarEvents' => $calendarEvents,
             'durationRoadmapItems' => $durationRoadmapItems,
             'ongoingExtensionsCount' => $ongoingExtensionsCount,

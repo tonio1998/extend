@@ -164,7 +164,6 @@ class Select2Controller extends Controller
 
         $query = DocumentType::where('tenant_id', $tenantId)
             ->where('is_active', true)
-            ->with(['routingTemplate.steps.unit', 'citizenCharter.steps.unit'])
             ->orderBy('name', 'asc');
 
         if ($request->filled('ids')) {
@@ -186,18 +185,22 @@ class Select2Controller extends Controller
         $results = [];
         foreach ($paginator->items() as $dt) {
             $flowSteps = collect();
-            $rawSteps = $dt->getFlowSteps();
-            if ($rawSteps && $rawSteps->isNotEmpty()) {
-                $flowSteps = $rawSteps->sortBy('step_order')->values()->map(function ($s) {
-                    return [
-                        'step' => $s->step_order,
-                        'office' => $s->unit?->unit_name ?: 'Designated Station',
-                        'unit_id' => $s->unit_id ?? $s->unit?->id,
-                        'dept_id' => $s->unit_id ?? $s->unit?->id,
-                        'sla' => $s->processing_time ?: ($s->sla_duration ? $s->sla_duration.' '.$s->sla_unit : ($s->sla_hours ? $s->sla_hours.'h' : '1d')),
-                        'action' => $s->action_required ?: ($s->instructions ?: 'For processing'),
-                    ];
-                });
+            try {
+                $rawSteps = $dt->getFlowSteps();
+                if ($rawSteps && $rawSteps->isNotEmpty()) {
+                    $flowSteps = $rawSteps->sortBy('step_order')->values()->map(function ($s) {
+                        return [
+                            'step' => $s->step_order,
+                            'office' => $s->unit?->unit_name ?: 'Designated Station',
+                            'unit_id' => $s->unit_id ?? $s->unit?->id,
+                            'dept_id' => $s->unit_id ?? $s->unit?->id,
+                            'sla' => $s->processing_time ?: ($s->sla_duration ? $s->sla_duration.' '.$s->sla_unit : ($s->sla_hours ? $s->sla_hours.'h' : '1d')),
+                            'action' => $s->action_required ?: ($s->instructions ?: 'For processing'),
+                        ];
+                    });
+                }
+            } catch (\Throwable $e) {
+                // Gracefully fallback if auxiliary routing template tables are not migrated
             }
 
             $label = $dt->name.($dt->code ? " ({$dt->code})" : '');

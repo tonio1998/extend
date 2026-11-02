@@ -133,4 +133,90 @@ class ExtensionRolePermissionTest extends TestCase
         $this->assertFalse($policy->delete($otherFaculty, $draftPlan));
         $this->assertTrue($policy->delete($admin, $submittedPlan));
     }
+
+    public function test_role_configure_view_renders_successfully(): void
+    {
+        $admin = User::first() ?? User::factory()->create();
+        $role = Role::firstOrCreate(['name' => 'Auditor', 'guard_name' => 'web']);
+
+        $response = $this->actingAs($admin)
+            ->get(route('dss.settings.roles.configure', $role->id));
+
+        $response->assertStatus(200);
+        $response->assertSee('Auditor');
+        $response->assertSee('Capabilities Matrix');
+        $response->assertSee('Assigned Personnel');
+        $response->assertSee('panePermissions');
+        $response->assertSee('panePersonnel');
+    }
+
+    public function test_role_crud_operations_work_properly(): void
+    {
+        $superAdmin = User::where('email', 'apiloton1@snsu.edu.ph')->first()
+            ?? User::factory()->create(['role' => 'SuperAdmin', 'email' => 'apiloton1@snsu.edu.ph']);
+
+        // 1. Create Role
+        $createRes = $this->actingAs($superAdmin)->postJson(route('dss.settings.roles.store'), [
+            'name' => 'Custom QA Auditor',
+            'description' => 'Audits extension quality benchmarks',
+        ]);
+        $createRes->assertStatus(200)->assertJson(['result' => true]);
+        $roleId = $createRes->json('role.id');
+        $this->assertDatabaseHas('roles', ['id' => $roleId, 'name' => 'Custom QA Auditor']);
+
+        // 2. Update Role
+        $updateRes = $this->actingAs($superAdmin)->putJson(route('dss.settings.roles.update', $roleId), [
+            'name' => 'Senior QA Auditor',
+            'description' => 'Updated description for senior QA',
+        ]);
+        $updateRes->assertStatus(200)->assertJson(['result' => true]);
+        $this->assertDatabaseHas('roles', ['id' => $roleId, 'name' => 'Senior QA Auditor']);
+
+        // 3. Delete Role
+        $deleteRes = $this->actingAs($superAdmin)->deleteJson(route('dss.settings.roles.destroy', $roleId));
+        $deleteRes->assertStatus(200)->assertJson(['result' => true]);
+        $this->assertDatabaseMissing('roles', ['id' => $roleId]);
+    }
+
+    public function test_permission_crud_operations_work_properly(): void
+    {
+        $superAdmin = User::where('email', 'apiloton1@snsu.edu.ph')->first()
+            ?? User::factory()->create(['role' => 'SuperAdmin', 'email' => 'apiloton1@snsu.edu.ph']);
+
+        // 1. Create Permission
+        $createRes = $this->actingAs($superAdmin)->postJson(route('dss.settings.permissions.store'), [
+            'name' => 'custom.audit.generate_certificates',
+            'module' => 'Governance & Audit Trail',
+            'description' => 'Generate signed audit compliance certificates',
+        ]);
+        $createRes->assertStatus(200)->assertJson(['result' => true]);
+        $permId = $createRes->json('permission.id');
+        $this->assertDatabaseHas('permissions', ['id' => $permId, 'name' => 'custom.audit.generate_certificates']);
+
+        // 2. Update Permission
+        $updateRes = $this->actingAs($superAdmin)->putJson(route('dss.settings.permissions.update', $permId), [
+            'name' => 'custom.audit.generate_certificates',
+            'module' => 'Governance & Audit Trail',
+            'description' => 'Updated description for certificate generation',
+        ]);
+        $updateRes->assertStatus(200)->assertJson(['result' => true]);
+        $this->assertDatabaseHas('permissions', ['id' => $permId, 'description' => 'Updated description for certificate generation']);
+
+        // 3. Delete Permission
+        $deleteRes = $this->actingAs($superAdmin)->deleteJson(route('dss.settings.permissions.destroy', $permId));
+        $deleteRes->assertStatus(200)->assertJson(['result' => true]);
+        $this->assertDatabaseMissing('permissions', ['id' => $permId]);
+    }
+
+    public function test_permissions_and_roles_index_pages_render_successfully(): void
+    {
+        $superAdmin = User::where('email', 'apiloton1@snsu.edu.ph')->first()
+            ?? User::factory()->create(['role' => 'SuperAdmin', 'email' => 'apiloton1@snsu.edu.ph']);
+
+        $resRoles = $this->actingAs($superAdmin)->get(route('dss.settings.roles.index'));
+        $resRoles->assertStatus(200);
+
+        $resPerms = $this->actingAs($superAdmin)->get(route('dss.settings.permissions.index'));
+        $resPerms->assertStatus(200);
+    }
 }

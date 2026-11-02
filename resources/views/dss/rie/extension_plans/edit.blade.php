@@ -5,51 +5,72 @@
 @push('styles')
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
 <style>
-    .date-mode-btn {
-        font-size: 11px !important;
-        padding: 3px 9px !important;
-        font-weight: 600;
+    .plan-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+        margin-bottom: 24px;
+        overflow: hidden;
     }
-    .btn-check:checked + .date-mode-btn {
-        background-color: var(--dss-primary, #047857) !important;
-        color: #ffffff !important;
-        border-color: var(--dss-primary, #047857) !important;
+    .plan-card-header {
+        background: #ffffff;
+        padding: 16px 20px;
+        border-bottom: 1px solid #f1f5f9;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .milestone-row {
+        transition: background 0.15s ease;
+    }
+    .milestone-row:hover {
+        background: #f8fafc;
+    }
+    .milestone-num-badge {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        font-weight: 700;
+        font-size: 12px;
+        background: #eff6ff;
+        color: #2563eb;
     }
     .flatpickr-calendar {
-        box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.12) !important;
         border: 1px solid #cbd5e1 !important;
-        border-radius: 8px !important;
+        border-radius: 10px !important;
     }
 </style>
 @endpush
 
 @section('content')
 <div class="container-fluid px-3 px-md-4 py-3">
-    <!-- Breadcrumb & Header Bar -->
+    <!-- Header Bar -->
     <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-4">
         <div>
-            <div class="d-flex align-items-center gap-2 text-muted extra-small mb-1 font-mono">
-                <a href="{{ route('dss.dashboard') }}" class="text-decoration-none text-muted">DSS</a>
-                <span>/</span>
-                <span class="text-primary fw-semibold">RIE System</span>
-                <span>/</span>
-                <a href="{{ route('dss.rie.plans.index') }}" class="text-decoration-none text-muted">Extension Plans</a>
-                <span>/</span>
-                <a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="text-decoration-none text-muted">{{ $plan->plan_code }}</a>
-                <span>/</span>
-                <span class="text-dark fw-bold">Edit Details</span>
-            </div>
+            <nav aria-label="breadcrumb" class="mb-1">
+                <ol class="breadcrumb m-0 extra-small">
+                    <li class="breadcrumb-item"><a href="{{ route('dss.dashboard') }}" class="text-decoration-none text-muted">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('dss.rie.plans.index') }}" class="text-decoration-none text-muted">Extension Projects</a></li>
+                    <li class="breadcrumb-item"><a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="text-decoration-none text-muted">{{ $plan->plan_code }}</a></li>
+                    <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">Edit Details</li>
+                </ol>
+            </nav>
             <h4 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
-                <i class="mdi mdi-pencil-box text-warning"></i>
+                <i class="mdi mdi-file-document-edit-outline text-primary"></i>
                 <span>Edit Extension Plan: {{ $plan->plan_code }}</span>
                 <span class="badge rounded-pill bg-light text-dark border extra-small px-2 py-1 font-mono">{{ $plan->status_badge['label'] ?? strtoupper($plan->status) }}</span>
             </h4>
-            <div class="text-muted extra-small mt-1">
-                Update timeline milestones, beneficiaries, proposed budget, and institutional signatories for this extension work plan.
+            <div class="text-muted small mt-0.5">
+                Update project activities, objectives, schedule milestones, and beneficiaries.
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3">
+            <a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold">
                 <i class="mdi mdi-arrow-left me-1"></i> Back to Plan Workbench
             </a>
         </div>
@@ -58,10 +79,10 @@
     @if ($errors->any())
         <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-2xs mb-4" role="alert">
             <div class="d-flex align-items-start gap-2">
-                <i class="mdi mdi-alert-circle fs-5 flex-shrink-0 mt-1"></i>
+                <i class="mdi mdi-alert-circle fs-5 flex-shrink-0 mt-0.5"></i>
                 <div>
-                    <h6 class="fw-bold mb-1">Please correct the following errors:</h6>
-                    <ul class="mb-0 extra-small ps-3">
+                    <strong class="d-block mb-1">Please review the following errors:</strong>
+                    <ul class="mb-0 ps-3 small">
                         @foreach ($errors->all() as $error)
                             <li>{{ $error }}</li>
                         @endforeach
@@ -72,522 +93,225 @@
         </div>
     @endif
 
-    <form action="{{ route('dss.rie.plans.update', $plan->getRouteKey()) }}" method="POST" id="extensionPlanEditForm">
+    <form action="{{ route('dss.rie.plans.update', $plan->getRouteKey()) }}" method="POST" id="extensionPlanForm">
         @csrf
         @method('PUT')
         <input type="hidden" name="action_type" id="actionTypeInput" value="draft">
 
         <div class="row g-4">
-            <!-- Left Column: Main Plan Inputs -->
+            <!-- Left Column: Core Document Inputs -->
             <div class="col-lg-8">
-                <!-- 1. Institutional Document Card -->
-                <div class="card border rounded-3 shadow-2xs mb-4">
-                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                <!-- 1. Project Information -->
+                <div class="plan-card">
+                    <div class="plan-card-header">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-weight: 700; font-size: 12px;">1</span>
-                            <h6 class="fw-bold m-0 text-dark">Program &amp; Activity Identification</h6>
+                            <i class="mdi mdi-information-outline text-primary fs-5"></i>
+                            <h6 class="fw-bold m-0 text-dark">Project Information</h6>
                         </div>
-                        <span class="badge bg-light text-muted border font-mono extra-small">{{ $plan->plan_code }}</span>
                     </div>
                     <div class="card-body p-4">
                         <!-- Academic Program Selection -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark extra-small text-uppercase">
+                            <label class="form-label extra-small fw-bold text-muted text-uppercase">
                                 Academic Program <span class="text-danger">*</span>
                             </label>
-                            <select name="academic_program_id" id="academicProgramSelect" class="form-select select2-ajax"
-                                    data-placeholder="Search or Select Degree Program (e.g. BTVTED, BSIT)...">
-                                <option value=""></option>
+                            <select name="academic_program_id" id="academicProgramSelect" class="form-select select2-ajax" required>
+                                <option value="">-- Select Degree Program --</option>
                                 @foreach($academicPrograms as $prog)
                                     @php
                                         $campusName = $prog->campus?->campus_name ?: 'Main Campus';
                                         $label = "{$campusName} — {$prog->program_code} ({$prog->program_name})";
-                                        $isSelected = old('academic_program_id', $plan->academic_program_id) == $prog->id;
                                     @endphp
                                     <option value="{{ $prog->id }}"
                                             data-program-name="{{ $label }}"
-                                            {{ $isSelected ? 'selected' : '' }}>
+                                            {{ (string) old('academic_program_id', $plan->academic_program_id) === (string) $prog->id ? 'selected' : '' }}>
                                         {{ $label }}
                                     </option>
                                 @endforeach
                             </select>
                             <input type="hidden" name="program_name" id="programNameInput" value="{{ old('program_name', $plan->program_name) }}">
-                            <div class="form-text extra-small text-muted mt-1">
-                                Exact Program format on document: <span class="fw-semibold text-dark" id="programDisplayPreview">{{ old('program_name', $plan->program_name) }}</span>
-                            </div>
-                        </div>
-
-                        <!-- 3rd-Party Tracking Number (Optional) -->
-                        <div class="mb-3">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <label class="form-label fw-semibold text-dark extra-small text-uppercase mb-0">
-                                    <i class="mdi mdi-barcode-scan text-primary me-1"></i> 3rd-Party DTS Tracking Number <span class="badge bg-light text-muted border font-mono ms-1" style="font-size: 10px;">Optional</span>
-                                </label>
-                                <span class="extra-small text-muted">Connected to 3rd party DTS</span>
-                            </div>
-                            <input type="text" name="tracking_number" class="form-control font-mono"
-                                   placeholder="e.g. SNSU-2026-00123 (or leave blank to link later)"
-                                   value="{{ old('tracking_number', $plan->tracking_number) }}">
-                            <div class="form-text extra-small text-muted">
-                                Tracking number from 3rd-party tracking system. You can update this anytime before official PDF printing.
-                            </div>
                         </div>
 
                         <!-- Extension Activities / Project Title -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark extra-small text-uppercase">
-                                Extension Activities (Project Title) <span class="text-danger">*</span>
+                            <label class="form-label extra-small fw-bold text-muted text-uppercase">
+                                Extension Activity / Project Title <span class="text-danger">*</span>
                             </label>
-                            <input type="text" name="extension_activity" class="form-control fw-bold text-dark fs-6"
-                                   placeholder="e.g. PROJECT KAON"
+                            <input type="text" name="extension_activity" class="form-control form-control-lg fw-bold text-dark fs-6"
+                                   placeholder="e.g. PROJECT KAON: Livelihood &amp; Nutrition Literacy Campaign"
                                    value="{{ old('extension_activity', $plan->extension_activity) }}" required>
-                            <div class="form-text extra-small text-muted">
-                                Name of the extension initiative, project banner, or community service program.
-                            </div>
                         </div>
 
                         <!-- Objectives -->
-                        <div class="mb-0">
-                            <label class="form-label fw-semibold text-dark extra-small text-uppercase">
+                        <div class="mb-3">
+                            <label class="form-label extra-small fw-bold text-muted text-uppercase">
                                 Objectives <span class="text-danger">*</span>
                             </label>
                             <textarea name="objectives" rows="4" class="form-control"
-                                      placeholder="State the specific objectives of the extension project..." required>{{ old('objectives', $plan->objectives) }}</textarea>
+                                      placeholder="List the specific objectives of the extension plan..." required>{{ old('objectives', $plan->objectives) }}</textarea>
                         </div>
-                    </div>
-                </div>
 
-                <!-- 2. Schedule of Activities Timeline Card -->
-                <div class="card border rounded-3 shadow-2xs mb-4">
-                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-weight: 700; font-size: 12px;">2</span>
-                            <h6 class="fw-bold m-0 text-dark">Schedule of Activities (Milestones)</h6>
-                        </div>
-                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small">Institutional Calendar</span>
-                    </div>
-                    <div class="card-body p-4">
-                        <div class="row g-3">
-                            <!-- Submission of Proposal -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small">
-                                    Submission of Extension Project Proposal
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-calendar"></i></span>
-                                    <input type="date" name="sub_extension_proposal_date" class="form-control"
-                                           value="{{ old('sub_extension_proposal_date', $plan->sub_extension_proposal_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-
-                            <!-- Submission of Activity Design -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small">
-                                    Submission of Activity Design
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-calendar"></i></span>
-                                    <input type="date" name="sub_activity_design_date" class="form-control"
-                                           value="{{ old('sub_activity_design_date', $plan->sub_activity_design_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-
-                            <!-- Submission of Purchase Request (Optional) -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small d-flex justify-content-between">
-                                    <span>Submission of Purchase Request</span>
-                                    <span class="text-muted font-italic">(Optional)</span>
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-cart-outline"></i></span>
-                                    <input type="date" name="sub_purchase_request_date" class="form-control"
-                                           value="{{ old('sub_purchase_request_date', $plan->sub_purchase_request_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-
-                            <!-- MOA Signing -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small">
-                                    MOA Signing
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-pen"></i></span>
-                                    <input type="date" name="moa_signing_date" class="form-control"
-                                           value="{{ old('moa_signing_date', $plan->moa_signing_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-
-                            <!-- Arrival of Materials -->
-                            @php
-                                $matMode = old('materials_arrival_mode', $plan->materials_arrival_mode ?: 'range');
-                                $matDatesArr = old('materials_arrival_dates', $plan->materials_arrival_dates);
-                                if (is_array($matDatesArr)) {
-                                    $matDatesStr = implode(', ', $matDatesArr);
-                                } else {
-                                    $matDatesStr = (string) $matDatesArr;
-                                }
-                            @endphp
-                            <div class="col-12">
-                                <div class="p-3 border rounded-3 bg-light-subtle">
-                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                                        <label class="form-label fw-bold text-dark extra-small text-uppercase mb-0 d-flex align-items-center gap-1">
-                                            <i class="mdi mdi-truck-delivery-outline text-warning"></i>
-                                            <span>Arrival of Materials</span>
-                                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle ms-1 extra-small">RIE Calendar Event</span>
-                                        </label>
-
-                                        <!-- Mode Switcher -->
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <input type="radio" class="btn-check" name="materials_arrival_mode" id="matModeRange" value="range" {{ $matMode === 'range' ? 'checked' : '' }} onchange="toggleDateMode('materials', 'range')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="matModeRange"><i class="mdi mdi-calendar-range me-1"></i>Date Range</label>
-
-                                            <input type="radio" class="btn-check" name="materials_arrival_mode" id="matModeMultiple" value="multiple" {{ $matMode === 'multiple' ? 'checked' : '' }} onchange="toggleDateMode('materials', 'multiple')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="matModeMultiple"><i class="mdi mdi-calendar-multiselect me-1"></i>Selected Dates</label>
-
-                                            <input type="radio" class="btn-check" name="materials_arrival_mode" id="matModeSingle" value="single" {{ $matMode === 'single' ? 'checked' : '' }} onchange="toggleDateMode('materials', 'single')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="matModeSingle"><i class="mdi mdi-calendar me-1"></i>Single Date</label>
-                                        </div>
-                                    </div>
-
-                                    <!-- Range Container -->
-                                    <div id="materialsRangeContainer" class="row g-2 align-items-center {{ $matMode === 'range' ? '' : 'd-none' }}">
-                                        <div class="col-md-5">
-                                            <label class="extra-small text-muted mb-1">Start Date (Arrival Begins):</label>
-                                            <input type="date" name="materials_arrival_start" id="materialsArrivalStart" class="form-control form-control-sm"
-                                                   value="{{ old('materials_arrival_start', $plan->materials_arrival_start?->format('Y-m-d')) }}" onchange="updateDatePreview('materials')">
-                                        </div>
-                                        <div class="col-md-2 text-center pt-md-3">
-                                            <span class="text-muted extra-small fw-bold">to</span>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="extra-small text-muted mb-1">End Date (All Materials Arrived):</label>
-                                            <input type="date" name="materials_arrival_end" id="materialsArrivalEnd" class="form-control form-control-sm"
-                                                   value="{{ old('materials_arrival_end', $plan->materials_arrival_end?->format('Y-m-d')) }}" onchange="updateDatePreview('materials')">
-                                        </div>
-                                    </div>
-
-                                    <!-- Multiple / Selected Dates Container -->
-                                    <div id="materialsMultipleContainer" class="{{ $matMode === 'multiple' ? '' : 'd-none' }}">
-                                        <label class="extra-small text-muted mb-1">Click to select specific delivery dates on calendar:</label>
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-white"><i class="mdi mdi-calendar-multiselect text-primary"></i></span>
-                                            <input type="text" id="materialsMultiPicker" class="form-control form-control-sm bg-white" placeholder="Click to select multiple delivery dates..." readonly value="{{ $matDatesStr }}">
-                                        </div>
-                                        <input type="hidden" name="materials_arrival_dates" id="materialsDatesHidden" value="{{ $matDatesStr }}">
-                                    </div>
-
-                                    <!-- Single Date Container -->
-                                    <div id="materialsSingleContainer" class="{{ $matMode === 'single' ? '' : 'd-none' }}">
-                                        <label class="extra-small text-muted mb-1">Target Arrival Date:</label>
-                                        <input type="date" id="materialsSingleDate" class="form-control form-control-sm"
-                                               value="{{ old('materials_arrival_start', $plan->materials_arrival_start?->format('Y-m-d')) }}"
-                                               onchange="syncSingleToRange('materials', this.value)">
-                                    </div>
-
-                                    <!-- Computed Format & Calendar Badge -->
-                                    <input type="hidden" name="materials_arrival_date" id="materialsDateFormatted" value="{{ old('materials_arrival_date', $plan->materials_arrival_date) }}">
-                                    <div class="mt-2 d-flex align-items-center justify-content-between extra-small">
-                                        <span class="text-muted">Document Text: <strong class="text-dark" id="materialsDisplayPreview">{{ old('materials_arrival_date', $plan->materials_arrival_date ?: 'Not specified') }}</strong></span>
-                                        <span class="badge bg-warning-subtle text-warning-emphasis border" id="materialsCalendarBadge"><i class="mdi mdi-calendar-clock me-1"></i>RIE Calendar Synced</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Conduct of Extension Activity -->
-                            @php
-                                $condMode = old('conduct_activity_mode', $plan->conduct_activity_mode ?: 'range');
-                                $condDatesArr = old('conduct_activity_dates', $plan->conduct_activity_dates);
-                                if (is_array($condDatesArr)) {
-                                    $condDatesStr = implode(', ', $condDatesArr);
-                                } else {
-                                    $condDatesStr = (string) $condDatesArr;
-                                }
-                            @endphp
-                            <div class="col-12">
-                                <div class="p-3 border rounded-3 bg-light-subtle">
-                                    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
-                                        <label class="form-label fw-bold text-dark extra-small text-uppercase mb-0 d-flex align-items-center gap-1">
-                                            <i class="mdi mdi-account-group text-success"></i>
-                                            <span>Conduct of Extension Activity</span>
-                                            <span class="badge bg-success-subtle text-success border border-success-subtle ms-1 extra-small">Primary RIE Event</span>
-                                        </label>
-
-                                        <!-- Mode Switcher -->
-                                        <div class="btn-group btn-group-sm" role="group">
-                                            <input type="radio" class="btn-check" name="conduct_activity_mode" id="conductModeRange" value="range" {{ $condMode === 'range' ? 'checked' : '' }} onchange="toggleDateMode('conduct', 'range')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="conductModeRange"><i class="mdi mdi-calendar-range me-1"></i>Date Range</label>
-
-                                            <input type="radio" class="btn-check" name="conduct_activity_mode" id="conductModeMultiple" value="multiple" {{ $condMode === 'multiple' ? 'checked' : '' }} onchange="toggleDateMode('conduct', 'multiple')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="conductModeMultiple"><i class="mdi mdi-calendar-multiselect me-1"></i>Selected Dates</label>
-
-                                            <input type="radio" class="btn-check" name="conduct_activity_mode" id="conductModeSingle" value="single" {{ $condMode === 'single' ? 'checked' : '' }} onchange="toggleDateMode('conduct', 'single')">
-                                            <label class="btn btn-outline-secondary date-mode-btn" for="conductModeSingle"><i class="mdi mdi-calendar me-1"></i>Single Date</label>
-                                        </div>
-                                    </div>
-
-                                    <!-- Range Container -->
-                                    <div id="conductRangeContainer" class="row g-2 align-items-center {{ $condMode === 'range' ? '' : 'd-none' }}">
-                                        <div class="col-md-5">
-                                            <label class="extra-small text-muted mb-1">Start Date (Activity Launch):</label>
-                                            <input type="date" name="conduct_activity_start" id="conductActivityStart" class="form-control form-control-sm"
-                                                   value="{{ old('conduct_activity_start', $plan->conduct_activity_start?->format('Y-m-d')) }}" onchange="updateDatePreview('conduct')">
-                                        </div>
-                                        <div class="col-md-2 text-center pt-md-3">
-                                            <span class="text-muted extra-small fw-bold">to</span>
-                                        </div>
-                                        <div class="col-md-5">
-                                            <label class="extra-small text-muted mb-1">End Date (Activity Culmination):</label>
-                                            <input type="date" name="conduct_activity_end" id="conductActivityEnd" class="form-control form-control-sm"
-                                                   value="{{ old('conduct_activity_end', $plan->conduct_activity_end?->format('Y-m-d')) }}" onchange="updateDatePreview('conduct')">
-                                        </div>
-                                    </div>
-
-                                    <!-- Multiple Container -->
-                                    <div id="conductMultipleContainer" class="{{ $condMode === 'multiple' ? '' : 'd-none' }}">
-                                        <label class="extra-small text-muted mb-1">Click to select specific extension execution dates on calendar:</label>
-                                        <div class="input-group input-group-sm">
-                                            <span class="input-group-text bg-white"><i class="mdi mdi-calendar-multiselect text-success"></i></span>
-                                            <input type="text" id="conductMultiPicker" class="form-control form-control-sm bg-white" placeholder="Click to select multiple execution dates..." readonly value="{{ $condDatesStr }}">
-                                        </div>
-                                        <input type="hidden" name="conduct_activity_dates" id="conductDatesHidden" value="{{ $condDatesStr }}">
-                                    </div>
-
-                                    <!-- Single Container -->
-                                    <div id="conductSingleContainer" class="{{ $condMode === 'single' ? '' : 'd-none' }}">
-                                        <label class="extra-small text-muted mb-1">Execution Date:</label>
-                                        <input type="date" id="conductSingleDate" class="form-control form-control-sm"
-                                               value="{{ old('conduct_activity_start', $plan->conduct_activity_start?->format('Y-m-d')) }}"
-                                               onchange="syncSingleToRange('conduct', this.value)">
-                                    </div>
-
-                                    <!-- Computed Format & Calendar Badge -->
-                                    <input type="hidden" name="conduct_activity_date" id="conductDateFormatted" value="{{ old('conduct_activity_date', $plan->conduct_activity_date) }}">
-                                    <div class="mt-2 d-flex align-items-center justify-content-between extra-small">
-                                        <span class="text-muted">Document Text: <strong class="text-dark" id="conductDisplayPreview">{{ old('conduct_activity_date', $plan->conduct_activity_date ?: 'Not specified') }}</strong></span>
-                                        <span class="badge bg-success-subtle text-success border" id="conductCalendarBadge"><i class="mdi mdi-calendar-check me-1"></i>RIE Calendar Synced</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Submission of Narrative Reports -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small">
-                                    Submission of Narrative Reports, Attendance &amp; Evaluation
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-file-check-outline"></i></span>
-                                    <input type="date" name="sub_narrative_report_date" class="form-control"
-                                           value="{{ old('sub_narrative_report_date', $plan->sub_narrative_report_date?->format('Y-m-d')) }}">
-                                </div>
-                            </div>
-
-                            <!-- Conduct of Monitoring/Feedback -->
-                            <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark extra-small">
-                                    Conduct of Monitoring/Feedback
-                                </label>
-                                <div class="input-group">
-                                    <span class="input-group-text bg-light"><i class="mdi mdi-clipboard-pulse-outline"></i></span>
-                                    <input type="date" name="monitoring_feedback_date" class="form-control"
-                                           value="{{ old('monitoring_feedback_date', $plan->monitoring_feedback_date?->format('Y-m-d')) }}">
-                                </div>
+                        <!-- Optional DTS Tracking Number -->
+                        <div>
+                            <label class="form-label extra-small fw-bold text-muted text-uppercase">
+                                DTS Tracking Number <span class="text-muted fw-normal lowercase">(Optional — can be linked later)</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted border-end-0"><i class="mdi mdi-barcode-scan"></i></span>
+                                <input type="text" name="tracking_number" class="form-control font-mono"
+                                       placeholder="e.g. SNSU-2026-00123"
+                                       value="{{ old('tracking_number', $plan->tracking_number) }}">
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 3. Beneficiaries, Budget & Extensionists Card -->
-                <div class="card border rounded-3 shadow-2xs mb-4">
-                    <div class="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+                <!-- 2. Beneficiaries & Budget Allocation -->
+                <div class="plan-card">
+                    <div class="plan-card-header">
                         <div class="d-flex align-items-center gap-2">
-                            <span class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-weight: 700; font-size: 12px;">3</span>
+                            <i class="mdi mdi-account-group-outline text-primary fs-5"></i>
                             <h6 class="fw-bold m-0 text-dark">Beneficiaries &amp; Budget Allocation</h6>
                         </div>
-                        <span class="badge bg-success-subtle text-success border border-success-subtle extra-small">Scope &amp; Impact</span>
                     </div>
                     <div class="card-body p-4">
+                        <!-- Beneficiaries Description -->
                         <div class="mb-3">
-                            <label class="form-label fw-semibold text-dark extra-small text-uppercase">
+                            <label class="form-label extra-small fw-bold text-muted text-uppercase">
                                 Beneficiaries Description <span class="text-danger">*</span>
                             </label>
                             <textarea name="beneficiaries" rows="2" class="form-control"
-                                      placeholder="e.g. Daycare Worker and BHW of Surigao City" required>{{ old('beneficiaries', $plan->beneficiaries) }}</textarea>
-                            <div class="form-text extra-small text-muted">
-                                Target community sector, partner agency, LGU, or barangay stakeholders.
-                            </div>
+                                      placeholder="e.g. Daycare Workers and Barangay Health Workers of Surigao City" required>{{ old('beneficiaries', $plan->beneficiaries) }}</textarea>
                         </div>
 
                         <div class="row g-3">
+                            <!-- Target Number of Beneficiaries -->
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold text-dark extra-small text-uppercase">
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase">
                                     Target Beneficiaries <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="mdi mdi-account-multiple"></i></span>
-                                    <input type="number" name="target_beneficiaries_count" class="form-control" min="1"
+                                    <input type="number" name="target_beneficiaries_count" class="form-control font-semibold" min="1"
                                            placeholder="e.g. 50" value="{{ old('target_beneficiaries_count', $plan->target_beneficiaries_count) }}" required>
                                 </div>
                             </div>
 
+                            <!-- Proposed Budget -->
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold text-dark extra-small text-uppercase">
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase">
                                     Proposed Budget <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light fw-bold">₱</span>
+                                    <span class="input-group-text bg-light fw-bold text-dark">₱</span>
                                     <input type="number" step="0.01" name="proposed_budget" class="form-control font-mono fw-bold"
                                            placeholder="e.g. 80000.00" value="{{ old('proposed_budget', $plan->proposed_budget) }}" required>
                                 </div>
                             </div>
 
+                            <!-- Number of Extensionists -->
                             <div class="col-md-4">
-                                <label class="form-label fw-semibold text-dark extra-small text-uppercase">
-                                    Number of Extensionists <span class="text-danger">*</span>
+                                <label class="form-label extra-small fw-bold text-muted text-uppercase">
+                                    Extensionists Count <span class="text-danger">*</span>
                                 </label>
                                 <div class="input-group">
                                     <span class="input-group-text bg-light"><i class="mdi mdi-account-tie"></i></span>
-                                    <input type="number" name="extensionists_count" class="form-control" min="1"
+                                    <input type="number" name="extensionists_count" class="form-control font-semibold" min="1"
                                            placeholder="e.g. 15" value="{{ old('extensionists_count', $plan->extensionists_count) }}" required>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <!-- Right Column: Signatories & Actions -->
-            <div class="col-lg-4">
-                <!-- 4-Tier Dynamic Institutional Signatories Box -->
-                <div class="card border rounded-3 shadow-2xs mb-4">
-                    <div class="card-header bg-white py-3 border-bottom">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-weight: 700; font-size: 12px;">4</span>
-                                <h6 class="fw-bold m-0 text-dark">Institutional Signatories</h6>
+                <!-- 3. Schedule of Activities (Dynamic Milestones) -->
+                <div class="plan-card">
+                    <div class="plan-card-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="mdi mdi-calendar-clock text-primary fs-5"></i>
+                            <div>
+                                <h6 class="fw-bold m-0 text-dark">Schedule of Activities &amp; Milestones</h6>
+                                <div class="text-muted extra-small">Customize the project milestone sequence, dates, and execution timeline.</div>
                             </div>
-                            <span class="badge bg-primary-subtle text-primary extra-small px-2 py-1" id="collegeIndicatorBadge">
-                                {{ $plan->academicProgram?->department?->unit_name ?? 'Academic College' }}
-                            </span>
                         </div>
-                        <div class="extra-small text-muted mt-1">
-                            Dynamic 4-tier signatory chain automatically resolved by Academic College / Department.
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-semibold shadow-2xs" onclick="addMilestoneRow()">
+                                <i class="mdi mdi-plus me-1"></i> Add Milestone
+                            </button>
+                            <button type="button" class="btn btn-sm btn-link text-muted p-0 extra-small" onclick="resetToDefaultMilestones()" title="Reset to standard milestones">
+                                Reset Defaults
+                            </button>
                         </div>
                     </div>
-                    <div class="card-body p-3">
-                        <!-- Hidden Signatory Form Fields -->
-                        <input type="hidden" name="reviewed_by_employee_id" id="inputReviewedEmpId" value="{{ $plan->reviewed_by_employee_id }}">
-                        <input type="hidden" name="reviewed_by_name" id="inputReviewedName" value="{{ $plan->reviewed_by_name }}">
-                        <input type="hidden" name="reviewed_by_designation" id="inputReviewedDesig" value="{{ $plan->reviewed_by_designation }}">
-
-                        <input type="hidden" name="noted_by_employee_id" id="inputNotedEmpId" value="{{ $plan->noted_by_employee_id }}">
-                        <input type="hidden" name="noted_by_name" id="inputNotedName" value="{{ $plan->noted_by_name }}">
-                        <input type="hidden" name="noted_by_designation" id="inputNotedDesig" value="{{ $plan->noted_by_designation }}">
-
-                        <input type="hidden" name="approved_by_employee_id" id="inputApprovedEmpId" value="{{ $plan->approved_by_employee_id ?: $plan->noted_by_employee_id }}">
-                        <input type="hidden" name="approved_by_name" id="inputApprovedName" value="{{ $plan->approved_by_name ?: $plan->noted_by_name }}">
-                        <input type="hidden" name="approved_by_designation" id="inputApprovedDesig" value="{{ $plan->approved_by_designation ?: $plan->noted_by_designation }}">
-
-                        <input type="hidden" name="concurred_by_employee_id" id="inputConcurredEmpId" value="{{ $plan->concurred_by_employee_id }}">
-                        <input type="hidden" name="concurred_by_name" id="inputConcurredName" value="{{ $plan->concurred_by_name }}">
-                        <input type="hidden" name="concurred_by_designation" id="inputConcurredDesig" value="{{ $plan->concurred_by_designation }}">
-
-                        <input type="hidden" name="concurred_by_2_employee_id" id="inputConcurred2EmpId" value="{{ $plan->concurred_by_2_employee_id }}">
-                        <input type="hidden" name="concurred_by_2_name" id="inputConcurred2Name" value="{{ $plan->concurred_by_2_name }}">
-                        <input type="hidden" name="concurred_by_2_designation" id="inputConcurred2Desig" value="{{ $plan->concurred_by_2_designation }}">
-
-                        <!-- Tier 1: Prepared By -->
-                        <div class="p-2 mb-2 rounded-2 border bg-light">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="badge bg-primary text-white extra-small" style="font-size: 10px;">
-                                    <i class="mdi mdi-account-star me-1"></i> 1. Prepared by
-                                </span>
-                                <span class="text-muted extra-small">Proponent</span>
-                            </div>
-                            <div class="fw-bold text-dark extra-small text-truncate">
-                                {{ $plan->prepared_by_name ?: ($plan->preparedByUser?->name ?? 'Proponent') }}
-                            </div>
-                            <div class="text-muted" style="font-size: 10.5px;">
-                                {{ $plan->prepared_by_designation ?: 'Project Leader' }}
-                            </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0" id="milestonesTable">
+                                <thead class="table-light extra-small text-uppercase text-muted">
+                                    <tr>
+                                        <th style="width: 44px;" class="text-center">#</th>
+                                        <th style="min-width: 260px;">Milestone Stage / Description</th>
+                                        <th style="width: 320px;">Target Period / Date</th>
+                                        <th style="width: 80px;" class="text-center">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="milestonesTbody">
+                                    <!-- Dynamic rows injected via JavaScript -->
+                                </tbody>
+                            </table>
                         </div>
-
-                        <!-- Tier 2: Reviewed By -->
-                        <div class="p-2 mb-2 rounded-2 border bg-light">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle extra-small" style="font-size: 10px;">
-                                    <i class="mdi mdi-clipboard-check me-1"></i> 2. Reviewed by
-                                </span>
-                                <span class="badge bg-success-subtle text-success extra-small" style="font-size: 9.5px;">Dynamic</span>
-                            </div>
-                            <div class="fw-bold text-dark extra-small text-truncate" id="reviewedDisplayName">
-                                {{ $plan->reviewed_by_name ?: 'College Head for Extension' }}
-                            </div>
-                            <div class="text-muted" style="font-size: 10.5px;" id="reviewedDisplayDesig">
-                                {{ $plan->reviewed_by_designation ?: 'College Head for Extension' }}
-                            </div>
-                        </div>
-
-                        <!-- Tier 3: Noted By -->
-                        <div class="p-2 mb-2 rounded-2 border bg-light">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small" style="font-size: 10px;">
-                                    <i class="mdi mdi-shield-check me-1"></i> 3. Noted by
-                                </span>
-                                <span class="badge bg-success-subtle text-success extra-small" style="font-size: 9.5px;">Dynamic</span>
-                            </div>
-                            <div class="fw-bold text-dark extra-small text-truncate" id="notedDisplayName">
-                                {{ $plan->noted_by_name ?: 'College Dean' }}
-                            </div>
-                            <div class="text-muted" style="font-size: 10.5px;" id="notedDisplayDesig">
-                                {{ $plan->noted_by_designation ?: 'College Dean' }}
-                            </div>
-                        </div>
-
-                        <!-- Tier 4: Concurred By -->
-                        <div class="p-2 rounded-2 border bg-light">
-                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                <span class="badge bg-success-subtle text-success border border-success-subtle extra-small" style="font-size: 10px;">
-                                    <i class="mdi mdi-certificate me-1"></i> 4. Concurred by
-                                </span>
-                                <span class="text-muted extra-small" style="font-size: 9.5px;">University</span>
-                            </div>
-                            <div class="fw-bold text-dark extra-small text-truncate" id="concurred1DisplayName">
-                                {{ $plan->concurred_by_name ?: 'EVER JOY G. RABADAN, MAEM, MSc.' }}
-                            </div>
-                            <div class="text-muted" style="font-size: 10.5px;" id="concurred1DisplayDesig">
-                                {{ $plan->concurred_by_designation ?: 'University Extension Specialist V' }}
-                            </div>
-                            <div class="border-top my-1 pt-1">
-                                <div class="fw-bold text-dark extra-small text-truncate" id="concurred2DisplayName">
-                                    {{ $plan->concurred_by_2_name ?: 'ALVIE ELMA C. PLAZA, MA' }}
-                                </div>
-                                <div class="text-muted" style="font-size: 10.5px;" id="concurred2DisplayDesig">
-                                    {{ $plan->concurred_by_2_designation ?: 'University Extension Director' }}
-                                </div>
-                            </div>
+                        <div class="p-3 border-top bg-light-subtle d-flex align-items-center justify-content-between">
+                            <span class="extra-small text-muted" id="milestoneCountText">0 milestones configured</span>
+                            <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5" onclick="addMilestoneRow()">
+                                <i class="mdi mdi-plus me-1"></i> Add Another Row
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Action Buttons -->
-                <div class="card border rounded-3 shadow-2xs">
+            <!-- Right Column: Submission Actions & Information -->
+            <div class="col-lg-4">
+                <!-- Action Submission Card -->
+                <div class="plan-card sticky-top" style="top: 20px;">
+                    <div class="plan-card-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="mdi mdi-send-check-outline text-primary fs-5"></i>
+                            <h6 class="fw-bold m-0 text-dark">Plan Actions</h6>
+                        </div>
+                    </div>
                     <div class="card-body p-3 d-flex flex-column gap-2">
-                        <button type="button" class="btn btn-warning btn-lg fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm text-dark"
-                                onclick="submitEditPlan('submit')">
+                        <button type="button" class="btn btn-warning btn-lg fw-bold d-flex align-items-center justify-content-center gap-2 shadow-sm text-dark rounded-pill"
+                                onclick="submitPlan('submit')">
                             <i class="mdi mdi-send-check fs-5"></i>
                             <span>Save &amp; Submit for Notation</span>
                         </button>
 
-                        <button type="button" class="btn btn-primary d-flex align-items-center justify-content-center gap-2"
-                                onclick="submitEditPlan('draft')">
+                        <button type="button" class="btn btn-primary d-flex align-items-center justify-content-center gap-2 rounded-pill"
+                                onclick="submitPlan('draft')">
                             <i class="mdi mdi-content-save-outline"></i>
                             <span>Update &amp; Keep as Draft</span>
                         </button>
 
-                        <a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2 mt-1">
+                        <a href="{{ route('dss.rie.plans.show', $plan->getRouteKey()) }}" class="btn btn-outline-secondary d-flex align-items-center justify-content-center gap-2 rounded-pill">
                             <i class="mdi mdi-close"></i>
                             <span>Cancel</span>
                         </a>
+                    </div>
+                </div>
+
+                <!-- Guidance Information Card -->
+                <div class="plan-card">
+                    <div class="plan-card-header">
+                        <div class="d-flex align-items-center gap-2">
+                            <i class="mdi mdi-information-outline text-muted fs-5"></i>
+                            <h6 class="fw-semibold m-0 text-secondary extra-small text-uppercase">Workflow Information</h6>
+                        </div>
+                    </div>
+                    <div class="card-body p-3">
+                        <ul class="extra-small text-muted ps-3 mb-0 d-flex flex-column gap-2">
+                            <li><strong>Dynamic Milestones:</strong> All configured milestone activities and target dates are automatically saved into the database and displayed in the official PDF print.</li>
+                            <li><strong>Automated Routing:</strong> Official institutional signatories and endorsement tiers are automatically resolved via the Document Signatory Matrix.</li>
+                        </ul>
                     </div>
                 </div>
             </div>
@@ -599,167 +323,322 @@
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script>
-    function submitEditPlan(actionType) {
-        document.getElementById('actionTypeInput').value = actionType;
-        document.getElementById('extensionPlanEditForm').submit();
+    // Standard default institutional milestones
+    const defaultMilestones = [
+        { title: 'Submission of Extension Project Proposal', target_date: 'March 15, 2026' },
+        { title: 'Submission of Activity Design', target_date: 'April 05, 2026' },
+        { title: 'Submission of Purchase Request (Optional)', target_date: 'N/A' },
+        { title: 'MOA Signing', target_date: 'April 20, 2026' },
+        { title: 'Arrival of Materials', target_date: 'May 05, 2026' },
+        { title: 'Conduct of Extension Activity', target_date: 'May 10 – May 12, 2026' },
+        { title: 'Submission of Narrative Reports, Attendance & Evaluation', target_date: 'May 20, 2026' },
+        { title: 'Conduct of Monitoring/Feedback', target_date: 'June 05, 2026' }
+    ];
+
+    // Load existing milestones from plan or old input
+    const initialMilestones = @json(old('milestones', $plan->milestones_list));
+    let currentMilestones = (initialMilestones && initialMilestones.length > 0)
+        ? JSON.parse(JSON.stringify(initialMilestones))
+        : JSON.parse(JSON.stringify(defaultMilestones));
+
+    const fpMap = {};
+
+    function getDateIcon(val) {
+        val = (val || '').trim();
+        if (!val) return 'mdi-calendar text-muted';
+        if (val.toUpperCase() === 'N/A') return 'mdi-cancel text-secondary';
+        if (val.includes('–') || val.includes(' - ') || val.includes(' to ')) return 'mdi-calendar-range text-success';
+        return 'mdi-calendar-check text-primary';
     }
 
-    function toggleDateMode(type, mode) {
-        var rangeCont = document.getElementById(type + 'RangeContainer');
-        var multiCont = document.getElementById(type + 'MultipleContainer');
-        var singleCont = document.getElementById(type + 'SingleContainer');
-
-        rangeCont.classList.add('d-none');
-        multiCont.classList.add('d-none');
-        singleCont.classList.add('d-none');
-
-        if (mode === 'range') {
-            rangeCont.classList.remove('d-none');
-            updateDatePreview(type);
-        } else if (mode === 'multiple') {
-            multiCont.classList.remove('d-none');
-            updateMultiDatePreview(type);
-        } else if (mode === 'single') {
-            singleCont.classList.remove('d-none');
-            var startVal = document.getElementById(type === 'materials' ? 'materialsArrivalStart' : 'conductActivityStart').value;
-            if (startVal) {
-                document.getElementById(type === 'materials' ? 'materialsSingleDate' : 'conductSingleDate').value = startVal;
-                syncSingleToRange(type, startVal);
-            }
+    function updateDateIcon(idx) {
+        const input = document.getElementById(`milestone_date_${idx}`);
+        const icon = document.getElementById(`date_mode_icon_${idx}`);
+        if (input && icon) {
+            icon.className = `mdi ${getDateIcon(input.value)}`;
         }
     }
 
-    function syncSingleToRange(type, val) {
-        if (!val) return;
-        if (type === 'materials') {
-            document.getElementById('materialsArrivalStart').value = val;
-            document.getElementById('materialsArrivalEnd').value = val;
-        } else {
-            document.getElementById('conductActivityStart').value = val;
-            document.getElementById('conductActivityEnd').value = val;
+    function setRowDateMode(idx, mode) {
+        const input = document.getElementById(`milestone_date_${idx}`);
+        if (!input) return;
+
+        if (fpMap[idx]) {
+            fpMap[idx].destroy();
+            delete fpMap[idx];
         }
-        updateDatePreview(type);
-    }
 
-    function formatDateDisplay(dateStr) {
-        if (!dateStr) return '';
-        try {
-            var parts = dateStr.split('-');
-            if (parts.length === 3) {
-                var months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-                var m = months[parseInt(parts[1], 10) - 1];
-                return m + ' ' + parseInt(parts[2], 10) + ', ' + parts[0];
-            }
-        } catch (e) {}
-        return dateStr;
-    }
-
-    function updateDatePreview(type) {
-        var start = document.getElementById(type === 'materials' ? 'materialsArrivalStart' : 'conductActivityStart').value;
-        var end = document.getElementById(type === 'materials' ? 'materialsArrivalEnd' : 'conductActivityEnd').value;
-        var preview = document.getElementById(type === 'materials' ? 'materialsDisplayPreview' : 'conductDisplayPreview');
-        var hiddenInput = document.getElementById(type === 'materials' ? 'materialsDateFormatted' : 'conductDateFormatted');
-
-        if (start && end && start !== end) {
-            var sFormatted = formatDateDisplay(start);
-            var eFormatted = formatDateDisplay(end);
-            var text = sFormatted + ' – ' + eFormatted;
-            preview.textContent = text;
-            hiddenInput.value = text;
-        } else if (start) {
-            var text = formatDateDisplay(start);
-            preview.textContent = text;
-            hiddenInput.value = text;
-        } else {
-            preview.textContent = 'Not specified';
-            hiddenInput.value = '';
+        if (mode === 'custom') {
+            updateDateIcon(idx);
+            input.focus();
+            return;
         }
-    }
 
-    function updateMultiDatePreview(type) {
-        var hidden = document.getElementById(type === 'materials' ? 'materialsDatesHidden' : 'conductDatesHidden');
-        var preview = document.getElementById(type === 'materials' ? 'materialsDisplayPreview' : 'conductDisplayPreview');
-        var hiddenInput = document.getElementById(type === 'materials' ? 'materialsDateFormatted' : 'conductDateFormatted');
-
-        if (hidden && hidden.value) {
-            preview.textContent = hidden.value;
-            hiddenInput.value = hidden.value;
-        } else {
-            preview.textContent = 'Click calendar to select dates';
-            hiddenInput.value = '';
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-        // Init Flatpickr for Multiple Date Pickers
-        if (typeof flatpickr !== 'undefined') {
-            flatpickr('#materialsMultiPicker', {
-                mode: 'multiple',
-                dateFormat: 'Y-m-d',
-                altInput: true,
-                altFormat: 'M j, Y',
-                conjunction: ', ',
-                defaultDate: "{{ $matDatesStr }}".split(', ').filter(Boolean),
-                onChange: function (selectedDates, dateStr) {
-                    var formatted = selectedDates.map(function (d) {
-                        return d.toISOString().split('T')[0];
-                    }).join(', ');
-                    document.getElementById('materialsDatesHidden').value = formatted;
-                    updateMultiDatePreview('materials');
+        fpMap[idx] = flatpickr(input, {
+            mode: mode,
+            dateFormat: 'F d, Y',
+            conjunction: ' – ',
+            allowInput: true,
+            onChange: function(selectedDates) {
+                if (mode === 'range' && selectedDates.length === 2) {
+                    const d1 = selectedDates[0];
+                    const d2 = selectedDates[1];
+                    const optMonth = { month: 'long', day: 'numeric', year: 'numeric' };
+                    input.value = `${d1.toLocaleDateString('en-US', optMonth)} – ${d2.toLocaleDateString('en-US', optMonth)}`;
                 }
-            });
-
-            flatpickr('#conductMultiPicker', {
-                mode: 'multiple',
-                dateFormat: 'Y-m-d',
-                altInput: true,
-                altFormat: 'M j, Y',
-                conjunction: ', ',
-                defaultDate: "{{ $condDatesStr }}".split(', ').filter(Boolean),
-                onChange: function (selectedDates, dateStr) {
-                    var formatted = selectedDates.map(function (d) {
-                        return d.toISOString().split('T')[0];
-                    }).join(', ');
-                    document.getElementById('conductDatesHidden').value = formatted;
-                    updateMultiDatePreview('conduct');
-                }
-            });
-        }
-
-        // Academic Program select2 handler
-        $('#academicProgramSelect').on('change', function () {
-            var selectedText = $(this).find('option:selected').data('program-name') || $(this).find('option:selected').text();
-            if (selectedText) {
-                $('#programNameInput').val(selectedText);
-                $('#programDisplayPreview').text(selectedText);
-            }
-        });
-
-        // Select2 for Employee Search Ajax
-        $('.select2-employee-ajax').select2({
-            theme: 'bootstrap-5',
-            ajax: {
-                url: '{{ route("dss.select2.employees") }}',
-                dataType: 'json',
-                delay: 250,
-                data: function (params) {
-                    return { q: params.term, page: params.page };
-                },
-                processResults: function (data) {
-                    return {
-                        results: $.map(data.results || data, function (item) {
-                            return {
-                                id: item.id,
-                                text: item.text || (item.name + (item.designation ? ' (' + item.designation + ')' : '')),
-                                designation: item.designation || ''
-                            };
-                        })
-                    };
-                },
-                cache: true
+                updateDateIcon(idx);
             },
-            minimumInputLength: 1
+            onClose: function() {
+                updateDateIcon(idx);
+            }
         });
+
+        fpMap[idx].open();
+    }
+
+    function openDatePicker(idx) {
+        const input = document.getElementById(`milestone_date_${idx}`);
+        if (!input) return;
+
+        if (!fpMap[idx]) {
+            const val = input.value.trim();
+            const mode = (val.includes('–') || val.includes(' - ') || val.includes(' to ')) ? 'range' : 'single';
+            setRowDateMode(idx, mode);
+        } else {
+            fpMap[idx].open();
+        }
+    }
+
+    function applyPreset(idx, presetVal) {
+        const input = document.getElementById(`milestone_date_${idx}`);
+        if (input) {
+            input.value = presetVal;
+            updateDateIcon(idx);
+            if (fpMap[idx]) {
+                fpMap[idx].destroy();
+                delete fpMap[idx];
+            }
+        }
+    }
+
+    function quickSetNa(idx) {
+        const input = document.getElementById(`milestone_date_${idx}`);
+        if (input) {
+            input.value = (input.value.trim().toUpperCase() === 'N/A') ? '' : 'N/A';
+            updateDateIcon(idx);
+            if (fpMap[idx]) {
+                fpMap[idx].destroy();
+                delete fpMap[idx];
+            }
+        }
+    }
+
+    function renderMilestones() {
+        // Clear previous Flatpickr instances
+        Object.keys(fpMap).forEach(key => {
+            if (fpMap[key]) {
+                fpMap[key].destroy();
+                delete fpMap[key];
+            }
+        });
+
+        const tbody = document.getElementById('milestonesTbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        currentMilestones.forEach((item, index) => {
+            const tr = document.createElement('tr');
+            tr.className = 'milestone-row';
+            tr.innerHTML = `
+                <td class="text-center">
+                    <span class="milestone-num-badge">${index + 1}</span>
+                </td>
+                <td>
+                    <input type="text"
+                           name="milestones[${index}][title]"
+                           class="form-control form-control-sm fw-semibold text-dark"
+                           placeholder="Enter milestone title / phase..."
+                           value="${escapeHtml(item.title || '')}"
+                           required>
+                </td>
+                <td>
+                    <div class="input-group input-group-sm">
+                        <button class="btn btn-light border dropdown-toggle px-2" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Format: Specific Date, Date Range, or Custom Period">
+                            <i class="mdi ${getDateIcon(item.target_date)}" id="date_mode_icon_${index}"></i>
+                        </button>
+                        <ul class="dropdown-menu shadow-sm extra-small">
+                            <li class="dropdown-header text-muted extra-small py-1">Choose Date Format</li>
+                            <li><a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="javascript:void(0)" onclick="setRowDateMode(${index}, 'single')"><i class="mdi mdi-calendar text-primary"></i><span>Specific Single Date</span></a></li>
+                            <li><a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="javascript:void(0)" onclick="setRowDateMode(${index}, 'range')"><i class="mdi mdi-calendar-range text-success"></i><span>Date Range (Start – End)</span></a></li>
+                            <li><a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="javascript:void(0)" onclick="setRowDateMode(${index}, 'custom')"><i class="mdi mdi-form-textbox text-info"></i><span>Custom Period / Quarter</span></a></li>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li class="dropdown-header text-muted extra-small py-1">Quick Presets</li>
+                            <li><a class="dropdown-item py-1 text-secondary" href="javascript:void(0)" onclick="applyPreset(${index}, 'N/A')"><i class="mdi mdi-cancel me-1.5"></i> Mark as N/A</a></li>
+                            <li><a class="dropdown-item py-1 text-secondary" href="javascript:void(0)" onclick="applyPreset(${index}, '1st Quarter ' + new Date().getFullYear())"><i class="mdi mdi-calendar-clock me-1.5"></i> 1st Quarter</a></li>
+                            <li><a class="dropdown-item py-1 text-secondary" href="javascript:void(0)" onclick="applyPreset(${index}, '2nd Quarter ' + new Date().getFullYear())"><i class="mdi mdi-calendar-clock me-1.5"></i> 2nd Quarter</a></li>
+                            <li><a class="dropdown-item py-1 text-secondary" href="javascript:void(0)" onclick="applyPreset(${index}, 'To be scheduled')"><i class="mdi mdi-clock-outline me-1.5"></i> To be scheduled</a></li>
+                        </ul>
+                        <input type="text"
+                               name="milestones[${index}][target_date]"
+                               id="milestone_date_${index}"
+                               class="form-control form-control-sm milestone-date-input font-mono bg-white"
+                               placeholder="Pick date, range, or type custom..."
+                               value="${escapeHtml(item.target_date || '')}"
+                               oninput="updateDateIcon(${index})">
+                        <button type="button" class="btn btn-light border text-primary px-2" onclick="openDatePicker(${index})" title="Open Calendar">
+                            <i class="mdi mdi-calendar-month-outline"></i>
+                        </button>
+                        <button type="button" class="btn btn-light border extra-small px-2 text-muted fw-bold" onclick="quickSetNa(${index})" title="Toggle N/A">
+                            N/A
+                        </button>
+                    </div>
+                </td>
+                <td class="text-center">
+                    <div class="btn-group btn-group-sm">
+                        <button type="button" class="btn btn-light btn-sm text-secondary px-1" onclick="moveMilestone(${index}, -1)" ${index === 0 ? 'disabled' : ''} title="Move Up">
+                            <i class="mdi mdi-arrow-up"></i>
+                        </button>
+                        <button type="button" class="btn btn-light btn-sm text-secondary px-1" onclick="moveMilestone(${index}, 1)" ${index === currentMilestones.length - 1 ? 'disabled' : ''} title="Move Down">
+                            <i class="mdi mdi-arrow-down"></i>
+                        </button>
+                        <button type="button" class="btn btn-light btn-sm text-danger px-1" onclick="removeMilestone(${index})" title="Remove">
+                            <i class="mdi mdi-delete-outline"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        });
+
+        // Initialize flatpickr on date inputs
+        currentMilestones.forEach((item, index) => {
+            const val = (item.target_date || '').trim();
+            if (val && val.toUpperCase() !== 'N/A' && !val.toLowerCase().includes('quarter') && !val.toLowerCase().includes('scheduled')) {
+                const mode = (val.includes('–') || val.includes(' - ') || val.includes(' to ')) ? 'range' : 'single';
+                const input = document.getElementById(`milestone_date_${index}`);
+                if (input && window.flatpickr) {
+                    fpMap[index] = flatpickr(input, {
+                        mode: mode,
+                        dateFormat: 'F d, Y',
+                        conjunction: ' – ',
+                        allowInput: true,
+                        onChange: function(selectedDates) {
+                            if (mode === 'range' && selectedDates.length === 2) {
+                                const d1 = selectedDates[0];
+                                const d2 = selectedDates[1];
+                                const optMonth = { month: 'long', day: 'numeric', year: 'numeric' };
+                                input.value = `${d1.toLocaleDateString('en-US', optMonth)} – ${d2.toLocaleDateString('en-US', optMonth)}`;
+                            }
+                            updateDateIcon(index);
+                        },
+                        onClose: function() {
+                            updateDateIcon(index);
+                        }
+                    });
+                }
+            }
+        });
+
+        // Update count text
+        const countText = document.getElementById('milestoneCountText');
+        if (countText) {
+            countText.innerText = `${currentMilestones.length} milestone${currentMilestones.length === 1 ? '' : 's'} configured`;
+        }
+    }
+
+    function addMilestoneRow() {
+        syncCurrentFromDom();
+        currentMilestones.push({
+            title: '',
+            target_date: ''
+        });
+        renderMilestones();
+        // Focus the newly added row title input
+        const inputs = document.querySelectorAll('#milestonesTbody input[name$="[title]"]');
+        if (inputs.length) {
+            inputs[inputs.length - 1].focus();
+        }
+    }
+
+    function removeMilestone(idx) {
+        syncCurrentFromDom();
+        if (currentMilestones.length <= 1) {
+            alert('At least one milestone is required.');
+            return;
+        }
+        currentMilestones.splice(idx, 1);
+        renderMilestones();
+    }
+
+    function moveMilestone(idx, direction) {
+        syncCurrentFromDom();
+        const targetIdx = idx + direction;
+        if (targetIdx < 0 || targetIdx >= currentMilestones.length) return;
+
+        const temp = currentMilestones[idx];
+        currentMilestones[idx] = currentMilestones[targetIdx];
+        currentMilestones[targetIdx] = temp;
+        renderMilestones();
+    }
+
+    function resetToDefaultMilestones() {
+        if (confirm('Reset milestones to standard institutional defaults? Any custom items will be replaced.')) {
+            currentMilestones = JSON.parse(JSON.stringify(defaultMilestones));
+            renderMilestones();
+        }
+    }
+
+    function syncCurrentFromDom() {
+        const rows = document.querySelectorAll('#milestonesTbody tr');
+        currentMilestones = [];
+        rows.forEach(r => {
+            const titleInput = r.querySelector('input[name$="[title]"]');
+            const dateInput = r.querySelector('input[name$="[target_date]"]');
+            if (titleInput) {
+                currentMilestones.push({
+                    title: titleInput.value,
+                    target_date: dateInput ? dateInput.value : ''
+                });
+            }
+        });
+    }
+
+    function escapeHtml(str) {
+        return (str || '').replace(/[&<>"']/g, function(m) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#039;'
+            }[m];
+        });
+    }
+
+    function submitPlan(actionType) {
+        syncCurrentFromDom();
+        document.getElementById('actionTypeInput').value = actionType;
+        document.getElementById('extensionPlanForm').submit();
+    }
+
+    $(document).ready(function() {
+        renderMilestones();
+
+        // Select2 for Program
+        if ($('#academicProgramSelect').length) {
+            $('#academicProgramSelect').select2({
+                theme: 'bootstrap-5',
+                width: '100%',
+                placeholder: '-- Select Degree Program --',
+                allowClear: false
+            }).on('change', function () {
+                const opt = this.options[this.selectedIndex];
+                if (opt && opt.value) {
+                    const progName = opt.getAttribute('data-program-name') || opt.text;
+                    $('#programNameInput').val(progName);
+                }
+            });
+        }
     });
 </script>
 @endpush

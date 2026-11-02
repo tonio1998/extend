@@ -6,6 +6,20 @@
     $user = auth()->user();
     $navLogo = $inst->logo_variants['sidebar']['url'] ?? ($inst->logo_variants['app_icon']['url'] ?? ($inst->logo_path ? asset($inst->logo_path) : null));
 
+    $isProjectsActive = $currentRoute && (
+        str_starts_with($currentRoute, 'dss.rie.plans') ||
+        str_starts_with($currentRoute, 'dss.rie.proposals') ||
+        str_starts_with($currentRoute, 'dss.rie.calendar')
+    );
+
+    $isBudgetsActive = $currentRoute && str_starts_with($currentRoute, 'dss.rie.budgets');
+
+    $isDocsAndRoutingActive = $currentRoute && (
+        str_starts_with($currentRoute, 'dss.signatures') ||
+        str_starts_with($currentRoute, 'dss.document') ||
+        str_starts_with($currentRoute, 'dss.rie.tracking')
+    );
+
     $isPersonnelActive = $currentRoute && (
         str_starts_with($currentRoute, 'dss.settings.employees') ||
         str_starts_with($currentRoute, 'dss.settings.designations') ||
@@ -62,7 +76,7 @@
             <div class="ma-sidebar-user-avatar">
                 {{ strtoupper(substr($user->name ?? 'JD', 0, 2)) }}
             </div>
-            <a class="text-white fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="font-size: 13.5px;" data-bs-toggle="collapse" href="#maSidebarUserMenu" role="button" aria-expanded="false">
+            <a class="text-white fw-semibold text-decoration-none d-inline-flex align-items-center gap-1" style="font-size: 13px;" data-bs-toggle="collapse" href="#maSidebarUserMenu" role="button" aria-expanded="false">
                 <span>{{ $user->name ?? 'Administrator' }}</span>
                 <i class="mdi mdi-menu-down" style="font-size: 16px;"></i>
             </a>
@@ -78,7 +92,7 @@
                 <i class="mdi mdi-palette-outline"></i><span>Theme &amp; UI Studio</span>
             </a>
         </div>
-        <div class="px-3 pt-2.5 pb-1">
+        <div class="px-3 pt-2 pb-1">
             <div class="d-flex align-items-center border-bottom pb-1">
                 <i class="mdi mdi-magnify text-muted me-2"></i>
                 <input type="text" id="maSidebarSearchInput" class="border-0 bg-transparent w-100 small" style="outline: none;" placeholder="Search Navigation" oninput="window.filterMaSidebar(this.value)">
@@ -102,14 +116,19 @@
     @endif
 
     {{-- ====================================================================
-         SIDEBAR NAVIGATION LINKS
+         SIDEBAR NAVIGATION LINKS (FUNCTIONAL GROUPING & CLEAN DROPDOWNS)
          ==================================================================== --}}
     <div class="dss-sidebar-body" id="maSidebarNavContainer">
+
+        {{-- ------------------------------------------------------------ --}}
+        {{-- SECTION 1: OPERATIONS & PROGRAMS                            --}}
+        {{-- ------------------------------------------------------------ --}}
         <div class="dss-sidebar-section-title">
-            <span class="flup-sec-full">Extension Workflow</span>
-            <span class="flup-sec-short">W</span>
+            <span class="flup-sec-full">Operations &amp; Programs</span>
+            <span class="flup-sec-short">O</span>
         </div>
 
+        {{-- 1.1 Dashboard --}}
         <a href="{{ route('dss.dashboard') }}" class="dss-nav-link {{ $currentRoute === 'dss.dashboard' ? 'active' : '' }}" title="Dashboard">
             <div class="pm-nav-left">
                 <i class="mdi mdi-view-dashboard-outline pm-nav-icon"></i>
@@ -120,52 +139,53 @@
             @endif
         </a>
 
-        @can('rie.plans.view')
-            <a href="{{ route('dss.rie.plans.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.plans') ? 'active' : '' }}" title="Extension Plans">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-calendar-multiselect-outline pm-nav-icon"></i>
-                    @hasanyrole(['Project Leader', 'Faculty', 'Employee'])
-                        <span class="text-truncate">My Extension Plans</span>
-                    @else
-                        <span class="text-truncate">Extension Plans</span>
-                    @endhasanyrole
-                </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
-        @endcan
+        {{-- 1.2 Programs & Projects Dropdown --}}
+        @canany(['rie.plans.view', 'rie.proposals.view'])
+            <div class="dss-sidebar-dropdown">
+                <a href="#projectsSubmenu" class="dss-nav-link {{ $isProjectsActive ? 'active' : '' }}"
+                   data-bs-toggle="collapse" role="button" aria-expanded="{{ $isProjectsActive ? 'true' : 'false' }}" title="Programs & Projects">
+                    <div class="pm-nav-left">
+                        <i class="mdi mdi-lightbulb-on-outline pm-nav-icon"></i>
+                        <span class="text-truncate">Programs &amp; Projects</span>
+                    </div>
+                    <i class="mdi mdi-chevron-down pm-nav-arrow" style="font-size: 14px;"></i>
+                </a>
+                <div class="collapse ps-3 {{ $isProjectsActive ? 'show' : '' }}" id="projectsSubmenu">
+                    @can('rie.plans.view')
+                        <a href="{{ route('dss.rie.plans.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.plans') ? 'active' : '' }}" title="Extension Plans">
+                            <i class="mdi mdi-circle-small"></i>
+                            @hasanyrole(['Project Leader', 'Faculty', 'Employee'])
+                                <span>My Extension Plans</span>
+                            @else
+                                <span>Extension Plans</span>
+                            @endhasanyrole
+                        </a>
+                    @endcan
 
-        @can('rie.proposals.view')
-            <a href="{{ route('dss.rie.proposals.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.proposals') ? 'active' : '' }}" title="Proposals">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-file-document-edit-outline pm-nav-icon"></i>
-                    @hasanyrole(['Project Leader', 'Faculty', 'Employee'])
-                        <span class="text-truncate">My Proposals</span>
-                    @else
-                        <span class="text-truncate">Proposals</span>
-                    @endhasanyrole
-                </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
-        @endcan
+                    @can('rie.proposals.view')
+                        <a href="{{ route('dss.rie.proposals.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.proposals') ? 'active' : '' }}" title="Extension Proposals">
+                            <i class="mdi mdi-circle-small"></i>
+                            @hasanyrole(['Project Leader', 'Faculty', 'Employee'])
+                                <span>My Proposals</span>
+                            @else
+                                <span>Proposals Registry</span>
+                            @endhasanyrole
+                        </a>
+                    @endcan
 
-        @canany(['rie.proposals.view', 'rie.plans.view'])
-            <a href="{{ route('dss.rie.calendar.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.calendar') ? 'active' : '' }}" title="Extension Calendar & Duration Monitoring">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-calendar-clock-outline pm-nav-icon"></i>
-                    <span class="text-truncate">Extension Calendar</span>
+                    @canany(['rie.proposals.view', 'rie.plans.view'])
+                        <a href="{{ route('dss.rie.calendar.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.calendar') ? 'active' : '' }}" title="Extension Calendar">
+                            <i class="mdi mdi-circle-small"></i>
+                            <span>Extension Calendar</span>
+                        </a>
+                    @endcanany
                 </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
+            </div>
         @endcanany
 
+        {{-- 1.3 Annual Extension Budgets --}}
         @can('rie.budgets.view')
-            <a href="{{ route('dss.rie.budgets.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.budgets') ? 'active' : '' }}" title="Extension Budgets">
+            <a href="{{ route('dss.rie.budgets.index') }}" class="dss-nav-link {{ $isBudgetsActive ? 'active' : '' }}" title="Extension Budgets">
                 <div class="pm-nav-left">
                     <i class="mdi mdi-chart-box-outline pm-nav-icon"></i>
                     <span class="text-truncate">Extension Budgets</span>
@@ -176,55 +196,65 @@
             </a>
         @endcan
 
-        @can('rie.tracking.view')
-            <a href="{{ route('dss.rie.tracking.index') }}" class="dss-nav-link {{ str_starts_with($currentRoute, 'dss.rie.tracking') ? 'active' : '' }}" title="Connect Tracking">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-map-outline pm-nav-icon"></i>
-                    <span class="text-truncate">Tracking</span>
-                </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
-        @endcan
+        {{-- ------------------------------------------------------------ --}}
+        {{-- SECTION 2: DOCUMENTS & ROUTING                              --}}
+        {{-- ------------------------------------------------------------ --}}
+        @canany(['rie.signatures.sign', 'rie.documents.view', 'rie.documents.manage', 'rie.tracking.view'])
+            <div class="dss-sidebar-section-title">
+                <span class="flup-sec-full">Documents &amp; Routing</span>
+                <span class="flup-sec-short">D</span>
+            </div>
 
-        <div class="dss-sidebar-section-title">
-            <span class="flup-sec-full">Approvals &amp; Ledger</span>
-            <span class="flup-sec-short">A</span>
-        </div>
+            <div class="dss-sidebar-dropdown">
+                <a href="#docsRoutingSubmenu" class="dss-nav-link {{ $isDocsAndRoutingActive ? 'active' : '' }}"
+                   data-bs-toggle="collapse" role="button" aria-expanded="{{ $isDocsAndRoutingActive ? 'true' : 'false' }}" title="Documents & Routing">
+                    <div class="pm-nav-left">
+                        <i class="mdi mdi-folder-file-outline pm-nav-icon"></i>
+                        <span class="text-truncate">Documents &amp; Routing</span>
+                    </div>
+                    @if($pendingSigCount > 0)
+                        <span class="badge bg-danger rounded-pill font-mono extra-small ms-auto me-1" style="font-size: 10px;">{{ $pendingSigCount }}</span>
+                    @endif
+                    <i class="mdi mdi-chevron-down pm-nav-arrow" style="font-size: 14px;"></i>
+                </a>
+                <div class="collapse ps-3 {{ $isDocsAndRoutingActive ? 'show' : '' }}" id="docsRoutingSubmenu">
+                    @can('rie.signatures.sign')
+                        <a href="{{ route('dss.signatures.index') }}" class="dss-subnav-link {{ $isForSignatureActive ? 'active' : '' }}" title="Sign Documents">
+                            <i class="mdi mdi-circle-small"></i>
+                            <span>Sign Documents</span>
+                            @if($pendingSigCount > 0)
+                                <span class="badge bg-danger text-white rounded-pill font-mono extra-small ms-auto" style="font-size: 9px;">{{ $pendingSigCount }}</span>
+                            @endif
+                        </a>
+                    @endcan
 
-        @can('rie.signatures.sign')
-            <a href="{{ route('dss.signatures.index') }}" class="dss-nav-link {{ $isForSignatureActive ? 'active' : '' }}" title="Sign Documents">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-draw-pen pm-nav-icon"></i>
-                    <span class="text-truncate">Sign Documents</span>
-                </div>
-                @if($pendingSigCount > 0)
-                    <span class="pm-feed-badge ms-auto">{{ $pendingSigCount }}</span>
-                @elseif($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
-        @endcan
+                    @canany(['rie.documents.view', 'rie.documents.manage'])
+                        <a href="{{ route('dss.documents.repository') }}" class="dss-subnav-link {{ $currentRoute && str_starts_with($currentRoute, 'dss.document') ? 'active' : '' }}" title="Document Repository">
+                            <i class="mdi mdi-circle-small"></i>
+                            <span>Repository</span>
+                        </a>
+                    @endcanany
 
-        @canany(['rie.documents.view', 'rie.documents.manage'])
-            <a href="{{ route('dss.documents.repository') }}" class="dss-nav-link {{ $currentRoute && str_starts_with($currentRoute, 'dss.document') ? 'active' : '' }}" title="Document Repository">
-                <div class="pm-nav-left">
-                    <i class="mdi mdi-folder-outline pm-nav-icon"></i>
-                    <span class="text-truncate">Repository</span>
+                    @can('rie.tracking.view')
+                        <a href="{{ route('dss.rie.tracking.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.tracking') ? 'active' : '' }}" title="DTS Tracking">
+                            <i class="mdi mdi-circle-small"></i>
+                            <span>DTS Tracking</span>
+                        </a>
+                    @endcan
                 </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
-            </a>
+            </div>
         @endcanany
 
+        {{-- ------------------------------------------------------------ --}}
+        {{-- SECTION 3: SYSTEM GOVERNANCE                                --}}
+        {{-- ------------------------------------------------------------ --}}
         @hasanyrole(['SuperAdmin', 'Admin'])
             <div class="dss-sidebar-section-title">
-                <span class="flup-sec-full">System</span>
+                <span class="flup-sec-full">System Governance</span>
                 <span class="flup-sec-short">S</span>
             </div>
 
+            {{-- 3.1 Personnel & Access Dropdown --}}
             <div class="dss-sidebar-dropdown">
                 <a href="#personnelSubmenu" class="dss-nav-link {{ $isPersonnelActive ? 'active' : '' }}"
                    data-bs-toggle="collapse" role="button" aria-expanded="{{ $isPersonnelActive ? 'true' : 'false' }}" title="Personnel & Access">
@@ -238,55 +268,60 @@
                     @can('system.users.assign')
                         <a href="{{ route('dss.settings.employees.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.employees') ? 'active' : '' }}">
                             <i class="mdi mdi-circle-small"></i>
-                            <span>Manage Staff</span>
+                            <span>Faculty &amp; Staff</span>
                         </a>
                     @endcan
                     @can('system.hierarchy.manage')
                         <a href="{{ route('dss.settings.designations.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.designations') ? 'active' : '' }}">
                             <i class="mdi mdi-circle-small"></i>
-                            <span>Manage Positions</span>
+                            <span>Position Designations</span>
                         </a>
                     @endcan
                     @can('system.users.assign')
                         <a href="{{ route('dss.settings.users.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.users') ? 'active' : '' }}">
                             <i class="mdi mdi-circle-small"></i>
-                            <span>Manage Users</span>
+                            <span>User Accounts</span>
                         </a>
                     @endcan
                     @can('system.roles.manage')
-                        <a href="{{ route('dss.settings.roles.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.roles') || str_starts_with($currentRoute, 'dss.settings.permissions') ? 'active' : '' }}">
+                        <a href="{{ route('dss.settings.roles.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.roles') ? 'active' : '' }}">
                             <i class="mdi mdi-circle-small"></i>
-                            <span>Roles &amp; Permissions</span>
+                            <span>Institutional Roles</span>
+                        </a>
+                        <a href="{{ route('dss.settings.permissions.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.permissions') ? 'active' : '' }}">
+                            <i class="mdi mdi-circle-small"></i>
+                            <span>Permissions Registry</span>
                         </a>
                     @endcan
                 </div>
             </div>
 
+            {{-- 3.2 System Settings Dropdown --}}
             <div class="dss-sidebar-dropdown">
                 <a href="#systemSetupSubmenu" class="dss-nav-link {{ $isSystemConfigActive ? 'active' : '' }}"
                    data-bs-toggle="collapse" role="button" aria-expanded="{{ $isSystemConfigActive ? 'true' : 'false' }}" title="System Settings">
                     <div class="pm-nav-left">
                         <i class="mdi mdi-cog-outline pm-nav-icon"></i>
-                        <span class="text-truncate">Settings</span>
+                        <span class="text-truncate">System Settings</span>
                     </div>
                     <i class="mdi mdi-chevron-down pm-nav-arrow" style="font-size: 14px;"></i>
                 </a>
                 <div class="collapse ps-3 {{ $isSystemConfigActive ? 'show' : '' }}" id="systemSetupSubmenu">
                     <a href="{{ route('dss.settings.institution') }}" class="dss-subnav-link {{ $currentRoute === 'dss.settings.institution' ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
-                        <span>Configure Profile</span>
+                        <span>University Profile</span>
                     </a>
                     <a href="{{ route('dss.settings.institution.campuses') }}" class="dss-subnav-link {{ $currentRoute === 'dss.settings.institution.campuses' ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
                         <span>Manage Campuses</span>
                     </a>
-                    <a href="{{ route('dss.settings.rie_priorities.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.rie_priorities') ? 'active' : '' }}">
-                        <i class="mdi mdi-circle-small"></i>
-                        <span>RIE Priorities</span>
-                    </a>
                     <a href="{{ route('dss.settings.signatories.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.signatories') ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
                         <span>Define Signatories</span>
+                    </a>
+                    <a href="{{ route('dss.settings.rie_priorities.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.rie_priorities') ? 'active' : '' }}">
+                        <i class="mdi mdi-circle-small"></i>
+                        <span>RIE Priorities</span>
                     </a>
                     <a href="{{ route('dss.settings.theme') }}" class="dss-subnav-link {{ $currentRoute === 'dss.settings.theme' ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
@@ -308,7 +343,7 @@
                     {{ strtoupper(substr($user->name ?? 'JD', 0, 2)) }}
                 </div>
                 <div class="flup-user-info min-w-0">
-                    <div class="fw-bold text-dark text-truncate" style="font-size: 12.5px; line-height: 1.2;">
+                    <div class="fw-bold text-dark text-truncate" style="font-size: 12px; line-height: 1.2;">
                         {{ $user->name ?? 'Administrator' }}
                     </div>
                     <div class="text-muted text-truncate" style="font-size: 11px;">
@@ -329,7 +364,7 @@
         <!-- PRINT MANZIL FOOTER: Jordan Nico Contact Card + Workspace Mini Bar -->
         <div class="pm-sidebar-footer">
             <div class="pm-user-detail-card">
-                <div class="d-flex align-items-center gap-2.5 min-w-0">
+                <div class="d-flex align-items-center gap-2 min-w-0">
                     <div class="pm-user-detail-avatar">
                         {{ strtoupper(substr($user->name ?? 'JD', 0, 2)) }}
                     </div>
@@ -382,7 +417,7 @@
                         <div class="fw-bold text-dark text-truncate" style="font-size: 12px; line-height: 1.2;">
                             {{ $inst->school_acronym ?: 'SNSU' }} Workspace
                         </div>
-                        <div class="text-muted text-truncate" style="font-size: 10.5px;">
+                        <div class="text-muted text-truncate" style="font-size: 10px;">
                             FY {{ $inst->current_fy ?: date('Y') }} Active
                         </div>
                     </div>

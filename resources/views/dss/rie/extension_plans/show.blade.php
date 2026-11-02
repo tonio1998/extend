@@ -263,7 +263,7 @@
     <!-- 2. Canva-Style KPI Metric Bento Cards (Top of Page) -->
     <div class="row g-3 mb-4">
         <!-- Metric 1: Proposed Budget -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl col-md-4 col-sm-6">
             <div class="canva-card p-3 h-100 border-accent-emerald">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-uppercase extra-small text-muted fw-bold" style="font-size: 10px; letter-spacing: 1px;">Proposed Budget</span>
@@ -277,7 +277,7 @@
         </div>
 
         <!-- Metric 2: Target Beneficiaries -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl col-md-4 col-sm-6">
             <div class="canva-card p-3 h-100 border-accent-cyan">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-uppercase extra-small text-muted fw-bold" style="font-size: 10px; letter-spacing: 1px;">Target Beneficiaries</span>
@@ -291,7 +291,7 @@
         </div>
 
         <!-- Metric 3: Extensionists -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl col-md-4 col-sm-6">
             <div class="canva-card p-3 h-100 border-accent-purple">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-uppercase extra-small text-muted fw-bold" style="font-size: 10px; letter-spacing: 1px;">Extensionists</span>
@@ -305,7 +305,7 @@
         </div>
 
         <!-- Metric 4: Project Leader -->
-        <div class="col-xl-3 col-md-6">
+        <div class="col-xl col-md-6 col-sm-6">
             <div class="canva-card p-3 h-100 border-accent-amber">
                 <div class="d-flex justify-content-between align-items-center mb-1">
                     <span class="text-uppercase extra-small text-muted fw-bold" style="font-size: 10px; letter-spacing: 1px;">Project Leader</span>
@@ -315,6 +315,25 @@
                 </div>
                 <div class="fs-5 fw-bold text-dark text-truncate" title="{{ $plan->prepared_by_name }}">{{ $plan->prepared_by_name }}</div>
                 <div class="extra-small text-muted text-truncate">{{ $plan->academicProgram?->program_code ?? 'Project Lead' }}</div>
+            </div>
+        </div>
+
+        <!-- Metric 5: Extension Lifecycle Progress -->
+        <div class="col-xl col-md-6 col-sm-12">
+            <div class="canva-card p-3 h-100 border-accent-purple position-relative">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-uppercase extra-small text-muted fw-bold" style="font-size: 10px; letter-spacing: 1px;">Project Progress</span>
+                    <span class="badge rounded-pill bg-{{ $plan->progress_color }}-subtle text-{{ $plan->progress_color }} extra-small fw-bold px-2 py-0.5">
+                        {{ $plan->progress_status }}
+                    </span>
+                </div>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="fs-4 fw-bold font-mono text-{{ $plan->progress_color }}">{{ $plan->progress_percentage }}%</span>
+                    <span class="extra-small text-muted font-mono">({{ $plan->completed_milestones_count }}/{{ $plan->active_milestones_count }} Done)</span>
+                </div>
+                <div class="progress mt-2" style="height: 6px; border-radius: 999px; background-color: #f1f5f9;">
+                    <div class="progress-bar bg-{{ $plan->progress_color }}" role="progressbar" style="width: {{ $plan->progress_percentage }}%;" aria-valuenow="{{ $plan->progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -336,7 +355,7 @@
                 <li class="nav-item">
                     <a class="nav-link {{ $activeTab === 'milestones' ? 'active' : '' }}" href="{{ route('dss.rie.plans.show', ['id' => $plan->getRouteKey(), 'tab' => 'milestones']) }}">
                         <i class="mdi mdi-calendar-clock me-1"></i> Activities &amp; Milestones
-                        <span class="badge bg-white text-dark border ms-1 font-mono">8</span>
+                        <span class="badge {{ $plan->progress_percentage >= 100 ? 'bg-success text-white' : 'bg-primary text-white' }} ms-1 font-mono">{{ $plan->completed_milestones_count }}/{{ $plan->active_milestones_count }}</span>
                     </a>
                 </li>
                 <li class="nav-item">
@@ -396,99 +415,7 @@
 
                     <!-- Dynamic 4-Tier College Signatory Showcase -->
                     <div class="col-12 mt-4">
-                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                            <div>
-                                <h6 class="fw-bold text-dark m-0 text-uppercase extra-small" style="letter-spacing: 0.5px;">
-                                    <i class="mdi mdi-draw-pen text-primary me-1"></i> Institutional Signatory Chain (4-Tier)
-                                </h6>
-                                <div class="extra-small text-muted mt-0.5">Dynamically resolved per Academic College / Department based on proponent degree program.</div>
-                            </div>
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small">
-                                {{ $resolvedSignatories['college_name'] ?? 'Academic College' }}
-                            </span>
-                        </div>
-                        <div class="row g-3">
-                            <!-- 1. Prepared by -->
-                            <div class="col-md-3">
-                                <div class="p-3 rounded-3 border bg-white h-100 shadow-2xs">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="badge bg-primary text-white extra-small" style="font-size: 10px;">1. Prepared by</span>
-                                        <span class="text-muted extra-small font-mono">Proponent</span>
-                                    </div>
-                                    <div class="fw-bold text-dark fs-6 text-truncate" title="{{ $plan->prepared_by_name }}">
-                                        {{ $plan->prepared_by_name }}
-                                    </div>
-                                    <div class="text-muted extra-small fw-medium mt-1">
-                                        {{ $plan->prepared_by_designation ?: 'Project Leader' }}
-                                    </div>
-                                    <div class="mt-2 pt-2 border-top extra-small text-success d-flex align-items-center gap-1">
-                                        <i class="mdi mdi-check-circle"></i> Faculty Lead
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 2. Reviewed by -->
-                            <div class="col-md-3">
-                                <div class="p-3 rounded-3 border bg-white h-100 shadow-2xs">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="badge bg-info-subtle text-info-emphasis border border-info-subtle extra-small" style="font-size: 10px;">2. Reviewed by</span>
-                                        <span class="badge bg-success-subtle text-success extra-small" style="font-size: 9.5px;">Dynamic</span>
-                                    </div>
-                                    <div class="fw-bold text-dark fs-6 text-truncate" title="{{ $plan->reviewed_by_name ?: ($resolvedSignatories['reviewed']['name'] ?? 'College Head for Extension') }}">
-                                        {{ $plan->reviewed_by_name ?: ($resolvedSignatories['reviewed']['name'] ?? 'College Head for Extension') }}
-                                    </div>
-                                    <div class="text-muted extra-small fw-medium mt-1 text-truncate" title="{{ $plan->reviewed_by_designation ?: ($resolvedSignatories['reviewed']['designation'] ?? 'College Head for Extension') }}">
-                                        {{ $plan->reviewed_by_designation ?: ($resolvedSignatories['reviewed']['designation'] ?? 'College Head for Extension') }}
-                                    </div>
-                                    <div class="mt-2 pt-2 border-top extra-small text-info d-flex align-items-center gap-1">
-                                        <i class="mdi mdi-account-tie"></i> College Extension Head
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 3. Noted by -->
-                            <div class="col-md-3">
-                                <div class="p-3 rounded-3 border bg-white h-100 shadow-2xs">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small" style="font-size: 10px;">3. Noted by</span>
-                                        <span class="badge bg-success-subtle text-success extra-small" style="font-size: 9.5px;">Dynamic</span>
-                                    </div>
-                                    <div class="fw-bold text-dark fs-6 text-truncate" title="{{ $plan->noted_by_name ?: ($resolvedSignatories['noted']['name'] ?? 'College Dean') }}">
-                                        {{ $plan->noted_by_name ?: ($resolvedSignatories['noted']['name'] ?? 'College Dean') }}
-                                    </div>
-                                    <div class="text-muted extra-small fw-medium mt-1 text-truncate" title="{{ $plan->noted_by_designation ?: ($resolvedSignatories['noted']['designation'] ?? 'College Dean') }}">
-                                        {{ $plan->noted_by_designation ?: ($resolvedSignatories['noted']['designation'] ?? 'College Dean') }}
-                                    </div>
-                                    <div class="mt-2 pt-2 border-top extra-small text-warning-emphasis d-flex align-items-center gap-1">
-                                        <i class="mdi mdi-school"></i> College Dean / Unit Head
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- 4. Concurred by -->
-                            <div class="col-md-3">
-                                <div class="p-3 rounded-3 border bg-white h-100 shadow-2xs">
-                                    <div class="d-flex align-items-center justify-content-between mb-2">
-                                        <span class="badge bg-success-subtle text-success border border-success-subtle extra-small" style="font-size: 10px;">4. Concurred by</span>
-                                        <span class="text-muted extra-small">University</span>
-                                    </div>
-                                    <div class="fw-bold text-dark extra-small text-truncate" title="{{ $plan->concurred_by_name ?: 'EVER JOY G. RABADAN, MAEM, MSc.' }}">
-                                        {{ $plan->concurred_by_name ?: 'EVER JOY G. RABADAN, MAEM, MSc.' }}
-                                    </div>
-                                    <div class="text-muted" style="font-size: 10.5px;">
-                                        {{ $plan->concurred_by_designation ?: 'University Extension Specialist V' }}
-                                    </div>
-                                    <div class="border-top my-1 pt-1">
-                                        <div class="fw-bold text-dark extra-small text-truncate" title="{{ $plan->concurred_by_2_name ?: 'ALVIE ELMA C. PLAZA, MA' }}">
-                                            {{ $plan->concurred_by_2_name ?: 'ALVIE ELMA C. PLAZA, MA' }}
-                                        </div>
-                                        <div class="text-muted" style="font-size: 10.5px;">
-                                            {{ $plan->concurred_by_2_designation ?: 'University Extension Director' }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        @include('dss.rie.partials.signatories_panel', ['signatories' => $resolvedSignatories])
                     </div>
                 </div>
             </div>
@@ -542,97 +469,187 @@
 
             <!-- Tab 3: Activities & Milestones -->
             <div class="tab-pane fade {{ $activeTab === 'milestones' ? 'show active' : 'd-none' }}" id="milestones">
-                <div class="table-responsive">
-                    <table class="table schedule-table mb-0">
+                <!-- Milestone Execution & Progress Portfolio Banner -->
+                <div class="card border rounded-3 bg-white shadow-2xs mb-4">
+                    <div class="card-body p-3 p-md-4">
+                        <div class="row align-items-center g-3">
+                            <div class="col-lg-7">
+                                <div class="d-flex align-items-center gap-2 mb-1.5">
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle extra-small fw-medium">
+                                        Progress Tracker
+                                    </span>
+                                    <span class="badge rounded-pill bg-{{ $plan->progress_color }}-subtle text-{{ $plan->progress_color }} border border-{{ $plan->progress_color }}-subtle extra-small fw-semibold px-2 py-0.5" id="progressStatusBadge">
+                                        {{ $plan->progress_status }}
+                                    </span>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-1 fs-5">
+                                    Schedule of Activities &amp; Milestones
+                                </h6>
+                                <p class="text-secondary small mb-0" style="line-height: 1.5;">
+                                    Track stage progress and compile supporting wet-signed documents (e.g. approved Activity Design, partner MOA/MOU, attendance sheets, and terminal narrative reports) for institutional compliance.
+                                </p>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="p-3 rounded-2 bg-light border border-light-subtle">
+                                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                                        <span class="text-muted small fw-medium">Milestone Completion</span>
+                                        <span class="fs-6 fw-bold text-{{ $plan->progress_color }}" id="progressPercentageText">{{ $plan->progress_percentage }}%</span>
+                                    </div>
+                                    <div class="progress mb-2" style="height: 8px; border-radius: 999px; background-color: #e2e8f0;">
+                                        <div class="progress-bar bg-{{ $plan->progress_color }}" id="progressBarTrack" role="progressbar" style="width: {{ $plan->progress_percentage }}%;" aria-valuenow="{{ $plan->progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted extra-small">
+                                        <span><i class="mdi mdi-check-circle-outline text-success me-1"></i><strong class="text-dark" id="progressVerifiedCount">{{ $plan->completed_milestones_count }}</strong> verified</span>
+                                        <span><i class="mdi mdi-clock-outline text-warning me-1"></i><strong class="text-dark" id="progressPendingCount">{{ max(0, $plan->active_milestones_count - $plan->completed_milestones_count) }}</strong> pending</span>
+                                        <span><strong class="text-dark">{{ $plan->active_milestones_count }}</strong> total milestones</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Schedule of Activities Table -->
+                <div class="table-responsive rounded-3 border">
+                    <table class="table schedule-table mb-0 align-middle">
                         <thead>
                             <tr>
-                                <th style="width: 50px;" class="text-center">#</th>
-                                <th style="min-width: 280px;">Milestone Stage</th>
-                                <th style="min-width: 180px;" class="text-center">Target Period / Date</th>
-                                <th style="width: 130px;" class="text-center">Status</th>
+                                <th style="width: 45px;" class="text-center">#</th>
+                                <th style="min-width: 250px;">Milestone Stage Description</th>
+                                <th style="min-width: 170px;" class="text-center">Target Period / Date</th>
+                                <th style="min-width: 280px;">Attached Evidence &amp; Documents</th>
+                                <th style="width: 140px;" class="text-center">Status</th>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody id="milestonesTableBody">
                             @php
-                                $milestones = [
-                                    [
-                                        'num' => 1,
-                                        'title' => 'Submission of Extension Project Proposal',
-                                        'date' => $plan->sub_extension_proposal_date ? $plan->sub_extension_proposal_date->format('F d, Y') : null,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 2,
-                                        'title' => 'Submission of Activity Design',
-                                        'date' => $plan->sub_activity_design_date ? $plan->sub_activity_design_date->format('F d, Y') : null,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 3,
-                                        'title' => 'Submission of Purchase Request',
-                                        'date' => $plan->sub_purchase_request_date ? $plan->sub_purchase_request_date->format('F d, Y') : null,
-                                        'is_na' => true,
-                                    ],
-                                    [
-                                        'num' => 4,
-                                        'title' => 'MOA Signing',
-                                        'date' => $plan->moa_signing_date ? $plan->moa_signing_date->format('F d, Y') : null,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 5,
-                                        'title' => 'Arrival of Materials',
-                                        'date' => $plan->formatted_materials_arrival,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 6,
-                                        'title' => 'Conduct of Extension Activity',
-                                        'date' => $plan->formatted_conduct_activity,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 7,
-                                        'title' => 'Submission of Narrative Reports & Evaluation',
-                                        'date' => $plan->sub_narrative_report_date ? $plan->sub_narrative_report_date->format('F d, Y') : null,
-                                        'is_na' => false,
-                                    ],
-                                    [
-                                        'num' => 8,
-                                        'title' => 'Conduct of Monitoring / Feedback',
-                                        'date' => $plan->formatted_monitoring_feedback,
-                                        'is_na' => false,
-                                    ],
-                                ];
+                                $milestones = $plan->milestones_list;
                             @endphp
 
                             @foreach($milestones as $m)
-                            <tr>
+                            <tr id="activity-row-{{ $m['id'] ?? $loop->iteration }}" class="{{ !empty($m['is_completed']) ? 'table-light-success' : '' }}">
                                 <td class="text-center fw-bold text-muted">{{ $m['num'] }}</td>
                                 <td>
                                     <div class="fw-semibold text-dark">{{ $m['title'] }}</div>
+                                    @if(!empty($m['remarks']))
+                                        <div class="text-muted extra-small mt-0.5"><i class="mdi mdi-information-outline me-1"></i>{{ $m['remarks'] }}</div>
+                                    @endif
                                 </td>
                                 <td class="text-center font-mono extra-small">
-                                    @if($m['date'])
-                                        <span class="fw-bold text-dark">{{ $m['date'] }}</span>
-                                    @elseif($m['is_na'])
-                                        <span class="badge bg-light text-muted border">N/A</span>
+                                    @if(!empty($m['target_date']) && strtolower(trim($m['target_date'])) !== 'n/a')
+                                        <div class="d-inline-flex align-items-center gap-1 px-2.5 py-1 rounded-pill bg-light border text-dark fw-bold">
+                                            @if(str_contains($m['target_date'], '–') || str_contains($m['target_date'], '-') || str_contains($m['target_date'], 'to'))
+                                                <i class="mdi mdi-calendar-range text-primary"></i>
+                                            @else
+                                                <i class="mdi mdi-calendar-check text-success"></i>
+                                            @endif
+                                            <span>{{ $m['target_date'] }}</span>
+                                        </div>
+                                    @elseif(!empty($m['is_na']) || strtolower(trim($m['target_date'] ?? '')) === 'n/a')
+                                        <span class="badge bg-light text-muted border px-2 py-1"><i class="mdi mdi-minus-circle-outline me-1"></i>N/A</span>
                                     @else
                                         <span class="text-muted fst-italic">To be scheduled</span>
                                     @endif
                                 </td>
+                                <td>
+                                    @php
+                                        $docsList = $m['documents'] ?? [];
+                                        if (empty($docsList) && (!empty($m['file_url']) || !empty($m['is_completed']))) {
+                                            $docsList = [[
+                                                'id' => 0,
+                                                'file_name' => $m['file_name'] ?? 'Wet-Signed Document Proof',
+                                                'file_url' => $m['file_url'],
+                                                'preview_url' => $m['preview_url'],
+                                                'formatted_file_size' => $m['formatted_file_size'] ?? '',
+                                                'file_icon' => $m['file_icon'] ?? 'mdi-file-pdf-box text-danger',
+                                                'uploaded_at' => $m['uploaded_at'] ?? '',
+                                                'uploaded_by' => $m['uploaded_by'] ?? '',
+                                            ]];
+                                        }
+                                    @endphp
+
+                                    @if(!empty($m['is_na']))
+                                        <span class="text-muted extra-small fst-italic"><i class="mdi mdi-cancel me-1"></i>Not applicable to this project</span>
+                                    @elseif(count($docsList) > 0)
+                                        <div class="d-flex flex-column gap-1.5">
+                                            @foreach($docsList as $docItem)
+                                                <div class="d-flex align-items-center justify-content-between p-2 rounded-2 border bg-white shadow-2xs">
+                                                    <div class="d-flex align-items-center gap-2 overflow-hidden me-2">
+                                                        <i class="mdi {{ $docItem['file_icon'] ?? 'mdi-file-pdf-box text-danger' }} fs-5 flex-shrink-0"></i>
+                                                        <div class="overflow-hidden">
+                                                            <a href="{{ $docItem['file_url'] }}" target="_blank" class="fw-semibold text-dark text-truncate d-block extra-small text-decoration-none" title="{{ $docItem['file_name'] }}">
+                                                                {{ $docItem['file_name'] }}
+                                                            </a>
+                                                            <div class="text-muted extra-small font-mono d-flex align-items-center gap-1.5 flex-wrap" style="font-size: 10px;">
+                                                                @if(!empty($docItem['formatted_file_size']))
+                                                                    <span>{{ $docItem['formatted_file_size'] }}</span>
+                                                                @endif
+                                                                @if(!empty($docItem['uploaded_at']))
+                                                                    <span>&bull;</span>
+                                                                    <span>{{ $docItem['uploaded_at'] }}</span>
+                                                                @endif
+                                                                @if(!empty($docItem['uploaded_by']))
+                                                                    <span>&bull;</span>
+                                                                    <span>by {{ $docItem['uploaded_by'] }}</span>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
+                                                        @if(!empty($docItem['file_url']))
+                                                            <a href="{{ $docItem['file_url'] }}" target="_blank" class="btn btn-xs btn-outline-primary rounded-pill px-2 py-0.5" title="Preview Document">
+                                                                <i class="mdi mdi-eye"></i>
+                                                            </a>
+                                                        @endif
+                                                        @if($m['id'])
+                                                            <button type="button" class="btn btn-xs btn-outline-danger rounded-pill px-1.5 py-0.5 btn-delete-proof"
+                                                                    data-id="{{ $m['id'] }}"
+                                                                    data-doc-id="{{ $docItem['id'] }}"
+                                                                    data-title="{{ $docItem['file_name'] }}"
+                                                                    title="Remove this attachment">
+                                                                <i class="mdi mdi-trash-can-outline"></i>
+                                                            </button>
+                                                        @endif
+                                                    </div>
+                                                </div>
+                                            @endforeach
+
+                                            @if($m['id'])
+                                                <div class="mt-0.5">
+                                                    <button type="button" class="btn btn-xs btn-light border text-primary rounded-pill px-2.5 py-1 extra-small fw-semibold btn-trigger-upload d-inline-flex align-items-center gap-1"
+                                                            data-id="{{ $m['id'] }}"
+                                                            data-title="{{ $m['title'] }}">
+                                                        <i class="mdi mdi-plus-circle-outline"></i>
+                                                        <span>Attach More Files / Links</span>
+                                                    </button>
+                                                </div>
+                                            @endif
+                                        </div>
+                                    @else
+                                        @if($m['id'])
+                                            <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 btn-trigger-upload d-inline-flex align-items-center gap-1"
+                                                    data-id="{{ $m['id'] }}"
+                                                    data-title="{{ $m['title'] }}">
+                                                <i class="mdi mdi-upload-outline"></i>
+                                                <span>Upload Evidence</span>
+                                            </button>
+                                        @else
+                                            <span class="text-muted extra-small fst-italic">Save plan to upload proof</span>
+                                        @endif
+                                    @endif
+                                </td>
                                 <td class="text-center">
-                                    @if($m['date'])
-                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle extra-small px-2 py-1">
-                                            <i class="mdi mdi-check me-1"></i> Scheduled
-                                        </span>
-                                    @elseif($m['is_na'])
+                                    @if(!empty($m['is_na']) || strtolower(trim($m['target_date'] ?? '')) === 'n/a')
                                         <span class="badge rounded-pill bg-secondary-subtle text-secondary extra-small px-2 py-1">
                                             Exempted
                                         </span>
+                                    @elseif(!empty($m['is_completed']))
+                                        <span class="badge rounded-pill bg-success-subtle text-success border border-success-subtle extra-small px-2 py-1">
+                                            <i class="mdi mdi-check-circle me-1"></i> Verified
+                                        </span>
                                     @else
-                                        <span class="badge rounded-pill bg-warning-subtle text-warning border border-warning-subtle extra-small px-2 py-1">
-                                            Pending
+                                        <span class="badge rounded-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small px-2 py-1">
+                                            <i class="mdi mdi-clock-outline me-1"></i> Pending Proof
                                         </span>
                                     @endif
                                 </td>
@@ -853,12 +870,295 @@
     </div>
 </div>
 @endcan
+
+<!-- Upload Milestone Evidence Modal -->
+<div class="modal fade" id="modalUploadMilestoneProof" tabindex="-1" aria-labelledby="modalUploadMilestoneProofLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-3 overflow-hidden">
+            <!-- Modal Header matching DSS Theme -->
+            <div class="modal-header border-bottom py-3 px-4 bg-light align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-2 d-inline-flex">
+                        <i class="mdi mdi-cloud-upload-outline fs-5"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark fs-6 m-0" id="modalUploadMilestoneProofLabel">Upload Milestone Evidence</h5>
+                        <p class="text-muted extra-small m-0">Attach supporting files or Google Drive links for milestone verification.</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+
+            <form id="formUploadMilestoneProof" enctype="multipart/form-data">
+                <input type="hidden" id="uploadMilestoneActivityId" name="activity_id" value="">
+                <div class="modal-body p-4">
+                    <!-- Milestone Stage Indicator -->
+                    <div class="p-2.5 px-3 mb-3 rounded-3 d-flex align-items-center justify-content-between gap-2" style="background-color: #f0fdf4; border: 1px solid #bbf7d0;">
+                        <div class="d-flex align-items-center gap-2">
+                            <span class="badge bg-success rounded-circle p-1.5 d-inline-flex text-white">
+                                <i class="mdi mdi-flag-checkered" style="font-size: 11px;"></i>
+                            </span>
+                            <div class="extra-small">
+                                <span class="fw-bold text-success-emphasis">Target Milestone:</span>
+                                <strong class="text-dark font-mono ms-1" id="uploadMilestoneStageTitle">—</strong>
+                            </div>
+                        </div>
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-mono extra-small px-2 py-0.5">
+                            Evidence Verification
+                        </span>
+                    </div>
+
+                    <!-- 1. Physical Files Upload Dropzone -->
+                    <div class="mb-3">
+                        <label class="form-label extra-small fw-bold text-dark font-mono mb-1">
+                            <i class="mdi mdi-file-pdf-box text-danger me-1"></i> Wet-Signed Evidence PDF (Multiple Supported)
+                        </label>
+                        <div class="milestone-dropzone p-3 text-center rounded-3 border"
+                             id="proofDropzone"
+                             style="background: #ffffff; border: 2px dashed #94a3b8 !important; cursor: pointer; transition: all 0.2s ease;">
+                            <input class="d-none" type="file" id="proofFileInput" name="files[]" multiple accept=".pdf,application/pdf">
+                            <div class="rounded-circle bg-white p-2 shadow-2xs mb-1.5 text-danger d-inline-flex align-items-center justify-content-center" style="width: 44px; height: 44px;">
+                                <i class="mdi mdi-file-pdf-box fs-3"></i>
+                            </div>
+                            <div class="fw-bold text-dark extra-small mb-0.5">Click to browse or drag &amp; drop PDF files</div>
+                            <div class="text-muted extra-small">
+                                <strong class="text-danger">PDF format only (.pdf)</strong> &bull; Max 50MB per file
+                            </div>
+                        </div>
+                        <div id="proofSelectedFilesBadges" class="d-none mt-2 d-flex flex-wrap gap-1"></div>
+                    </div>
+
+                    <!-- 2. Google Drive Links -->
+                    <div class="mb-3">
+                        <div class="d-flex align-items-center justify-content-between mb-1.5">
+                            <label class="form-label extra-small fw-bold text-dark font-mono m-0">
+                                <i class="mdi mdi-google-drive text-success me-1"></i> Google Drive Shareable Link(s)
+                            </label>
+                            <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-0.5 extra-small fw-bold" id="btnAddGdriveInput">
+                                <i class="mdi mdi-plus me-0.5"></i> Add Link
+                            </button>
+                        </div>
+                        <div id="gdriveInputsWrapper" class="d-flex flex-column gap-2">
+                            <div class="input-group input-group-sm gdrive-entry-row">
+                                <span class="input-group-text bg-white"><i class="mdi mdi-google-drive text-success"></i></span>
+                                <input type="url" class="form-control gdrive-url-field" name="gdrive_urls[]" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+                            </div>
+                        </div>
+                        <div class="p-2 rounded-2 mt-2 extra-small text-muted d-flex align-items-center gap-1.5" style="background: rgba(2, 132, 199, 0.08); border: 1px solid rgba(2, 132, 199, 0.2);">
+                            <i class="mdi mdi-information-outline text-primary fs-6"></i>
+                            <span>Ensure Google Drive links are set to <strong>"Anyone with the link can view"</strong> for reviewer access.</span>
+                        </div>
+                    </div>
+
+                    <!-- 3. Notes / Remarks -->
+                    <div class="mb-2">
+                        <label for="proofRemarksInput" class="form-label extra-small fw-bold text-muted font-mono mb-1">
+                            Notes / Remarks <span class="text-muted fw-normal font-sans">(Optional)</span>
+                        </label>
+                        <textarea class="form-control form-control-sm" id="proofRemarksInput" name="remarks" rows="2" placeholder="e.g. Signed MOA with Barangay Officials, Approved Activity Design..."></textarea>
+                    </div>
+
+                    <div id="uploadFeedbackAlert" class="alert d-none extra-small mb-0 mt-3" role="alert"></div>
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="modal-footer bg-light border-top py-2.5 px-4 d-flex justify-content-between align-items-center">
+                    <span class="text-muted extra-small">
+                        <i class="mdi mdi-shield-check text-success me-0.5"></i> Auto-hashed (SHA-256) for audit integrity
+                    </span>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-light border rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" id="btnSubmitMilestoneProof" class="btn btn-sm btn-dss-primary rounded-pill px-4 fw-bold shadow-xs">
+                            <i class="mdi mdi-upload me-1"></i> Upload &amp; Verify Milestone
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 @endsection
 
 @push('scripts')
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    // 1. Activate tab from URL hash if present
+    // Dynamic GDrive input row addition
+    $('#btnAddGdriveInput').on('click', function() {
+        const rowHtml = `
+            <div class="input-group input-group-sm gdrive-entry-row">
+                <span class="input-group-text bg-white"><i class="mdi mdi-google-drive text-success"></i></span>
+                <input type="url" class="form-control gdrive-url-field" name="gdrive_urls[]" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+                <button type="button" class="btn btn-outline-danger btn-remove-gdrive-row" title="Remove link row"><i class="mdi mdi-close"></i></button>
+            </div>`;
+        $('#gdriveInputsWrapper').append(rowHtml);
+    });
+
+    $(document).on('click', '.btn-remove-gdrive-row', function() {
+        $(this).closest('.gdrive-entry-row').remove();
+    });
+
+    // Dropzone click trigger
+    $('#proofDropzone').on('click', function(e) {
+        if (!$(e.target).is('#proofFileInput')) {
+            $('#proofFileInput').trigger('click');
+        }
+    });
+
+    // Display selected file badges
+    $('#proofFileInput').on('change', function() {
+        const container = $('#proofSelectedFilesBadges');
+        container.empty();
+        if (this.files && this.files.length > 0) {
+            const filesArr = Array.from(this.files);
+            const nonPdf = filesArr.filter(f => !f.name.toLowerCase().endsWith('.pdf') && f.type !== 'application/pdf');
+            if (nonPdf.length > 0) {
+                alert('Only PDF files (.pdf) are accepted.');
+                $(this).val('');
+                container.addClass('d-none');
+                return;
+            }
+
+            container.removeClass('d-none');
+            filesArr.forEach(f => {
+                const mb = (f.size / (1024 * 1024)).toFixed(2);
+                container.append(`
+                    <span class="badge bg-white text-dark border extra-small px-2.5 py-1.5 d-inline-flex align-items-center gap-1.5 shadow-2xs">
+                        <i class="mdi mdi-file-pdf-box text-danger fs-6"></i>
+                        <span class="fw-medium text-truncate" style="max-width: 180px;">${f.name}</span>
+                        <span class="text-muted">(${mb} MB)</span>
+                    </span>`);
+            });
+        } else {
+            container.addClass('d-none');
+        }
+    });
+
+    // Milestone Document Upload Trigger
+    $(document).on('click', '.btn-trigger-upload', function() {
+        const actId = $(this).data('id');
+        const actTitle = $(this).data('title');
+        $('#uploadMilestoneActivityId').val(actId);
+        $('#uploadMilestoneStageTitle').text(actTitle);
+        $('#proofFileInput').val('');
+        $('#proofSelectedFilesBadges').empty().addClass('d-none');
+        $('#gdriveInputsWrapper').html(`
+            <div class="input-group input-group-sm gdrive-entry-row">
+                <span class="input-group-text bg-white"><i class="mdi mdi-google-drive text-success"></i></span>
+                <input type="url" class="form-control gdrive-url-field" name="gdrive_urls[]" placeholder="https://drive.google.com/file/d/.../view?usp=sharing">
+            </div>`);
+        $('#proofRemarksInput').val('');
+        $('#uploadFeedbackAlert').addClass('d-none').removeClass('alert-success alert-danger').text('');
+        const modal = new bootstrap.Modal(document.getElementById('modalUploadMilestoneProof'));
+        modal.show();
+    });
+
+    $('#formUploadMilestoneProof').on('submit', function(e) {
+        e.preventDefault();
+        const form = this;
+        const actId = $('#uploadMilestoneActivityId').val();
+        const btn = $('#btnSubmitMilestoneProof');
+        const feedback = $('#uploadFeedbackAlert');
+
+        if (!actId) return;
+
+        let hasFiles = $('#proofFileInput')[0].files && $('#proofFileInput')[0].files.length > 0;
+        let hasGdrive = false;
+        $('.gdrive-url-field').each(function() {
+            if ($(this).val().trim() !== '') {
+                hasGdrive = true;
+            }
+        });
+
+        if (!hasFiles && !hasGdrive) {
+            feedback.removeClass('d-none alert-success').addClass('alert-danger').text('Please select at least one document file or provide a valid Google Drive link.');
+            return;
+        }
+
+        const formData = new FormData(form);
+        btn.prop('disabled', true).html('<i class="mdi mdi-loading mdi-spin me-1"></i> Uploading Assets...');
+
+        let uploadUrl = "{{ route('dss.rie.plans.activity.upload_document', ['id' => $plan->getRouteKey(), 'activityId' => ':actId']) }}";
+        uploadUrl = uploadUrl.replace(':actId', actId);
+
+        $.ajax({
+            url: uploadUrl,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+            success: function(res) {
+                btn.prop('disabled', false).html('<i class="mdi mdi-upload me-1"></i> Upload &amp; Verify Milestone');
+                if (res.success) {
+                    feedback.removeClass('d-none alert-danger').addClass('alert-success').text(res.message);
+                    if (window.dssToast) {
+                        window.dssToast.success('Verified', res.message);
+                    }
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 800);
+                } else {
+                    feedback.removeClass('d-none alert-success').addClass('alert-danger').text(res.message || 'Upload failed.');
+                }
+            },
+            error: function(xhr) {
+                btn.prop('disabled', false).html('<i class="mdi mdi-upload me-1"></i> Upload &amp; Verify Milestone');
+                const msg = xhr.responseJSON?.message || 'Failed to upload document proof.';
+                feedback.removeClass('d-none alert-success').addClass('alert-danger').text(msg);
+            }
+        });
+    });
+
+    // Delete proof handler (Supports deleting single document or all)
+    $(document).on('click', '.btn-delete-proof', function() {
+        const actId = $(this).data('id');
+        const docId = $(this).data('doc-id');
+        const docTitle = $(this).data('title') || 'this document';
+        if (!actId) return;
+
+        const doDelete = () => {
+            let deleteUrl = "{{ route('dss.rie.plans.activity.delete_document', ['id' => $plan->getRouteKey(), 'activityId' => ':actId', 'docId' => ':docId']) }}";
+            deleteUrl = deleteUrl.replace(':actId', actId).replace(':docId', docId || '');
+
+            $.ajax({
+                url: deleteUrl,
+                type: 'DELETE',
+                data: { document_id: docId },
+                headers: { 'X-CSRF-TOKEN': "{{ csrf_token() }}" },
+                success: function(res) {
+                    if (res.success) {
+                        if (window.dssToast) {
+                            window.dssToast.success('Removed', res.message);
+                        }
+                        setTimeout(() => { window.location.reload(); }, 600);
+                    }
+                },
+                error: function(xhr) {
+                    const msg = xhr.responseJSON?.message || 'Failed to delete attachment.';
+                    if (window.dssToast) window.dssToast.error('Error', msg);
+                    else alert(msg);
+                }
+            });
+        };
+
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Remove Attachment?',
+                text: `Are you sure you want to remove '${docTitle}' from this milestone?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Yes, remove it'
+            }).then((result) => {
+                if (result.isConfirmed) doDelete();
+            });
+        } else if (confirm(`Remove '${docTitle}' from this milestone?`)) {
+            doDelete();
+        }
+    });
+
+    // 2. Activate tab from URL hash if present
     const hash = window.location.hash;
     if (hash) {
         const targetTabLink = document.querySelector(`a[data-bs-toggle="tab"][href="${hash}"]`);

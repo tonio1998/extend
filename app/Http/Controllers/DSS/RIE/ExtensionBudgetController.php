@@ -62,10 +62,24 @@ class ExtensionBudgetController extends Controller
         $macroCommitmentRate = $totalApprovedBudget > 0 ? round((($totalUtilized + $totalCommitted) / $totalApprovedBudget) * 100, 1) : 0.0;
 
         $campuses = Campus::where('tenant_id', $tenantId)->get();
+        $theme = TenantContext::getTheme();
+
+        $totalGaa = $budgets->sum(fn ($b) => (float) $b->allocated_gaa);
+        $totalStf = $budgets->sum(fn ($b) => (float) $b->allocated_stf);
+        $totalExternal = $budgets->sum(fn ($b) => (float) $b->allocated_external);
+        $totalRealigned = $budgets->sum(fn ($b) => (float) $b->realigned_amount);
+
+        $statusCounts = [
+            'all' => $budgets->count(),
+            'active' => $budgets->where('status', 'active')->count(),
+            'closed' => $budgets->where('status', 'closed')->count(),
+            'draft' => $budgets->where('status', 'draft')->count(),
+        ];
 
         return view('dss.rie.budgets.index', compact(
             'tenant',
             'institution',
+            'theme',
             'budgets',
             'availableYears',
             'selectedYear',
@@ -78,7 +92,12 @@ class ExtensionBudgetController extends Controller
             'totalRemainingBalance',
             'totalProjectedBalance',
             'macroBurnRate',
-            'macroCommitmentRate'
+            'macroCommitmentRate',
+            'totalGaa',
+            'totalStf',
+            'totalExternal',
+            'totalRealigned',
+            'statusCounts'
         ));
     }
 

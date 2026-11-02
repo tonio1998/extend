@@ -223,7 +223,7 @@
 
     /* Page Content & Footer Spacing — single source of truth */
     .dss-page-content {
-        padding: 1.75rem;
+        padding: .75rem;
     }
 
     .dss-page-footer {
@@ -258,6 +258,41 @@
 
     .dss-navbar .text-dark {
         color: var(--dss-topbar-text) !important;
+    }
+
+    /* Flup Minimal Fixed / Sticky Topbar */
+    body[data-ui-template="flup_minimal"] .flup-topbar {
+        position: sticky;
+        top: 0;
+        z-index: 1020;
+        background: rgba(255, 255, 255, 0.96) !important;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 14px;
+        padding: 16px 24px;
+        margin-left: -24px;
+        margin-right: -24px;
+        margin-top: 0;
+        margin-bottom: 24px;
+        border-bottom: 1px solid #e8eeec;
+        box-shadow: 0 1px 4px rgba(15, 41, 30, 0.03);
+    }
+
+    body[data-ui-template="flup_minimal"] .dss-main-content {
+        padding-top: 0 !important;
+    }
+
+    @media (max-width: 991.98px) {
+        body[data-ui-template="flup_minimal"] .flup-topbar {
+            padding: 12px 16px;
+            margin-left: -16px;
+            margin-right: -16px;
+            margin-bottom: 16px;
+        }
     }
 
     /* Canva-Style Steady Nav Links on Sidebar (Strictly 1 Line) */
@@ -367,6 +402,12 @@
         transform: rotate(180deg);
     }
 
+    .dss-sidebar-dropdown a .pm-nav-arrow,
+    .dss-sidebar-dropdown a .dss-dropdown-caret {
+        transition: transform 0.2s ease;
+    }
+
+    .dss-sidebar-dropdown a[aria-expanded="true"] .pm-nav-arrow,
     .dss-sidebar-dropdown a[aria-expanded="true"] .dss-dropdown-caret {
         transform: rotate(180deg);
     }
@@ -568,6 +609,100 @@
         padding: 0.35rem 0.65rem;
         font-size: 0.8125rem;
         border-radius: 6px;
+    }
+
+    .input-group .input-group-text {
+        border-color: #cbd5e1;
+        background-color: #ffffff;
+        color: #64748b;
+    }
+
+    .input-group:focus-within .input-group-text,
+    .input-group:focus-within .form-control {
+        border-color: var(--dss-primary);
+    }
+
+    /* Toggle Switches - Pill Track & Smooth Thumb */
+    .form-switch {
+        padding-left: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        vertical-align: middle !important;
+        min-height: 24px !important;
+        margin: 0 !important;
+    }
+
+    .form-switch .form-check-input,
+    .form-check-input[role="switch"],
+    input[type="checkbox"].perm-switch,
+    input[type="checkbox"].user-switch,
+    .form-check-input.dss-switch {
+        width: 38px !important;
+        min-width: 38px !important;
+        max-width: 38px !important;
+        height: 22px !important;
+        min-height: 22px !important;
+        max-height: 22px !important;
+        margin: 0 !important;
+        float: none !important;
+        border-radius: 20px !important;
+        background-color: #cbd5e1 !important;
+        border: 1.5px solid #94a3b8 !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+        background-position: 2px center !important;
+        background-repeat: no-repeat !important;
+        background-size: 16px 16px !important;
+        cursor: pointer !important;
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+        transition: background-position 0.2s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+        -webkit-appearance: none !important;
+        -moz-appearance: none !important;
+        appearance: none !important;
+        outline: none !important;
+    }
+
+    .form-switch .form-check-input:hover,
+    .form-check-input[role="switch"]:hover,
+    input[type="checkbox"].perm-switch:hover,
+    input[type="checkbox"].user-switch:hover,
+    .form-check-input.dss-switch:hover {
+        border-color: var(--dss-primary) !important;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--dss-primary) 15%, transparent), inset 0 1px 2px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .form-switch .form-check-input:focus,
+    .form-check-input[role="switch"]:focus,
+    input[type="checkbox"].perm-switch:focus,
+    input[type="checkbox"].user-switch:focus,
+    .form-check-input.dss-switch:focus {
+        border-color: var(--dss-primary) !important;
+        box-shadow: 0 0 0 3px color-mix(in srgb, var(--dss-primary) 22%, transparent) !important;
+    }
+
+    .form-switch .form-check-input:checked,
+    .form-check-input[role="switch"]:checked,
+    input[type="checkbox"].perm-switch:checked,
+    input[type="checkbox"].user-switch:checked,
+    .form-check-input.dss-switch:checked {
+        background-color: var(--dss-primary) !important;
+        border-color: var(--dss-primary) !important;
+        background-position: 18px center !important;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+        box-shadow: 0 1px 2px rgba(0, 103, 79, 0.2) !important;
+    }
+
+    .form-switch .form-check-label {
+        margin-left: 8px !important;
+        cursor: pointer !important;
+        user-select: none !important;
+    }
+
+    .form-switch .form-check-input:disabled,
+    .form-check-input[role="switch"]:disabled,
+    input[type="checkbox"].perm-switch:disabled,
+    input[type="checkbox"].user-switch:disabled {
+        opacity: 0.55 !important;
+        cursor: not-allowed !important;
     }
 
     /* Survey Areas Tab Navigation System */
@@ -1249,6 +1384,50 @@
         font-size: 13px !important;
         font-weight: 600 !important;
         color: var(--dss-primary, #0f172a) !important;
+    }
+
+    /* Global Laravel & Bootstrap Pagination Theming (Emerald DSS) */
+    .pagination {
+        gap: 4px !important;
+        margin-bottom: 0 !important;
+    }
+    .pagination .page-item {
+        list-style: none;
+    }
+    .pagination .page-item .page-link {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 32px;
+        height: 32px;
+        padding: 0 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #475569;
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 6px !important;
+        text-decoration: none;
+        transition: all 0.15s ease-in-out;
+        line-height: 1;
+    }
+    .pagination .page-item .page-link:hover {
+        background: #f0fdf4;
+        color: #00674f;
+        border-color: #a7f3d0;
+    }
+    .pagination .page-item.active .page-link {
+        background: #00674f !important;
+        border-color: #00674f !important;
+        color: #ffffff !important;
+        font-weight: 700;
+        box-shadow: 0 1px 3px rgba(0, 103, 79, 0.25);
+    }
+    .pagination .page-item.disabled .page-link {
+        color: #cbd5e1;
+        background: #f8fafc;
+        border-color: #e2e8f0;
+        cursor: not-allowed;
     }
 
     /* Custom CSS Overrides from DB */

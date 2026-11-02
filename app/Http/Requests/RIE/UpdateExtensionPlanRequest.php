@@ -46,25 +46,15 @@ class UpdateExtensionPlanRequest extends FormRequest
             'monitoring_feedback_date' => ['nullable', 'date'],
             'monitoring_feedback_end_date' => ['nullable', 'date'],
 
+            // Dynamic Milestones Array
+            'milestones' => ['nullable', 'array'],
+            'milestones.*.title' => ['nullable', 'string', 'max:255'],
+            'milestones.*.target_date' => ['nullable', 'string', 'max:150'],
+
             'beneficiaries' => ['required', 'string'],
             'target_beneficiaries_count' => ['required', 'integer', 'min:1'],
             'proposed_budget' => ['required', 'numeric', 'min:0'],
             'extensionists_count' => ['required', 'integer', 'min:1'],
-            'reviewed_by_employee_id' => ['nullable', 'integer'],
-            'reviewed_by_name' => ['nullable', 'string', 'max:191'],
-            'reviewed_by_designation' => ['nullable', 'string', 'max:191'],
-            'noted_by_employee_id' => ['nullable', 'integer'],
-            'noted_by_name' => ['nullable', 'string', 'max:191'],
-            'noted_by_designation' => ['nullable', 'string', 'max:191'],
-            'approved_by_employee_id' => ['nullable', 'integer'],
-            'approved_by_name' => ['nullable', 'string', 'max:191'],
-            'approved_by_designation' => ['nullable', 'string', 'max:191'],
-            'concurred_by_employee_id' => ['nullable', 'integer'],
-            'concurred_by_name' => ['nullable', 'string', 'max:191'],
-            'concurred_by_designation' => ['nullable', 'string', 'max:191'],
-            'concurred_by_2_employee_id' => ['nullable', 'integer'],
-            'concurred_by_2_name' => ['nullable', 'string', 'max:191'],
-            'concurred_by_2_designation' => ['nullable', 'string', 'max:191'],
             'action_type' => ['nullable', 'string', 'in:draft,submit'],
         ];
     }
@@ -79,8 +69,6 @@ class UpdateExtensionPlanRequest extends FormRequest
             'target_beneficiaries_count.required' => 'Please enter the target number of beneficiaries.',
             'proposed_budget.required' => 'Please provide the proposed budget.',
             'extensionists_count.required' => 'Please provide the number of extensionists.',
-            'noted_by_employee_id.required' => 'Please select the employee for Noted By (Extension Head).',
-            'approved_by_employee_id.required' => 'Please select the employee for Approved By (Dean).',
             'conduct_activity_end.after_or_equal' => 'The conduct activity end date must be on or after the start date.',
             'materials_arrival_end.after_or_equal' => 'The materials arrival end date must be on or after the start date.',
         ];
