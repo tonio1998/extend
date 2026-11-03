@@ -5,6 +5,7 @@ namespace App\Http\Controllers\DSS;
 use App\Http\Controllers\Controller;
 use App\Models\RIE\ExtensionAgenda;
 use App\Models\RIE\ExtensionBannerProgram;
+use App\Models\RIE\ExtensionProposal;
 use App\Services\DSS\TenantContext;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -28,6 +29,11 @@ class ExtensionPriorityController extends Controller
         $bannerPrograms = ExtensionBannerProgram::ordered()->get();
         $agendas = ExtensionAgenda::ordered()->get();
 
+        // Retrieve all extension proposals with essential linkage fields
+        $proposals = ExtensionProposal::select(
+            'id', 'title', 'banner_program', 'banner_program_other', 'agenda_priorities', 'extension_plan_id'
+        )->get();
+
         // Calculate statistics
         $totalBannerPrograms = $bannerPrograms->count();
         $activeBannerPrograms = $bannerPrograms->where('is_active', true)->count();
@@ -36,6 +42,58 @@ class ExtensionPriorityController extends Controller
         $totalAgendas = $agendas->count();
         $activeAgendas = $agendas->where('is_active', true)->count();
         $inactiveAgendas = $totalAgendas - $activeAgendas;
+
+        // Calculate involved extensions per banner program
+        $bannerProposalCounts = [];
+        $bannerPlanCounts = [];
+        foreach ($bannerPrograms as $program) {
+            $code = mb_strtolower(trim($program->code ?? ''));
+            $name = mb_strtolower(trim($program->name ?? ''));
+
+            $matched = $proposals->filter(function ($proposal) use ($code, $name) {
+                $val = mb_strtolower(trim((string) ($proposal->banner_program === 'Others' && ! empty($proposal->banner_program_other) ? $proposal->banner_program_other : $proposal->banner_program)));
+
+                return ($code !== '' && $val === $code) || ($name !== '' && $val === $name);
+            });
+
+            $bannerProposalCounts[$program->id] = $matched->count();
+            $bannerPlanCounts[$program->id] = $matched->whereNotNull('extension_plan_id')->pluck('extension_plan_id')->unique()->count();
+        }
+
+        // Calculate involved extensions per agenda
+        $agendaProposalCounts = [];
+        $agendaPlanCounts = [];
+        foreach ($agendas as $agenda) {
+            $code = mb_strtolower(trim($agenda->code ?? ''));
+            $name = mb_strtolower(trim($agenda->name ?? ''));
+
+            $matched = $proposals->filter(function ($proposal) use ($code, $name) {
+                $priorities = $proposal->agenda_priorities;
+                if (is_string($priorities)) {
+                    $priorities = json_decode($priorities, true) ?: [];
+                }
+                if (! is_array($priorities)) {
+                    return false;
+                }
+                foreach ($priorities as $priority) {
+                    $val = mb_strtolower(trim((string) $priority));
+                    if (($code !== '' && $val === $code) || ($name !== '' && $val === $name)) {
+                        return true;
+                    }
+                }
+
+                return false;
+            });
+
+            $agendaProposalCounts[$agenda->id] = $matched->count();
+            $agendaPlanCounts[$agenda->id] = $matched->whereNotNull('extension_plan_id')->pluck('extension_plan_id')->unique()->count();
+        }
+
+        $totalInvolvedProposals = $proposals->count();
+        $totalInvolvedPlans = $proposals->whereNotNull('extension_plan_id')->pluck('extension_plan_id')->unique()->count();
+        $totalPriorities = $totalBannerPrograms + $totalAgendas;
+        $activePriorities = $activeBannerPrograms + $activeAgendas;
+        $inactivePriorities = $inactiveBannerPrograms + $inactiveAgendas;
 
         return view('dss.settings.rie_priorities.index', compact(
             'tenant',
@@ -49,7 +107,16 @@ class ExtensionPriorityController extends Controller
             'inactiveBannerPrograms',
             'totalAgendas',
             'activeAgendas',
-            'inactiveAgendas'
+            'inactiveAgendas',
+            'bannerProposalCounts',
+            'bannerPlanCounts',
+            'agendaProposalCounts',
+            'agendaPlanCounts',
+            'totalInvolvedProposals',
+            'totalInvolvedPlans',
+            'totalPriorities',
+            'activePriorities',
+            'inactivePriorities'
         ));
     }
 

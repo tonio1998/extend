@@ -180,6 +180,122 @@
             pointer-events: none;
         }
 
+        /* Smart Omnisearch Categorized Live Suggestions */
+        .repo-smart-suggestions {
+            position: absolute;
+            top: calc(100% + 6px);
+            left: 0;
+            right: 0;
+            min-width: 380px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 12px;
+            box-shadow: 0 12px 28px -4px rgba(15, 23, 42, 0.18), 0 4px 10px rgba(15, 23, 42, 0.08);
+            z-index: 1060;
+            overflow: hidden;
+            display: none;
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .repo-smart-suggestions.show {
+            display: block;
+        }
+
+        .repo-smart-section-title {
+            padding: 8px 12px 4px 12px;
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #64748b;
+            background: #f8fafc;
+            border-bottom: 1px solid #f1f5f9;
+            letter-spacing: 0.05em;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .repo-smart-item {
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid #f8fafc;
+            transition: background 0.15s ease;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .repo-smart-item:hover,
+        .repo-smart-item.active {
+            background: #f1f5f9;
+        }
+
+        .repo-smart-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            flex-shrink: 0;
+        }
+
+        .repo-smart-title {
+            font-size: 12.5px;
+            font-weight: 600;
+            color: #0f172a;
+            line-height: 1.3;
+        }
+
+        .repo-smart-subtitle {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.25;
+        }
+
+        .repo-smart-badge {
+            margin-left: auto;
+            font-size: 10.5px;
+            font-weight: 600;
+            padding: 2px 7px;
+            border-radius: 999px;
+            background: #f1f5f9;
+            color: #475569;
+            white-space: nowrap;
+        }
+
+        .repo-smart-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 12px;
+            margin: 8px 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+            transition: all 0.15s ease;
+        }
+
+        .repo-smart-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+        }
+
+        .repo-avatar-circle {
+            width: 36px;
+            height: 36px;
+            min-width: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
         /* Segmented View Switcher */
         .repo-segmented-switch {
             background: #f1f5f9;
@@ -593,12 +709,13 @@
             </a>
         </div>
 
-        <!-- Global Search Bar -->
-        <form action="{{ route('dss.documents.repository') }}" method="GET" class="repo-search-input-group d-none d-md-block" id="topbarSearchForm" onsubmit="event.preventDefault(); triggerRepoSearch(this.search.value);">
+        <!-- Global Search Bar with Smart Categorized Omnisearch Suggestions -->
+        <div class="repo-search-input-group d-none d-md-block" style="position: relative;" id="topbarSearchContainer">
             <i class="mdi mdi-magnify search-icon"></i>
-            <input type="text" name="search" id="topbarSearchInput" class="form-control" placeholder="Search repository by title, filename, or checksum..." value="{{ $search }}" autocomplete="off">
+            <input type="text" name="search" id="topbarSearchInput" class="form-control" placeholder="Search files, or type department or leader name..." value="{{ $search }}" autocomplete="off">
             <span class="repo-search-kbd">Ctrl K</span>
-        </form>
+            <div id="topbarSmartSuggestions" class="repo-smart-suggestions shadow-lg"></div>
+        </div>
 
         <!-- Right Controls -->
         <div class="d-flex align-items-center gap-2">
@@ -726,6 +843,18 @@
                         </select>
                     </div>
                 @endif
+
+                <!-- Smart Omnisearch Active Notice (No Clunky Selects) -->
+                <div class="repo-sidebar-heading">Smart Omnisearch</div>
+                <div class="px-2 py-2.5 mb-3 bg-light bg-opacity-75 rounded-3 border">
+                    <div class="extra-small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                        <i class="mdi mdi-creation text-primary fs-6"></i>
+                        <span>Smart Categorized Search</span>
+                    </div>
+                    <div class="text-muted" style="font-size: 11px; line-height: 1.45;">
+                        Type any academic unit, department, or project leader in the search bar and press Enter to view their full profile card and transactions.
+                    </div>
+                </div>
             </div>
 
             <!-- Actual System & Server Storage Monitor Widget -->
@@ -1008,6 +1137,8 @@ const repoState = {
     format: @json($formatFilter ?: ''),
     storage: @json($storageFilter ?: ''),
     campus_id: @json($campusId ? (string)$campusId : ''),
+    unit_id: @json($unitId ? (string)$unitId : ''),
+    project_leader: @json($projectLeader ?: ''),
     physically_signed: @json($physicallySignedOnly ? '1' : ''),
     page: @json($documents->currentPage() ?: 1),
     baseUrl: @json(route('dss.documents.repository'))
@@ -1109,7 +1240,7 @@ function fetchRepo(targetUrlOrParams, options = {}) {
             if (p) {
                 repoState.page = parseInt(p, 10);
             }
-            ['view', 'module', 'category', 'sort', 'search', 'format', 'storage', 'campus_id', 'physically_signed'].forEach(k => {
+            ['view', 'module', 'category', 'sort', 'search', 'format', 'storage', 'campus_id', 'unit_id', 'project_leader', 'physically_signed'].forEach(k => {
                 if (u.searchParams.has(k)) {
                     repoState[k] = u.searchParams.get(k);
                 }
@@ -1129,6 +1260,8 @@ function fetchRepo(targetUrlOrParams, options = {}) {
     if (repoState.format) queryParams.set('format', repoState.format);
     if (repoState.storage) queryParams.set('storage', repoState.storage);
     if (repoState.campus_id) queryParams.set('campus_id', repoState.campus_id);
+    if (repoState.unit_id) queryParams.set('unit_id', repoState.unit_id);
+    if (repoState.project_leader) queryParams.set('project_leader', repoState.project_leader);
     if (repoState.physically_signed) queryParams.set('physically_signed', '1');
     if (repoState.page && Number(repoState.page) > 1) queryParams.set('page', repoState.page);
 
@@ -1212,6 +1345,12 @@ function fetchRepo(targetUrlOrParams, options = {}) {
             const campusSelect = document.getElementById('sidebarCampusSelect');
             if (campusSelect) campusSelect.value = repoState.campus_id || '';
 
+            const unitSelect = document.getElementById('sidebarUnitSelect');
+            if (unitSelect) unitSelect.value = repoState.unit_id || '';
+
+            const leaderSelect = document.getElementById('sidebarProjectLeaderSelect');
+            if (leaderSelect) leaderSelect.value = repoState.project_leader || '';
+
             // Re-bind dynamic events in canvas
             bindCanvasEvents();
 
@@ -1276,6 +1415,232 @@ function setSidebarCampus(campusId) {
     fetchRepo({ page: 1 });
 }
 
+function setSidebarUnit(unitId) {
+    repoState.unit_id = unitId || '';
+    fetchRepo({ page: 1 });
+}
+
+function setSidebarProjectLeader(leader) {
+    repoState.project_leader = leader || '';
+    fetchRepo({ page: 1 });
+}
+
+function applySmartUnitFilter(unitId, unitName) {
+    repoState.unit_id = unitId;
+    repoState.search = '';
+    syncSearchInputs('');
+    hideAllSmartSuggestions();
+    fetchRepo({ page: 1 });
+}
+
+function applySmartLeaderFilter(leaderName) {
+    repoState.project_leader = leaderName;
+    repoState.search = '';
+    syncSearchInputs('');
+    hideAllSmartSuggestions();
+    fetchRepo({ page: 1 });
+}
+
+function applySmartProjectFilter(code) {
+    repoState.search = code;
+    syncSearchInputs(code);
+    hideAllSmartSuggestions();
+    fetchRepo({ page: 1 });
+}
+
+function hideAllSmartSuggestions() {
+    document.querySelectorAll('.repo-smart-suggestions').forEach(el => {
+        el.classList.remove('show');
+        el.innerHTML = '';
+    });
+}
+
+let omnisearchTimer = null;
+function bindSmartOmnisearch(inputId, containerId) {
+    const input = document.getElementById(inputId);
+    const container = document.getElementById(containerId);
+    if (!input || !container) return;
+
+    function renderSuggestions(data, query) {
+        if (!data || (!data.units?.length && !data.leaders?.length && !data.plans?.length && !data.proposals?.length)) {
+            container.innerHTML = `
+                <div class="p-3 text-center text-muted extra-small">
+                    <i class="mdi mdi-information-outline fs-5 d-block mb-1 text-secondary"></i>
+                    No specific profile or unit matching "<strong>${escapeHtml(query)}</strong>".
+                    <div class="mt-2">
+                        <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 extra-small" onclick="triggerRepoSearch('${escapeJs(query)}')">
+                            <i class="mdi mdi-magnify me-1"></i>Search files for "${escapeHtml(query)}"
+                        </button>
+                    </div>
+                </div>
+            `;
+            container.classList.add('show');
+            return;
+        }
+
+        let html = '';
+
+        // 1. Matched Persons / Project Leaders -> Interactive Profile Cards
+        if (data.leaders && data.leaders.length > 0) {
+            html += `<div class="repo-smart-section-title">
+                <span><i class="mdi mdi-account-tie text-primary me-1"></i> Project Leaders &amp; Researchers</span>
+                <span class="text-muted extra-small">Profile Card Overview</span>
+            </div>`;
+            data.leaders.forEach(l => {
+                html += `
+                    <div class="repo-smart-card">
+                        <div class="d-flex align-items-center gap-2.5 mb-2">
+                            <div class="repo-avatar-circle bg-primary text-white">
+                                ${escapeHtml(l.initials || 'PL')}
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex align-items-center justify-content-between gap-1">
+                                    <a href="${l.overview_url}" class="fw-bold text-dark text-truncate text-decoration-none" style="font-size: 13px;" title="View Leader Profile">
+                                        ${escapeHtml(l.name)}
+                                    </a>
+                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small">Project Leader</span>
+                                </div>
+                                <div class="extra-small text-muted text-truncate">${escapeHtml(l.unit || 'University Academic Unit')}</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 mb-2 py-1 px-2 bg-light rounded-2 font-mono extra-small">
+                            <span class="text-dark"><strong>${l.projects_count}</strong> Projects</span>
+                            <span class="text-muted">&bull;</span>
+                            <span class="text-success fw-semibold">₱${l.total_budget} Budget</span>
+                            <span class="text-muted">&bull;</span>
+                            <span class="text-muted">${l.documents_count} Files</span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                            <a href="${l.overview_url}" class="btn btn-xs btn-primary rounded-pill px-3 py-1 extra-small fw-semibold d-inline-flex align-items-center gap-1 flex-grow-1 justify-content-center text-decoration-none text-white shadow-2xs">
+                                <i class="mdi mdi-open-in-new"></i>
+                                <span>View All Projects &amp; Transactions</span>
+                            </a>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 extra-small fw-semibold" onclick="applySmartLeaderFilter('${escapeJs(l.name)}')" title="Filter Repository Files">
+                                <i class="mdi mdi-file-document-outline me-0.5"></i> Filter Files
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 2. Matched Academic Units / Departments -> Interactive Unit Overview Cards
+        if (data.units && data.units.length > 0) {
+            html += `<div class="repo-smart-section-title">
+                <span><i class="mdi mdi-domain text-success me-1"></i> Academic Units &amp; Colleges</span>
+                <span class="text-muted extra-small">Unit Card Overview</span>
+            </div>`;
+            data.units.forEach(u => {
+                html += `
+                    <div class="repo-smart-card">
+                        <div class="d-flex align-items-center gap-2.5 mb-2">
+                            <div class="repo-avatar-circle bg-success text-white">
+                                <i class="mdi mdi-domain fs-6"></i>
+                            </div>
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="d-flex align-items-center justify-content-between gap-1">
+                                    <a href="${u.transactions_url}" class="fw-bold text-dark text-truncate text-decoration-none" style="font-size: 13px;" title="View Unit Profile">
+                                        ${escapeHtml(u.name)}
+                                    </a>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle extra-small font-mono">${escapeHtml(u.code)}</span>
+                                </div>
+                                <div class="extra-small text-muted text-truncate">${escapeHtml(u.campus)} &bull; Head: ${escapeHtml(u.head)}</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2 mb-2 py-1 px-2 bg-light rounded-2 font-mono extra-small">
+                            <span class="text-dark"><strong>${u.projects_count}</strong> Extensions</span>
+                            <span class="text-muted">&bull;</span>
+                            <span class="text-success fw-semibold">₱${u.total_budget} Budget</span>
+                            <span class="text-muted">&bull;</span>
+                            <span class="text-muted">${u.documents_count} Files</span>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-1.5 flex-wrap">
+                            <a href="${u.transactions_url}" class="btn btn-xs btn-success rounded-pill px-3 py-1 extra-small fw-semibold d-inline-flex align-items-center gap-1 flex-grow-1 justify-content-center text-decoration-none text-white shadow-2xs">
+                                <i class="mdi mdi-open-in-new"></i>
+                                <span>View All Unit Projects &amp; Transactions</span>
+                            </a>
+                            <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 extra-small fw-semibold" onclick="applySmartUnitFilter('${u.id}', '${escapeJs(u.name)}')" title="Filter Repository Files">
+                                <i class="mdi mdi-file-document-outline me-0.5"></i> Filter Files
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 3. Extension Plans & Proposals
+        const projects = [...(data.plans || []), ...(data.proposals || [])];
+        if (projects.length > 0) {
+            html += `<div class="repo-smart-section-title">
+                <span><i class="mdi mdi-file-document-outline text-warning me-1"></i> Extension Projects &amp; Proposals</span>
+            </div>`;
+            projects.slice(0, 4).forEach(p => {
+                html += `
+                    <div class="repo-smart-item" onclick="applySmartProjectFilter('${escapeJs(p.code)}')">
+                        <div class="repo-smart-icon bg-warning-subtle text-warning">
+                            <i class="mdi mdi-lightbulb-on-outline"></i>
+                        </div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="repo-smart-title text-truncate"><span class="badge bg-dark text-white font-mono me-1">${escapeHtml(p.code)}</span> ${escapeHtml(p.title)}</div>
+                            <div class="repo-smart-subtitle text-truncate">Filter repository files belonging to this project</div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        // 4. Default Search Action row
+        if (query && query.trim() !== '') {
+            html += `
+                <div class="repo-smart-item border-top bg-light bg-opacity-50" onclick="triggerRepoSearch('${escapeJs(query)}')">
+                    <div class="repo-smart-icon bg-secondary-subtle text-secondary">
+                        <i class="mdi mdi-magnify"></i>
+                    </div>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="repo-smart-title text-truncate">Search all files matching "<strong>${escapeHtml(query)}</strong>"</div>
+                        <div class="repo-smart-subtitle">Search by filename, document title, and SHA-256 checksum</div>
+                    </div>
+                    <span class="badge bg-white text-primary border font-mono">Press Enter</span>
+                </div>
+            `;
+        }
+
+        container.innerHTML = html;
+        container.classList.add('show');
+    }
+
+    // Clean typing: do not pop up while user is actively typing.
+    // Execute on Enter key press or explicit submit.
+    input.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            hideAllSmartSuggestions();
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            hideAllSmartSuggestions();
+            triggerRepoSearch(this.value.trim());
+        }
+    });
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+function escapeJs(str) {
+    if (!str) return '';
+    return String(str).replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
 function removeRepoFilter(key) {
     if (key === 'search') {
         repoState.search = '';
@@ -1283,6 +1648,18 @@ function removeRepoFilter(key) {
         repoState.module = '';
     } else if (key === 'category') {
         repoState.category = '';
+    } else if (key === 'campus_id') {
+        repoState.campus_id = '';
+        const cs = document.getElementById('sidebarCampusSelect');
+        if (cs) cs.value = '';
+    } else if (key === 'unit_id') {
+        repoState.unit_id = '';
+        const us = document.getElementById('sidebarUnitSelect');
+        if (us) us.value = '';
+    } else if (key === 'project_leader') {
+        repoState.project_leader = '';
+        const pls = document.getElementById('sidebarProjectLeaderSelect');
+        if (pls) pls.value = '';
     } else if (key === 'physically_signed') {
         repoState.physically_signed = '';
     } else if (key === 'format') {
@@ -1302,8 +1679,18 @@ function resetRepoFilters() {
     repoState.format = '';
     repoState.storage = '';
     repoState.campus_id = '';
+    repoState.unit_id = '';
+    repoState.project_leader = '';
     repoState.physically_signed = '';
     repoState.sort = 'latest';
+
+    const cs = document.getElementById('sidebarCampusSelect');
+    if (cs) cs.value = '';
+    const us = document.getElementById('sidebarUnitSelect');
+    if (us) us.value = '';
+    const pls = document.getElementById('sidebarProjectLeaderSelect');
+    if (pls) pls.value = '';
+
     fetchRepo({ page: 1 });
 }
 
@@ -1452,6 +1839,8 @@ function bindCanvasEvents() {
             e.preventDefault();
             repoState.module = document.getElementById('canvasModuleSelect')?.value || '';
             repoState.category = document.getElementById('canvasCategorySelect')?.value || '';
+            repoState.unit_id = document.getElementById('canvasUnitSelect')?.value || '';
+            repoState.project_leader = document.getElementById('canvasProjectLeaderSelect')?.value || '';
             repoState.sort = document.getElementById('canvasSortSelect')?.value || 'latest';
             repoState.search = document.getElementById('canvasSearchInput')?.value.trim() || '';
             fetchRepo({ page: 1 });
@@ -1475,6 +1864,22 @@ function bindCanvasEvents() {
         });
     }
 
+    const unitSelect = document.getElementById('canvasUnitSelect');
+    if (unitSelect) {
+        unitSelect.addEventListener('change', function() {
+            repoState.unit_id = this.value;
+            fetchRepo({ page: 1 });
+        });
+    }
+
+    const leaderSelect = document.getElementById('canvasProjectLeaderSelect');
+    if (leaderSelect) {
+        leaderSelect.addEventListener('change', function() {
+            repoState.project_leader = this.value;
+            fetchRepo({ page: 1 });
+        });
+    }
+
     const sortSelect = document.getElementById('canvasSortSelect');
     if (sortSelect) {
         sortSelect.addEventListener('change', function() {
@@ -1483,17 +1888,24 @@ function bindCanvasEvents() {
         });
     }
 
-    // 3. Canvas Live Search with Debounce
+    // 3. Canvas Search Input Sync
     const canvasSearch = document.getElementById('canvasSearchInput');
     if (canvasSearch) {
         canvasSearch.addEventListener('input', function() {
-            clearTimeout(searchDebounceTimer);
             const val = this.value;
             syncSearchInputs(val);
-            searchDebounceTimer = setTimeout(() => {
-                repoState.search = val.trim();
+            if (val === '' && repoState.search !== '') {
+                repoState.search = '';
                 fetchRepo({ page: 1 });
-            }, 300);
+            }
+        });
+        canvasSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                hideAllSmartSuggestions();
+                repoState.search = this.value.trim();
+                fetchRepo({ page: 1 });
+            }
         });
     }
 
@@ -1586,22 +1998,24 @@ function bindCanvasEvents() {
         });
     });
 
-    // 8. Delete Buttons with AJAX
     document.querySelectorAll('#repoCanvasContent .btn-delete-document').forEach(btn => {
         btn.addEventListener('click', function(e) {
             e.preventDefault();
             handleAjaxDelete(this);
         });
     });
+
+    bindSmartOmnisearch('canvasSearchInput', 'canvasSmartSuggestions');
+
+    // 9. Smart Omnisearch in Canvas
+    bindSmartOmnisearch('canvasSearchInput', 'canvasSmartSuggestions');
 }
 
-// Global hook for modal uploader to refresh canvas
 window.refreshRepoAjax = function() {
     fetchRepo(window.location.href, { pushState: false });
 };
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Quick search shortcut (Ctrl + K)
     document.addEventListener('keydown', function(e) {
         if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
             e.preventDefault();
@@ -1613,21 +2027,44 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Topbar Search live input with debounce
+    // Initialize Topbar Smart Omnisearch with Live Suggestions
+    bindSmartOmnisearch('topbarSearchInput', 'topbarSmartSuggestions');
+
+    // Click outside to dismiss suggestions
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#topbarSearchContainer') && !e.target.closest('#canvasSearchContainer') && !e.target.closest('.repo-smart-suggestions')) {
+            hideAllSmartSuggestions();
+        }
+    });
+
+    bindSmartOmnisearch('topbarSearchInput', 'topbarSmartSuggestions');
+
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#topbarSearchContainer') && !e.target.closest('#canvasSearchContainer') && !e.target.closest('.repo-smart-suggestions')) {
+            hideAllSmartSuggestions();
+        }
+    });
+
     const topSearch = document.getElementById('topbarSearchInput');
     if (topSearch) {
         topSearch.addEventListener('input', function() {
-            clearTimeout(searchDebounceTimer);
             const val = this.value;
             syncSearchInputs(val);
-            searchDebounceTimer = setTimeout(() => {
-                repoState.search = val.trim();
+            if (val === '' && repoState.search !== '') {
+                repoState.search = '';
                 fetchRepo({ page: 1 });
-            }, 300);
+            }
+        });
+        topSearch.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                hideAllSmartSuggestions();
+                repoState.search = this.value.trim();
+                fetchRepo({ page: 1 });
+            }
         });
     }
 
-    // Copy hash button in inspector modal
     const btnInspectCopy = document.getElementById('btnInspectCopyHash');
     if (btnInspectCopy) {
         btnInspectCopy.addEventListener('click', function() {
@@ -1636,10 +2073,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Initial binding
     bindCanvasEvents();
 
-    // Browser back/forward navigation support
     window.addEventListener('popstate', function() {
         fetchRepo(window.location.href, { pushState: false });
     });

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\DSS;
 
 use App\Http\Controllers\Controller;
 use App\Models\Dts\Records;
+use App\Models\Dts\Unit;
 use App\Models\Policy\InstitutionalPolicy;
 use App\Models\Policy\UniversityMemorandum;
 use App\Models\RIE\ExtensionPlan;
@@ -81,14 +82,25 @@ class CentralizedDocumentUploadController extends Controller
         $storageFilter = $request->query('storage');
         $search = trim((string) $request->query('search', ''));
         $campusId = $request->query('campus_id');
+        $unitId = $request->query('unit_id');
+        $projectLeader = $request->query('project_leader');
         $sort = $request->query('sort', 'latest');
         $viewMode = $request->query('view', 'table');
         if (! in_array($viewMode, ['grid', 'table'], true)) {
             $viewMode = 'table';
         }
 
-        $query = UploadedDocument::with(['uploader', 'campus', 'documentable'])
-            ->where('tenant_id', $tenantId);
+        $query = UploadedDocument::with([
+            'uploader',
+            'campus',
+            'documentable' => function ($morphTo) {
+                $morphTo->morphWith([
+                    ExtensionPlanActivity::class => ['extensionPlan.academicProgram.department', 'extensionPlan.extensionProposal'],
+                    ExtensionPlan::class => ['academicProgram.department', 'extensionProposal'],
+                    ExtensionProposal::class => ['unit', 'academicProgram.department'],
+                ]);
+            },
+        ])->where('tenant_id', $tenantId);
 
         if ($moduleFilter) {
             $query->where('module', $moduleFilter);
@@ -104,6 +116,72 @@ class CentralizedDocumentUploadController extends Controller
 
         if ($campusId) {
             $query->where('campus_id', $campusId);
+        }
+
+        // Unit / Department Filter
+        if ($unitId) {
+            $planIdsForUnit = ExtensionPlan::where('tenant_id', $tenantId)
+                ->where(function ($pq) use ($unitId) {
+                    $pq->whereHas('academicProgram', fn ($aq) => $aq->where('department_id', $unitId))
+                        ->orWhereHas('extensionProposal', fn ($uq) => $uq->where('unit_id', $unitId));
+                })->pluck('id')->toArray();
+
+            $propIdsForUnit = ExtensionProposal::where('tenant_id', $tenantId)
+                ->where('unit_id', $unitId)
+                ->pluck('id')->toArray();
+
+            $actIdsForUnit = ! empty($planIdsForUnit)
+                ? ExtensionPlanActivity::whereIn('extension_plan_id', $planIdsForUnit)->pluck('id')->toArray()
+                : [];
+
+            $query->where(function ($q) use ($propIdsForUnit, $planIdsForUnit, $actIdsForUnit) {
+                $q->where(function ($sub) use ($propIdsForUnit) {
+                    $sub->where('documentable_type', ExtensionProposal::class)
+                        ->whereIn('documentable_id', $propIdsForUnit);
+                })->orWhere(function ($sub) use ($planIdsForUnit) {
+                    $sub->where('documentable_type', ExtensionPlan::class)
+                        ->whereIn('documentable_id', $planIdsForUnit);
+                })->orWhere(function ($sub) use ($actIdsForUnit) {
+                    $sub->where('documentable_type', ExtensionPlanActivity::class)
+                        ->whereIn('documentable_id', $actIdsForUnit);
+                })->orWhere(function ($sub) use ($planIdsForUnit) {
+                    foreach ($planIdsForUnit as $pid) {
+                        $sub->orWhereJsonContains('metadata->plan_id', (int) $pid);
+                    }
+                });
+            });
+        }
+
+        // Project Leader Filter
+        if ($projectLeader) {
+            $planIdsForLeader = ExtensionPlan::where('tenant_id', $tenantId)
+                ->where('prepared_by_name', $projectLeader)
+                ->pluck('id')->toArray();
+
+            $propIdsForLeader = ExtensionProposal::where('tenant_id', $tenantId)
+                ->where('project_leader_name', $projectLeader)
+                ->pluck('id')->toArray();
+
+            $actIdsForLeader = ! empty($planIdsForLeader)
+                ? ExtensionPlanActivity::whereIn('extension_plan_id', $planIdsForLeader)->pluck('id')->toArray()
+                : [];
+
+            $query->where(function ($q) use ($propIdsForLeader, $planIdsForLeader, $actIdsForLeader, $projectLeader) {
+                $q->where(function ($sub) use ($propIdsForLeader) {
+                    $sub->where('documentable_type', ExtensionProposal::class)
+                        ->whereIn('documentable_id', $propIdsForLeader);
+                })->orWhere(function ($sub) use ($planIdsForLeader) {
+                    $sub->where('documentable_type', ExtensionPlan::class)
+                        ->whereIn('documentable_id', $planIdsForLeader);
+                })->orWhere(function ($sub) use ($actIdsForLeader) {
+                    $sub->where('documentable_type', ExtensionPlanActivity::class)
+                        ->whereIn('documentable_id', $actIdsForLeader);
+                })->orWhere(function ($sub) use ($planIdsForLeader) {
+                    foreach ($planIdsForLeader as $pid) {
+                        $sub->orWhereJsonContains('metadata->plan_id', (int) $pid);
+                    }
+                })->orWhere('uploader_name', $projectLeader);
+            });
         }
 
         if ($storageFilter === 'gdrive' || $storageFilter === 'cloud') {
@@ -124,13 +202,71 @@ class CentralizedDocumentUploadController extends Controller
             };
         }
 
+        // Comprehensive Global Search across files, metadata, project leader, department & project code
         if ($search) {
-            $query->where(function ($q) use ($search) {
+            $matchedUnitIds = Unit::where('tenant_id', $tenantId)
+                ->where(function ($uq) use ($search) {
+                    $uq->where('unit_name', 'like', "%{$search}%")
+                        ->orWhere('unit_code', 'like', "%{$search}%");
+                })->pluck('id')->toArray();
+
+            $searchPlanIds = ExtensionPlan::where('tenant_id', $tenantId)
+                ->where(function ($pq) use ($search, $matchedUnitIds) {
+                    $pq->where('plan_code', 'like', "%{$search}%")
+                        ->orWhere('program_name', 'like', "%{$search}%")
+                        ->orWhere('prepared_by_name', 'like', "%{$search}%");
+                    if (! empty($matchedUnitIds)) {
+                        $pq->orWhereHas('academicProgram', fn ($aq) => $aq->whereIn('department_id', $matchedUnitIds));
+                    }
+                })->pluck('id')->toArray();
+
+            $searchProposalIds = ExtensionProposal::where('tenant_id', $tenantId)
+                ->where(function ($prq) use ($search, $matchedUnitIds) {
+                    $prq->where('proposal_code', 'like', "%{$search}%")
+                        ->orWhere('title', 'like', "%{$search}%")
+                        ->orWhere('project_leader_name', 'like', "%{$search}%");
+                    if (! empty($matchedUnitIds)) {
+                        $prq->orWhereIn('unit_id', $matchedUnitIds);
+                    }
+                })->pluck('id')->toArray();
+
+            $searchActivityIds = ExtensionPlanActivity::where('tenant_id', $tenantId)
+                ->where(function ($aq) use ($search, $searchPlanIds) {
+                    $aq->where('title', 'like', "%{$search}%");
+                    if (! empty($searchPlanIds)) {
+                        $aq->orWhereIn('extension_plan_id', $searchPlanIds);
+                    }
+                })->pluck('id')->toArray();
+
+            $query->where(function ($q) use ($search, $searchProposalIds, $searchPlanIds, $searchActivityIds) {
                 $q->where('title', 'like', "%{$search}%")
                     ->orWhere('original_filename', 'like', "%{$search}%")
                     ->orWhere('sha256_hash', 'like', "%{$search}%")
                     ->orWhere('uploader_name', 'like', "%{$search}%")
-                    ->orWhere('signatory_notes', 'like', "%{$search}%");
+                    ->orWhere('signatory_notes', 'like', "%{$search}%")
+                    ->orWhere(function ($sub) use ($searchProposalIds, $searchPlanIds, $searchActivityIds) {
+                        if (! empty($searchProposalIds)) {
+                            $sub->orWhere(function ($s) use ($searchProposalIds) {
+                                $s->where('documentable_type', ExtensionProposal::class)
+                                    ->whereIn('documentable_id', $searchProposalIds);
+                            });
+                        }
+                        if (! empty($searchPlanIds)) {
+                            $sub->orWhere(function ($s) use ($searchPlanIds) {
+                                $s->where('documentable_type', ExtensionPlan::class)
+                                    ->whereIn('documentable_id', $searchPlanIds);
+                            });
+                            foreach (array_slice($searchPlanIds, 0, 10) as $pid) {
+                                $sub->orWhereJsonContains('metadata->plan_id', (int) $pid);
+                            }
+                        }
+                        if (! empty($searchActivityIds)) {
+                            $sub->orWhere(function ($s) use ($searchActivityIds) {
+                                $s->where('documentable_type', ExtensionPlanActivity::class)
+                                    ->whereIn('documentable_id', $searchActivityIds);
+                            });
+                        }
+                    });
             });
         }
 
@@ -145,6 +281,26 @@ class CentralizedDocumentUploadController extends Controller
         $documents = $query->paginate(24)->onEachSide(1)->withQueryString();
 
         $campuses = Campus::where('tenant_id', $tenantId)->orderBy('campus_name')->get();
+        $units = Unit::where('tenant_id', $tenantId)
+            ->whereNotNull('unit_name')
+            ->orderBy('unit_name')
+            ->get();
+
+        $projectLeaders = ExtensionProposal::where('tenant_id', $tenantId)
+            ->whereNotNull('project_leader_name')
+            ->where('project_leader_name', '!=', '')
+            ->pluck('project_leader_name')
+            ->merge(
+                ExtensionPlan::where('tenant_id', $tenantId)
+                    ->whereNotNull('prepared_by_name')
+                    ->where('prepared_by_name', '!=', '')
+                    ->pluck('prepared_by_name')
+            )
+            ->filter()
+            ->unique()
+            ->sort()
+            ->values();
+
         $totalCount = UploadedDocument::where('tenant_id', $tenantId)->count();
         $signedCount = UploadedDocument::where('tenant_id', $tenantId)->where('is_physically_signed', true)->count();
         $rieCount = UploadedDocument::where('tenant_id', $tenantId)->where('module', 'rie')->count();
@@ -158,6 +314,117 @@ class CentralizedDocumentUploadController extends Controller
         $institution = TenantContext::getInstitution();
         $theme = TenantContext::getTheme();
 
+        // Resolve Matched Project Leader Profile Card (if filtered or search matches a leader)
+        $matchedLeader = null;
+        $leaderLookup = $projectLeader ?: ($search ?: null);
+        if ($leaderLookup) {
+            $matchingLeaderName = ExtensionProposal::where('tenant_id', $tenantId)
+                ->whereNotNull('project_leader_name')
+                ->where(function ($lq) use ($leaderLookup) {
+                    $lq->where('project_leader_name', $leaderLookup)
+                        ->orWhere('project_leader_name', 'like', "%{$leaderLookup}%");
+                })
+                ->value('project_leader_name');
+
+            if (! $matchingLeaderName) {
+                $matchingLeaderName = ExtensionPlan::where('tenant_id', $tenantId)
+                    ->whereNotNull('prepared_by_name')
+                    ->where(function ($lq) use ($leaderLookup) {
+                        $lq->where('prepared_by_name', $leaderLookup)
+                            ->orWhere('prepared_by_name', 'like', "%{$leaderLookup}%");
+                    })
+                    ->value('prepared_by_name');
+            }
+
+            if ($matchingLeaderName) {
+                $leaderProps = ExtensionProposal::where('tenant_id', $tenantId)
+                    ->where('project_leader_name', $matchingLeaderName)
+                    ->get();
+                $propCount = $leaderProps->count();
+                $totalBudget = (float) $leaderProps->sum('approved_budget');
+                $latestProp = $leaderProps->first();
+                $unitAffiliation = $latestProp?->unit?->unit_name ?: 'Academic Unit';
+
+                $propIds = $leaderProps->pluck('id')->toArray();
+                $docCount = UploadedDocument::where('tenant_id', $tenantId)
+                    ->where(function ($dq) use ($propIds, $matchingLeaderName) {
+                        $dq->where('documentable_type', ExtensionProposal::class)->whereIn('documentable_id', $propIds)
+                            ->orWhere('uploader_name', $matchingLeaderName);
+                    })->count();
+
+                $words = explode(' ', trim($matchingLeaderName));
+                $initials = '';
+                foreach (array_slice($words, 0, 2) as $w) {
+                    $initials .= strtoupper(substr($w, 0, 1));
+                }
+
+                $matchedLeader = [
+                    'name' => $matchingLeaderName,
+                    'initials' => $initials ?: 'PL',
+                    'unit' => $unitAffiliation,
+                    'projects_count' => $propCount,
+                    'total_budget' => number_format($totalBudget, 2),
+                    'documents_count' => $docCount,
+                    'overview_url' => route('dss.rie.unit_monitoring.leader_transactions', ['name' => $matchingLeaderName]),
+                    'proposals_url' => route('dss.rie.proposals.index', ['search' => $matchingLeaderName]),
+                ];
+            }
+        }
+
+        // Resolve Matched Academic Unit Profile Card (if filtered or search matches a unit)
+        $matchedUnit = null;
+        if ($unitId) {
+            $unitModel = Unit::with(['campus', 'headEmployee', 'extensionHeadEmployee'])->find($unitId);
+        } elseif ($search) {
+            $unitModel = Unit::with(['campus', 'headEmployee', 'extensionHeadEmployee'])
+                ->where('tenant_id', $tenantId)
+                ->where(function ($uq) use ($search) {
+                    $uq->where('unit_code', $search)
+                        ->orWhere('unit_name', $search)
+                        ->orWhere('unit_code', 'like', "%{$search}%")
+                        ->orWhere('unit_name', 'like', "%{$search}%");
+                })->first();
+        } else {
+            $unitModel = null;
+        }
+
+        if ($unitModel) {
+            $uProps = ExtensionProposal::where('tenant_id', $tenantId)->where('unit_id', $unitModel->id)->get();
+            $uPropCount = $uProps->count();
+            $uBudget = (float) $uProps->sum('approved_budget');
+
+            $planIds = ExtensionPlan::where('tenant_id', $tenantId)
+                ->where(function ($pq) use ($unitModel) {
+                    $pq->whereHas('academicProgram', fn ($aq) => $aq->where('department_id', $unitModel->id))
+                        ->orWhereHas('extensionProposal', fn ($uq) => $uq->where('unit_id', $unitModel->id));
+                })->pluck('id')->toArray();
+            $propIds = $uProps->pluck('id')->toArray();
+
+            $uDocCount = UploadedDocument::where('tenant_id', $tenantId)
+                ->where(function ($dq) use ($propIds, $planIds) {
+                    $dq->where(function ($sq) use ($propIds) {
+                        $sq->where('documentable_type', ExtensionProposal::class)->whereIn('documentable_id', $propIds);
+                    })->orWhere(function ($sq) use ($planIds) {
+                        $sq->where('documentable_type', ExtensionPlan::class)->whereIn('documentable_id', $planIds);
+                    });
+                })->count();
+
+            $headName = $unitModel->extensionHeadEmployee?->full_name ?: ($unitModel->head_name ?: ($unitModel->headEmployee?->full_name ?: 'Unit Head'));
+
+            $matchedUnit = [
+                'id' => $unitModel->id,
+                'name' => $unitModel->unit_name,
+                'code' => $unitModel->unit_code ?: 'UNIT',
+                'campus' => $unitModel->campus?->campus_name ?: 'Main Campus',
+                'head' => $headName,
+                'projects_count' => $uPropCount,
+                'documents_count' => $uDocCount,
+                'total_budget' => number_format($uBudget, 2),
+                'overview_url' => route('dss.rie.unit_monitoring.unit_transactions', ['id' => $unitModel->id]),
+                'transactions_url' => route('dss.rie.unit_monitoring.unit_transactions', ['id' => $unitModel->id]),
+            ];
+        }
+
         if ($request->ajax() || $request->wantsJson()) {
             return response()->json([
                 'success' => true,
@@ -165,6 +432,8 @@ class CentralizedDocumentUploadController extends Controller
                 'html' => view('dss.documents.partials.repository-canvas', compact(
                     'documents',
                     'campuses',
+                    'units',
+                    'projectLeaders',
                     'totalCount',
                     'signedCount',
                     'rieCount',
@@ -181,7 +450,11 @@ class CentralizedDocumentUploadController extends Controller
                     'storageFilter',
                     'search',
                     'campusId',
-                    'viewMode'
+                    'unitId',
+                    'projectLeader',
+                    'viewMode',
+                    'matchedLeader',
+                    'matchedUnit'
                 ))->render(),
                 'counts' => [
                     'total' => $totalCount,
@@ -202,6 +475,8 @@ class CentralizedDocumentUploadController extends Controller
                     'storage' => $storageFilter,
                     'search' => $search,
                     'campus_id' => $campusId,
+                    'unit_id' => $unitId,
+                    'project_leader' => $projectLeader,
                     'sort' => $sort,
                     'view' => $viewMode,
                 ],
@@ -218,6 +493,8 @@ class CentralizedDocumentUploadController extends Controller
         return view('dss.documents.repository', compact(
             'documents',
             'campuses',
+            'units',
+            'projectLeaders',
             'totalCount',
             'signedCount',
             'rieCount',
@@ -237,8 +514,172 @@ class CentralizedDocumentUploadController extends Controller
             'storageFilter',
             'search',
             'campusId',
-            'viewMode'
+            'unitId',
+            'projectLeader',
+            'viewMode',
+            'matchedLeader',
+            'matchedUnit'
         ));
+    }
+
+    /**
+     * Provide smart search suggestions for Units, Project Leaders, and Plans/Proposals.
+     */
+    public function suggestions(Request $request): JsonResponse
+    {
+        $tenant = TenantContext::getTenant();
+        $tenantId = $tenant?->id ?? 1;
+        $q = trim((string) $request->query('q', ''));
+
+        // 1. Units / Departments with enriched metadata
+        $units = Unit::where('tenant_id', $tenantId)
+            ->with(['campus', 'headEmployee', 'extensionHeadEmployee'])
+            ->whereNotNull('unit_name')
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('unit_name', 'like', "%{$q}%")
+                        ->orWhere('unit_code', 'like', "%{$q}%");
+                });
+            })
+            ->orderBy('unit_name')
+            ->limit(5)
+            ->get()
+            ->map(function ($u) use ($tenantId) {
+                $proposals = ExtensionProposal::where('tenant_id', $tenantId)->where('unit_id', $u->id)->get();
+                $proposalCount = $proposals->count();
+                $totalBudget = (float) $proposals->sum('approved_budget');
+
+                $planIds = ExtensionPlan::where('tenant_id', $tenantId)
+                    ->where(function ($pq) use ($u) {
+                        $pq->whereHas('academicProgram', fn ($aq) => $aq->where('department_id', $u->id))
+                            ->orWhereHas('extensionProposal', fn ($uq) => $uq->where('unit_id', $u->id));
+                    })->pluck('id')->toArray();
+                $propIds = $proposals->pluck('id')->toArray();
+
+                $docCount = UploadedDocument::where('tenant_id', $tenantId)
+                    ->where(function ($dq) use ($propIds, $planIds) {
+                        $dq->where(function ($sq) use ($propIds) {
+                            $sq->where('documentable_type', ExtensionProposal::class)->whereIn('documentable_id', $propIds);
+                        })->orWhere(function ($sq) use ($planIds) {
+                            $sq->where('documentable_type', ExtensionPlan::class)->whereIn('documentable_id', $planIds);
+                        });
+                    })->count();
+
+                $headName = $u->extensionHeadEmployee?->full_name ?: ($u->head_name ?: ($u->headEmployee?->full_name ?: 'Unit Head'));
+
+                return [
+                    'id' => $u->id,
+                    'name' => $u->unit_name,
+                    'code' => $u->unit_code ?: 'UNIT',
+                    'campus' => $u->campus?->campus_name ?: 'Main Campus',
+                    'head' => $headName,
+                    'projects_count' => $proposalCount,
+                    'documents_count' => $docCount,
+                    'total_budget' => number_format($totalBudget, 2),
+                    'overview_url' => route('dss.rie.unit_monitoring.unit_transactions', ['id' => $u->id]),
+                    'transactions_url' => route('dss.rie.unit_monitoring.unit_transactions', ['id' => $u->id]),
+                    'action_label' => 'View all projects & files under '.$u->unit_name.($u->unit_code ? ' ('.$u->unit_code.')' : ''),
+                ];
+            });
+
+        // 2. Project Leaders with profile card details
+        $leaderNames = ExtensionProposal::where('tenant_id', $tenantId)
+            ->whereNotNull('project_leader_name')
+            ->where('project_leader_name', '!=', '')
+            ->when($q, fn ($sub) => $sub->where('project_leader_name', 'like', "%{$q}%"))
+            ->pluck('project_leader_name')
+            ->merge(
+                ExtensionPlan::where('tenant_id', $tenantId)
+                    ->whereNotNull('prepared_by_name')
+                    ->where('prepared_by_name', '!=', '')
+                    ->when($q, fn ($sub) => $sub->where('prepared_by_name', 'like', "%{$q}%"))
+                    ->pluck('prepared_by_name')
+            )
+            ->filter()
+            ->unique()
+            ->values()
+            ->take(5);
+
+        $leaders = $leaderNames->map(function ($name) use ($tenantId) {
+            $proposals = ExtensionProposal::where('tenant_id', $tenantId)->where('project_leader_name', $name)->get();
+            $proposalCount = $proposals->count();
+            $totalBudget = (float) $proposals->sum('approved_budget');
+
+            $latestProposal = $proposals->first();
+            $unitName = $latestProposal?->unit?->unit_name ?: 'Academic Unit';
+
+            $propIds = $proposals->pluck('id')->toArray();
+            $docCount = UploadedDocument::where('tenant_id', $tenantId)
+                ->where(function ($dq) use ($propIds, $name) {
+                    $dq->where('documentable_type', ExtensionProposal::class)->whereIn('documentable_id', $propIds)
+                        ->orWhere('uploader_name', $name);
+                })->count();
+
+            $words = explode(' ', trim($name));
+            $initials = '';
+            foreach (array_slice($words, 0, 2) as $w) {
+                $initials .= strtoupper(substr($w, 0, 1));
+            }
+
+            return [
+                'name' => $name,
+                'initials' => $initials ?: 'PL',
+                'unit' => $unitName,
+                'projects_count' => $proposalCount,
+                'total_budget' => number_format($totalBudget, 2),
+                'documents_count' => $docCount,
+                'overview_url' => route('dss.rie.unit_monitoring.leader_transactions', ['name' => $name]),
+                'proposals_url' => route('dss.rie.proposals.index', ['search' => $name]),
+                'action_label' => 'View all projects & files led by '.$name,
+            ];
+        });
+
+        // 3. Extension Plans & Proposals
+        $plans = ExtensionPlan::where('tenant_id', $tenantId)
+            ->when($q, function ($query) use ($q) {
+                $query->where('plan_code', 'like', "%{$q}%")
+                    ->orWhere('program_name', 'like', "%{$q}%")
+                    ->orWhere('prepared_by_name', 'like', "%{$q}%");
+            })
+            ->limit(4)
+            ->get(['id', 'plan_code', 'program_name', 'prepared_by_name'])
+            ->map(function ($p) {
+                return [
+                    'id' => $p->id,
+                    'code' => $p->plan_code,
+                    'title' => $p->program_name,
+                    'leader' => $p->prepared_by_name,
+                    'type' => 'Extension Plan',
+                    'action_label' => 'View files for '.$p->plan_code.' — '.$p->program_name,
+                ];
+            });
+
+        $proposals = ExtensionProposal::where('tenant_id', $tenantId)
+            ->when($q, function ($query) use ($q) {
+                $query->where('proposal_code', 'like', "%{$q}%")
+                    ->orWhere('title', 'like', "%{$q}%")
+                    ->orWhere('project_leader_name', 'like', "%{$q}%");
+            })
+            ->limit(4)
+            ->get(['id', 'proposal_code', 'title', 'project_leader_name'])
+            ->map(function ($pr) {
+                return [
+                    'id' => $pr->id,
+                    'code' => $pr->proposal_code ?: 'PROP-'.$pr->id,
+                    'title' => $pr->title,
+                    'leader' => $pr->project_leader_name,
+                    'type' => 'Extension Proposal',
+                    'action_label' => 'View files for '.($pr->proposal_code ?: 'PROP-'.$pr->id).' — '.$pr->title,
+                ];
+            });
+
+        return response()->json([
+            'query' => $q,
+            'units' => $units,
+            'leaders' => $leaders,
+            'plans' => $plans,
+            'proposals' => $proposals,
+        ]);
     }
 
     /**

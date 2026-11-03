@@ -129,6 +129,7 @@
         min-height: 100vh;
         width: 100%;
         background-color: #f8fafc;
+        overflow-x: clip;
     }
 
     /* Clean & Steady Canva-Style Sidebar */
@@ -143,6 +144,7 @@
         position: sticky;
         top: 0;
         height: 100vh;
+        flex-shrink: 0;
         z-index: 1000;
         transition: all 0.2s ease;
     }
@@ -213,7 +215,7 @@
     }
 
     .dss-main-content {
-        flex: 1;
+        flex: 1 1 0%;
         display: flex;
         flex-direction: column;
         min-width: 0;
@@ -284,6 +286,18 @@
 
     body[data-ui-template="flup_minimal"] .dss-main-content {
         padding-top: 0 !important;
+    }
+
+    /* Print Manzil Fixed / Sticky Topbar */
+    body[data-ui-template="print_manzil"] .pm-topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 1030 !important;
+        background: rgba(255, 255, 255, 0.96) !important;
+        backdrop-filter: blur(14px);
+        -webkit-backdrop-filter: blur(14px);
+        border: 1px solid rgba(226, 232, 240, 0.9) !important;
+        box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08) !important;
     }
 
     @media (max-width: 991.98px) {
@@ -1334,6 +1348,17 @@
     .table-responsive:has(.dropdown-menu.show),
     .table-responsive.dropdown-open {
         overflow: visible !important;
+    }
+
+    /* Universal Dropdown Popout & Stacking Polish */
+    .dropdown {
+        position: relative;
+    }
+    .dropdown-menu.show {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        z-index: 1055 !important;
     }
 
     /* Dropdown Menus in Tables */

@@ -2,6 +2,9 @@
 
 namespace App\Models\SaaS;
 
+use App\Models\RIE\ExtensionPlan;
+use App\Models\RIE\ExtensionPlanActivity;
+use App\Models\RIE\ExtensionProposal;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,6 +38,9 @@ class UploadedDocument extends Model
         'preview_url',
         'is_previewable',
         'category_label',
+        'linked_project_leader',
+        'linked_unit_name',
+        'linked_project_title',
     ];
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -155,6 +161,74 @@ class UploadedDocument extends Model
             'supporting_evidence' => 'Supporting Verification Evidence',
             default => ucwords(str_replace('_', ' ', $this->category ?: 'General Attachment')),
         };
+    }
+
+    public function getLinkedProjectLeaderAttribute(): ?string
+    {
+        $target = $this->documentable;
+        if ($target instanceof ExtensionProposal) {
+            return $target->project_leader_name;
+        }
+        if ($target instanceof ExtensionPlan) {
+            return $target->prepared_by_name;
+        }
+        if ($target instanceof ExtensionPlanActivity) {
+            return $target->extensionPlan?->prepared_by_name ?: $target->extensionPlan?->extensionProposal?->project_leader_name;
+        }
+        if (! empty($this->metadata['plan_id'])) {
+            $plan = ExtensionPlan::find($this->metadata['plan_id']);
+            if ($plan) {
+                return $plan->prepared_by_name;
+            }
+        }
+
+        return $this->uploader_name ?: null;
+    }
+
+    public function getLinkedUnitNameAttribute(): ?string
+    {
+        $target = $this->documentable;
+        if ($target instanceof ExtensionProposal) {
+            return $target->unit?->unit_name ?: $target->academicProgram?->department?->unit_name;
+        }
+        if ($target instanceof ExtensionPlan) {
+            return $target->academicProgram?->department?->unit_name;
+        }
+        if ($target instanceof ExtensionPlanActivity) {
+            return $target->extensionPlan?->academicProgram?->department?->unit_name ?: $target->extensionPlan?->extensionProposal?->unit?->unit_name;
+        }
+        if (! empty($this->metadata['plan_id'])) {
+            $plan = ExtensionPlan::find($this->metadata['plan_id']);
+            if ($plan) {
+                return $plan->academicProgram?->department?->unit_name ?: $plan->extensionProposal?->unit?->unit_name;
+            }
+        }
+
+        return null;
+    }
+
+    public function getLinkedProjectTitleAttribute(): ?string
+    {
+        $target = $this->documentable;
+        if ($target instanceof ExtensionProposal) {
+            return ($target->proposal_code ?: 'Proposal #'.$target->id).' — '.$target->title;
+        }
+        if ($target instanceof ExtensionPlan) {
+            return ($target->plan_code ?: 'Plan #'.$target->id).' — '.$target->program_name;
+        }
+        if ($target instanceof ExtensionPlanActivity) {
+            $plan = $target->extensionPlan;
+            if ($plan) {
+                return ($plan->plan_code ?: 'Plan #'.$plan->id).' — '.$plan->program_name;
+            }
+
+            return 'Milestone: '.$target->title;
+        }
+        if (! empty($this->metadata['plan_code'])) {
+            return $this->metadata['plan_code'].(! empty($this->metadata['activity_title']) ? ' ('.$this->metadata['activity_title'].')' : '');
+        }
+
+        return null;
     }
 
     // ──────────────────────────────────────────────────────────────────────────

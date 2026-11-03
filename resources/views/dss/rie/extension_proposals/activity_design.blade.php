@@ -269,46 +269,170 @@
 
         <!-- Section V: Signatories Panel -->
         <div class="sheet-section-title">V. Review &amp; Approval Matrix</div>
-        <div class="row g-4 pt-2">
+
+        @php
+            $sigCollection = isset($signatories) ? collect($signatories) : collect();
+
+            // Tier 1: Up to Concurred
+            $prepSig = $sigCollection->firstWhere('tier_role', 'prepared')
+                ?: (object)[
+                    'role_label' => 'Prepared by:',
+                    'signatory_name' => $proposal->project_leader_name,
+                    'designation' => $proposal->project_leader_title ?: 'Project Leader',
+                ];
+
+            $revSig = $sigCollection->firstWhere('tier_role', 'reviewed')
+                ?: (object)[
+                    'role_label' => 'Reviewed by:',
+                    'signatory_name' => $plan?->reviewed_by_name ?: ($proposal->signatory_reviewed_by ?: 'College Head for Extension'),
+                    'designation' => $plan?->reviewed_by_designation ?: 'Head, College Extension Unit',
+                ];
+
+            $notedSig = $sigCollection->firstWhere('tier_role', 'noted')
+                ?: (object)[
+                    'role_label' => 'Noted by:',
+                    'signatory_name' => $plan?->noted_by_name ?: ($proposal->signatory_noted_by ?: 'College Dean'),
+                    'designation' => $plan?->noted_by_designation ?: 'College Dean',
+                ];
+
+            $concSig = $sigCollection->first(fn($s) => str_starts_with($s->tier_role ?? '', 'concurred') || str_contains(strtolower($s->role_label ?? ''), 'concurred'))
+                ?: (object)[
+                    'role_label' => 'Concurred by:',
+                    'signatory_name' => $plan?->concurred_by_2_name ?: ($plan?->concurred_by_name ?: ($proposal->signatory_approved_by ?: 'ALVIE ELMA C. PLAZA, MA')),
+                    'designation' => $plan?->concurred_by_2_designation ?: ($plan?->concurred_by_designation ?: 'Director, Extension Services'),
+                ];
+
+            // Tier 2: Post-Concurred Signatories
+            $recVpeSig = $sigCollection->first(fn($s) => $s->tier_role === 'recommending_approval' || (str_contains(strtolower($s->role_label ?? ''), 'recommending') && str_contains(strtolower(($s->designation ?? '').' '.($s->signatory_name ?? '')), 'sunico')))
+                ?: $sigCollection->first(fn($s) => str_contains(strtolower($s->role_label ?? ''), 'recommending'))
+                ?: (object)[
+                    'role_label' => 'Recommending Approval:',
+                    'signatory_name' => 'ROMY JUN A. SUNICO, DTE',
+                    'designation' => 'Vice President for RIE',
+                ];
+
+            $budgetSig = $sigCollection->first(fn($s) => $s->tier_role === 'certified_allotment' || str_contains(strtolower(($s->role_label ?? '').' '.($s->tier_role ?? '')), 'allotment'))
+                ?: (object)[
+                    'role_label' => 'Certified as to availability of allotment:',
+                    'signatory_name' => 'MARY ANN M. NARCISO, MBA',
+                    'designation' => 'Budget Officer III',
+                ];
+
+            $acctSig = $sigCollection->first(fn($s) => $s->tier_role === 'certified_funds' || str_contains(strtolower(($s->role_label ?? '').' '.($s->tier_role ?? '')), 'funds'))
+                ?: (object)[
+                    'role_label' => 'Certified as to availability of funds:',
+                    'signatory_name' => 'IVY JEAN J. TURNO',
+                    'designation' => 'Accountant III',
+                ];
+
+            $caoSig = $sigCollection->first(fn($s) => $s->tier_role === 'cao_designate' || str_contains(strtolower(($s->designation ?? '').' '.($s->signatory_name ?? '')), 'ecleo') || str_contains(strtolower($s->designation ?? ''), 'cao'))
+                ?: (object)[
+                    'role_label' => '',
+                    'signatory_name' => 'FELICITY MAE M. ECLEO',
+                    'designation' => 'CAO-Designate',
+                ];
+
+            $presSig = $sigCollection->first(fn($s) => $s->tier_role === 'approved' || str_contains(strtolower($s->role_label ?? ''), 'approved') || str_contains(strtolower($s->designation ?? ''), 'president'))
+                ?: (object)[
+                    'role_label' => 'Approved by:',
+                    'signatory_name' => 'ROWENA A. PLANDO, Ph.D.',
+                    'designation' => 'University President III',
+                ];
+        @endphp
+
+        <!-- 1. TIER 1 SIGNATORIES (4-COLUMN ROW: PREPARED, REVIEWED, NOTED, CONCURRED) -->
+        <div class="row g-4 pt-2 mb-4">
             <!-- Prepared by -->
             <div class="col-6 col-md-3">
-                <div class="extra-small text-muted text-uppercase fw-bold mb-4">Prepared by:</div>
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $prepSig->role_label ?: 'Prepared by:' }}</div>
                 <div class="border-top pt-2">
-                    <div class="fw-bold text-dark small text-uppercase">{{ $proposal->project_leader_name }}</div>
-                    <div class="text-muted extra-small">{{ $proposal->project_leader_title ?: 'Project Leader' }}</div>
+                    <div class="fw-bold text-dark small text-uppercase">{{ $prepSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $prepSig->designation ?: 'Project Leader' }}</div>
                 </div>
             </div>
 
             <!-- Reviewed by -->
             <div class="col-6 col-md-3">
-                <div class="extra-small text-muted text-uppercase fw-bold mb-4">Reviewed by:</div>
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $revSig->role_label ?: 'Reviewed by:' }}</div>
                 <div class="border-top pt-2">
-                    <div class="fw-bold text-dark small text-uppercase">
-                        {{ $plan?->reviewed_by_name ?: ($proposal->signatory_reviewed_by ?: 'College Head for Extension') }}
-                    </div>
-                    <div class="text-muted extra-small">{{ $plan?->reviewed_by_designation ?: 'Head, College Extension Unit' }}</div>
+                    <div class="fw-bold text-dark small text-uppercase">{{ $revSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $revSig->designation ?: 'Head, College Extension Unit' }}</div>
                 </div>
             </div>
 
             <!-- Noted by -->
             <div class="col-6 col-md-3">
-                <div class="extra-small text-muted text-uppercase fw-bold mb-4">Noted by:</div>
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $notedSig->role_label ?: 'Noted by:' }}</div>
                 <div class="border-top pt-2">
-                    <div class="fw-bold text-dark small text-uppercase">
-                        {{ $plan?->noted_by_name ?: ($proposal->signatory_noted_by ?: 'College Dean') }}
-                    </div>
-                    <div class="text-muted extra-small">{{ $plan?->noted_by_designation ?: 'College Dean' }}</div>
+                    <div class="fw-bold text-dark small text-uppercase">{{ $notedSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $notedSig->designation ?: 'College Dean' }}</div>
                 </div>
             </div>
 
-            <!-- Approved / Concurred by -->
+            <!-- Concurred by -->
             <div class="col-6 col-md-3">
-                <div class="extra-small text-muted text-uppercase fw-bold mb-4">Concurred by:</div>
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $concSig->role_label ?: 'Concurred by:' }}</div>
                 <div class="border-top pt-2">
-                    <div class="fw-bold text-dark small text-uppercase">
-                        {{ $plan?->concurred_by_2_name ?: ($plan?->concurred_by_name ?: ($proposal->signatory_approved_by ?: 'University Extension Director')) }}
-                    </div>
-                    <div class="text-muted extra-small">{{ $plan?->concurred_by_2_designation ?: 'Director, Extension Services' }}</div>
+                    <div class="fw-bold text-dark small text-uppercase">{{ $concSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $concSig->designation ?: 'Director, Extension Services' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. POST-CONCURRED TIER: RECOMMENDING APPROVAL (CENTERED) -->
+        <div class="row justify-content-center mb-4 pt-2">
+            <div class="col-12 col-md-6 text-center">
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $recVpeSig->role_label ?: 'Recommending Approval:' }}</div>
+                <div class="border-top pt-2 mx-auto" style="max-width: 320px;">
+                    <div class="fw-bold text-dark small text-uppercase">{{ $recVpeSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $recVpeSig->designation ?: 'Vice President for RIE' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. POST-CONCURRED TIER: 2-COLUMN FINANCIAL CERTIFICATION (ALLOTMENT & FUNDS) -->
+        <div class="row g-4 mb-4 pt-2">
+            <!-- Left: Certified as to availability of allotment -->
+            <div class="col-6 text-start">
+                <div class="extra-small text-dark fw-bold fst-italic mb-3">{{ $budgetSig->role_label ?: 'Certified as to availability of allotment:' }}</div>
+                <div class="border-top pt-2 me-auto" style="max-width: 300px;">
+                    <div class="fw-bold text-dark small text-uppercase">{{ $budgetSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $budgetSig->designation ?: 'Budget Officer III' }}</div>
+                </div>
+            </div>
+
+            <!-- Right: Certified as to availability of funds -->
+            <div class="col-6 text-end">
+                <div class="extra-small text-dark fw-bold fst-italic mb-3">{{ $acctSig->role_label ?: 'Certified as to availability of funds:' }}</div>
+                <div class="border-top pt-2 ms-auto" style="max-width: 300px;">
+                    <div class="fw-bold text-dark small text-uppercase">{{ $acctSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $acctSig->designation ?: 'Accountant III' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. POST-CONCURRED TIER: CAO-DESIGNATE (CENTERED) -->
+        <div class="row justify-content-center mb-4 pt-2">
+            <div class="col-12 col-md-6 text-center">
+                @if(!empty($caoSig->role_label))
+                    <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $caoSig->role_label }}</div>
+                @else
+                    <div class="mb-3" style="height: 18px;"></div>
+                @endif
+                <div class="border-top pt-2 mx-auto" style="max-width: 320px;">
+                    <div class="fw-bold text-dark small text-uppercase">{{ $caoSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $caoSig->designation ?: 'CAO-Designate' }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 5. POST-CONCURRED TIER: APPROVED BY (UNIVERSITY PRESIDENT - CENTERED) -->
+        <div class="row justify-content-center pt-2">
+            <div class="col-12 col-md-6 text-center">
+                <div class="extra-small text-muted text-uppercase fw-bold mb-3">{{ $presSig->role_label ?: 'Approved by:' }}</div>
+                <div class="border-top pt-2 mx-auto" style="max-width: 320px;">
+                    <div class="fw-bold text-dark small text-uppercase">{{ $presSig->signatory_name }}</div>
+                    <div class="text-muted extra-small">{{ $presSig->designation ?: 'University President III' }}</div>
                 </div>
             </div>
         </div>

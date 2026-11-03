@@ -6,6 +6,7 @@ use App\Models\Dts\Records;
 use App\Models\Policy\InstitutionalPolicy;
 use App\Models\Policy\PolicySignatory;
 use App\Models\Policy\UniversityMemorandum;
+use App\Models\RIE\ActivityDesign;
 use App\Models\RIE\ExtensionAgenda;
 use App\Models\RIE\ExtensionBannerProgram;
 use App\Models\RIE\ExtensionPlan;
@@ -57,7 +58,9 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
 
     private ?ExtensionProposal $extensionProposal = null;
 
-    /** @var string 'policy' | 'memo' | 'dts' | 'extension_plan' | 'extension_proposal' */
+    private ?ActivityDesign $activityDesign = null;
+
+    /** @var string 'policy' | 'memo' | 'dts' | 'extension_plan' | 'extension_proposal' | 'activity_design' */
     private string $docKind = 'policy';
 
     /** RGB tuple from the institution theme */
@@ -297,6 +300,46 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         $acronym = $institution?->school_acronym ?: 'SNSU';
         $gen->SetTitle($acronym.' Extension Proposal: '.$gen->policyNumber);
         $gen->renderExtensionProposalBody();
+
+        return $gen;
+    }
+
+    /**
+     * Factory: Generate PDF for an Activity Design (FPDF Official Format).
+     */
+    public static function fromActivityDesign(
+        ActivityDesign $design,
+        ?InstitutionSetting $institution = null,
+        string|array|null $paper = null,
+        ?string $template = null,
+    ): static {
+        $institution = $institution ?? TenantContext::getInstitution();
+        $paper = $paper ?: 'A4';
+        $template = $template ?: 'executive';
+
+        $docId = (string) $design->design_code;
+        $tracking = (string) ($design->tracking_number ?: $design->design_code);
+
+        $gen = new static($paper, 'P', 'mm', $institution, 'Activity Design');
+        $gen->docKind = 'activity_design';
+        $gen->activityDesign = $design;
+        $gen->trackingCodeType = 'barcode';
+        $gen->documentId = $docId;
+        $gen->formattedQr = $tracking;
+        $gen->trackingNumber = $tracking;
+        $gen->policyNumber = $design->design_code;
+        $gen->effectivityDate = $design->created_at ? $design->created_at->format('F d, Y') : date('F d, Y');
+        $gen->officeName = 'Extension Services / Office of RIE';
+        $gen->showOfficeSubheader = false;
+        $gen->qrTargetUrl = $tracking;
+
+        $gen->applyThemeColor();
+        $gen->applyDocSettings('Activity Design');
+        $gen->applyHeaderMode($template, $design);
+
+        $acronym = $institution?->school_acronym ?: 'SNSU';
+        $gen->SetTitle($acronym.' Activity Design: '.$gen->policyNumber);
+        $gen->renderActivityDesignBody();
 
         return $gen;
     }
@@ -2215,6 +2258,487 @@ class DocumentPdfGenerator extends InstitutionalDocumentTemplate
         }
 
         // Restore default auto page break
+        $this->SetAutoPageBreak(true, 42.0);
+    }
+
+    /**
+     * Render the official Activity Design body via FPDF.
+     */
+    private function renderActivityDesignBody(): void
+    {
+        $design = $this->activityDesign;
+        if (! $design) {
+            return;
+        }
+
+        $proposal = $design->extensionProposal;
+        $plan = $design->extensionPlan ?: $proposal?->extensionPlan;
+
+        $this->SetAutoPageBreak(false);
+        $margin = $this->leftMargin ?: 20.0;
+        $w = $this->contentWidth;
+        $maxY = 252.0;
+
+        $checkPageBreak = function (float $neededHeight) use ($maxY): bool {
+            if ($this->GetY() + $neededHeight > $maxY) {
+                $this->AddPage();
+                $this->SetTextColor(17, 24, 39);
+
+                return true;
+            }
+
+            return false;
+        };
+
+        // ══════════════════════════════════════════════════════════════════════
+        // PAGE 1: TITLE & GENERAL INFORMATION
+        // ══════════════════════════════════════════════════════════════════════
+        $this->AddPage();
+        $this->SetTextColor(17, 24, 39);
+
+        // Document Title
+        $this->SetFont($this->fontFamily, 'B', 14.0);
+        $this->Cell($w, 6.0, 'ACTIVITY DESIGN', 0, 1, 'C');
+        $this->Ln(2.0);
+
+        // Document Control Reference Block
+        $this->SetFont($this->fontFamily, '', 8.5);
+        $this->SetTextColor(100, 116, 139);
+        $year = date('Y');
+        $refText = "Doc Ref: SNSU-RIE-AD-{$year}   |   Design Code: {$design->design_code}   |   Status: ".strtoupper($design->status ?: 'Draft');
+        $this->Cell($w, 4.0, $refText, 'B', 1, 'C');
+        $this->Ln(3.0);
+        $this->SetTextColor(17, 24, 39);
+
+        // Section I: General Information
+        $this->SetFont($this->fontFamily, 'B', 11.5);
+        $this->Cell($w, 5.0, 'I. GENERAL INFORMATION', 0, 1, 'L');
+        $this->Ln(2.0);
+
+        $labelW = 54.0;
+        $valW = $w - $labelW;
+        $pFont = 10.0;
+        $lineH = 5.0;
+
+        // Activity Title
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Activity Title:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText(strtoupper($design->title)), 0, 'L');
+        $this->Ln(1.5);
+
+        // Program / Banner Project
+        $banner = $design->banner_program ?: ($proposal?->banner_program ?: ($plan?->program_name ?: 'Institutional Extension Program'));
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Banner Program:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($banner), 0, 'L');
+        $this->Ln(1.5);
+
+        // Implementing Unit / College
+        $unitName = $design->unit?->unit_name ?: ($proposal?->unit?->unit_name ?: 'College Extension Unit');
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Implementing Unit:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($unitName), 0, 'L');
+        $this->Ln(1.5);
+
+        // Partner / Collaborating Agencies
+        $partners = $design->collaborating_agencies ?: 'Community Stakeholders / LGU';
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Partner Agencies:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($partners), 0, 'L');
+        $this->Ln(1.5);
+
+        // Target Beneficiaries
+        $bene = $design->target_beneficiaries ?: ($proposal?->beneficiaries ?: 'Community Members');
+        $pax = $design->target_beneficiaries_count ?: ($plan?->target_beneficiaries_count ?: null);
+        if ($pax) {
+            $bene .= ' ('.number_format((int) $pax).' Pax)';
+        }
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Target Beneficiaries:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($bene), 0, 'L');
+        $this->Ln(1.5);
+
+        // Implementation Period / Venue
+        $period = $design->duration_text ?: ($proposal?->duration_text ?: 'Scheduled Implementation');
+        if ($design->project_location) {
+            $period .= ' | Venue: '.$design->project_location;
+        }
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Period / Venue:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, '', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($period), 0, 'L');
+        $this->Ln(1.5);
+
+        // Project Leader
+        $lead = $design->project_leader_name.' ('.($design->project_leader_title ?: 'Project Leader').')';
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->Cell($labelW, $lineH, 'Project Leader:', 0, 0, 'L');
+        $this->SetFont($this->fontFamily, 'B', $pFont);
+        $this->MultiCell($valW, $lineH, $this->sanitizeText($lead), 0, 'L');
+        $this->Ln(4.0);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // II. CONTEXT, RATIONALE & OBJECTIVES
+        // ══════════════════════════════════════════════════════════════════════
+        $checkPageBreak(30.0);
+        $this->SetFont($this->fontFamily, 'B', 11.5);
+        $this->Cell($w, 5.0, 'II. CONTEXT, RATIONALE & OBJECTIVES', 0, 1, 'L');
+        $this->Ln(2.0);
+
+        // A. Context & Significance
+        $this->SetFont($this->fontFamily, 'B', 10.0);
+        $this->Cell($w, 4.5, 'A. Context & Significance', 0, 1, 'L');
+        $this->Ln(1.0);
+
+        $rationale = $design->context_rationale ?: ($proposal?->introduction ?: ($proposal?->relevance_narrative ?: 'This extension activity is undertaken as part of the university mandate to translate technical and academic expertise into meaningful community capacity building.'));
+        $this->printFlowingParagraphs($rationale, $w, 5.0, $maxY, $checkPageBreak, 9.5);
+        $this->Ln(2.5);
+
+        // B. Objectives
+        $checkPageBreak(25.0);
+        $this->SetFont($this->fontFamily, 'B', 10.0);
+        $this->Cell($w, 4.5, 'B. Activity Objectives', 0, 1, 'L');
+        $this->Ln(1.0);
+
+        if (! empty($design->general_objective)) {
+            $this->SetFont($this->fontFamily, 'B', 9.5);
+            $this->Cell($w, 4.5, 'General Objective: '.$this->sanitizeText($design->general_objective), 0, 1, 'L');
+            $this->Ln(1.5);
+        }
+
+        $specificObjs = $design->specific_objectives ?: ($proposal?->specific_objectives ?? []);
+        if (! empty($specificObjs) && is_array($specificObjs)) {
+            $this->SetFont($this->fontFamily, '', 9.5);
+            foreach ($specificObjs as $idx => $obj) {
+                $checkPageBreak(6.0);
+                $objTxt = is_array($obj) ? ($obj['text'] ?? implode(' ', $obj)) : (string) $obj;
+                $this->Cell(6.0, 4.5, ($idx + 1).'.', 0, 0, 'R');
+                $this->MultiCell($w - 7.0, 4.5, $this->sanitizeText($objTxt), 0, 'L');
+                $this->Ln(1.0);
+            }
+        } elseif ($plan && ! empty($plan->objectives)) {
+            $this->printFlowingParagraphs($plan->objectives, $w, 4.8, $maxY, $checkPageBreak, 9.5);
+        }
+        $this->Ln(4.0);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // III. PROGRAM MATRIX & SCHEDULE OF MILESTONES
+        // ══════════════════════════════════════════════════════════════════════
+        $checkPageBreak(35.0);
+        $this->SetFont($this->fontFamily, 'B', 11.5);
+        $this->Cell($w, 5.0, 'III. PROGRAM MATRIX & SCHEDULE OF MILESTONES', 0, 1, 'L');
+        $this->Ln(2.0);
+
+        $colNumW = 10.0;
+        $colDateW = 45.0;
+        $colStatW = 32.0;
+        $colTitleW = $w - ($colNumW + $colDateW + $colStatW);
+        $tblH = 6.0;
+
+        $this->SetFillColor(241, 245, 249);
+        $this->SetDrawColor(203, 213, 225);
+        $this->SetLineWidth(0.3);
+        $this->SetFont($this->fontFamily, 'B', 9.0);
+        $this->SetTextColor(30, 41, 59);
+
+        $this->Cell($colNumW, $tblH, '#', 1, 0, 'C', true);
+        $this->Cell($colTitleW, $tblH, ' Milestone / Activity Component', 1, 0, 'L', true);
+        $this->Cell($colDateW, $tblH, 'Target Date', 1, 0, 'C', true);
+        $this->Cell($colStatW, $tblH, 'Verification', 1, 1, 'C', true);
+
+        $activities = $design->program_matrix ?: ($plan?->milestones_list ?? []);
+        $itemNum = 1;
+
+        foreach ($activities as $act) {
+            $titleTxt = $act['title'] ?? 'Scheduled Milestone';
+            $dateTxt = $act['target_date'] ?? 'To be scheduled';
+            $statusTxt = ! empty($act['is_completed']) ? 'Verified' : (! empty($act['is_na']) ? 'Exempted' : 'Pending');
+
+            $rowLineH = 4.2;
+            $linesTitle = $this->calculateCellLines($titleTxt, $colTitleW - 4.0, 9.0, '');
+            $rowH = max(6.0, ($linesTitle * $rowLineH) + 2.0);
+
+            $checkPageBreak($rowH);
+
+            $curX = $this->GetX();
+            $curY = $this->GetY();
+
+            $this->Rect($curX, $curY, $colNumW, $rowH);
+            $this->Rect($curX + $colNumW, $curY, $colTitleW, $rowH);
+            $this->Rect($curX + $colNumW + $colTitleW, $curY, $colDateW, $rowH);
+            $this->Rect($curX + $colNumW + $colTitleW + $colDateW, $curY, $colStatW, $rowH);
+
+            $this->SetXY($curX, $curY + 1.0);
+            $this->SetFont($this->fontFamily, 'B', 8.5);
+            $this->Cell($colNumW, $rowLineH, (string) $itemNum, 0, 0, 'C');
+
+            $this->SetXY($curX + $colNumW + 2.0, $curY + 1.0);
+            $this->SetFont($this->fontFamily, '', 8.5);
+            $this->MultiCell($colTitleW - 4.0, $rowLineH, $this->sanitizeText($titleTxt), 0, 'L');
+
+            $this->SetXY($curX + $colNumW + $colTitleW, $curY + 1.0);
+            $this->SetFont($this->fontFamily, '', 8.5);
+            $this->Cell($colDateW, $rowLineH, $this->sanitizeText($dateTxt), 0, 0, 'C');
+
+            $this->SetXY($curX + $colNumW + $colTitleW + $colDateW, $curY + 1.0);
+            $this->SetFont($this->fontFamily, 'B', 8.0);
+            $this->Cell($colStatW, $rowLineH, $statusTxt, 0, 0, 'C');
+
+            $this->SetXY($curX, $curY + $rowH);
+            $itemNum++;
+        }
+        $this->Ln(4.0);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // IV. BUDGETARY REQUIREMENTS & ALLOCATION
+        // ══════════════════════════════════════════════════════════════════════
+        $checkPageBreak(25.0);
+        $this->SetFont($this->fontFamily, 'B', 11.5);
+        $this->Cell($w, 5.0, 'IV. BUDGETARY REQUIREMENTS & ALLOCATION', 0, 1, 'L');
+        $this->Ln(2.0);
+
+        $bLabelW = 75.0;
+        $bValW = $w - $bLabelW;
+
+        $this->SetFont($this->fontFamily, 'B', 9.5);
+        $this->SetFillColor(241, 245, 249);
+        $this->Cell($bLabelW, 5.5, ' Total Proposed Budget', 1, 0, 'L', true);
+        $this->SetFont($this->fontFamily, 'B', 9.5);
+        $this->Cell($bValW, 5.5, ' '.$design->formatted_budget_total, 1, 1, 'L', true);
+
+        $this->SetFont($this->fontFamily, '', 9.0);
+        $this->Cell($bLabelW, 5.0, ' SNSU Institutional Share', 1, 0, 'L');
+        $this->Cell($bValW, 5.0, ' '.$design->formatted_snsu_share, 1, 1, 'L');
+
+        $this->Cell($bLabelW, 5.0, ' Partner / Counterpart Share', 1, 0, 'L');
+        $this->Cell($bValW, 5.0, ' '.($design->formatted_partner_share ?: 'P0.00 (In-kind / Venue)'), 1, 1, 'L');
+        $this->Ln(6.0);
+
+        // ══════════════════════════════════════════════════════════════════════
+        // V. REVIEW & APPROVAL MATRIX (OFFICIAL SIGNATORIES)
+        // ══════════════════════════════════════════════════════════════════════
+        $checkPageBreak(60.0);
+        $this->SetFont($this->fontFamily, 'B', 11.5);
+        $this->Cell($w, 5.0, 'V. REVIEW & APPROVAL MATRIX', 0, 1, 'L');
+        $this->Ln(3.0);
+
+        $signatoriesList = CentralizedSignatoryService::getSignatoriesForDocument($design);
+        if ($signatoriesList->isEmpty()) {
+            ActivityDesignController::syncSignatoriesAndRoutes($design);
+            $signatoriesList = CentralizedSignatoryService::getSignatoriesForDocument($design);
+        }
+
+        $renderSigImage = function (?string $base64Data, float $x, float $y, float $maxW, float $maxH): void {
+            if (empty($base64Data)) {
+                return;
+            }
+            try {
+                if (str_contains($base64Data, ',')) {
+                    $base64Data = explode(',', $base64Data, 2)[1];
+                }
+                $bin = base64_decode($base64Data);
+                if ($bin) {
+                    $tmp = tempnam(sys_get_temp_dir(), 'sig_').'.png';
+                    file_put_contents($tmp, $bin);
+                    $this->Image($tmp, $x, $y, $maxW, $maxH);
+                    @unlink($tmp);
+                }
+            } catch (\Throwable $e) {
+                // Ignore gracefully
+            }
+        };
+
+        $sigW = ($w - 12.0) / 2.0;
+        $sigItems = $signatoriesList->values();
+        $totalSigs = $sigItems->count();
+        $i = 0;
+
+        $resolvePos = function ($sig) {
+            $align = strtolower(trim($sig->alignment ?? ''));
+            $col = (int) ($sig->position_column ?? 1);
+            $label = strtolower(trim(($sig->role_label ?? '').' '.($sig->tier_role ?? '')));
+
+            // Certified as to availability of funds -> right column
+            if (str_contains($label, 'funds')) {
+                return ['align' => 'right', 'col' => 2];
+            }
+            // Certified as to availability of allotment -> left column
+            if (str_contains($label, 'allotment')) {
+                return ['align' => 'left', 'col' => 1];
+            }
+
+            if ($align === 'left' || $align === 'right') {
+                return ['align' => $align, 'col' => $col ?: ($align === 'right' ? 2 : 1)];
+            }
+
+            if (str_contains($label, 'noted') || str_contains($label, 'concurred') || str_contains($label, 'prepared') || str_contains($label, 'reviewed') || str_contains($label, 'endorsed')) {
+                return ['align' => 'left', 'col' => 1];
+            }
+
+            if (str_contains($label, 'recommend') || str_contains($label, 'approve') || str_contains($label, 'cao')) {
+                return ['align' => 'center', 'col' => 2];
+            }
+
+            if ($align === 'center') {
+                return ['align' => 'center', 'col' => 2];
+            }
+
+            return ['align' => 'left', 'col' => 1];
+        };
+
+        while ($i < $totalSigs) {
+            $sig1 = $sigItems[$i];
+            $pos1 = $resolvePos($sig1);
+
+            // Check if this is a paired side-by-side row (left + right, like allotment + funds)
+            $isPair = false;
+            $sig2 = null;
+            if ($pos1['align'] === 'left' && ($i + 1 < $totalSigs)) {
+                $candidate2 = $sigItems[$i + 1];
+                $pos2 = $resolvePos($candidate2);
+                if ($pos2['align'] === 'right') {
+                    $isPair = true;
+                    $sig2 = $candidate2;
+                }
+            }
+
+            if ($isPair) {
+                // Render Two Columns: Sig1 on Left, Sig2 on Right
+                $checkPageBreak(34.0);
+                $rowY = $this->GetY();
+
+                $name1 = $sig1->signatory_name ?: ($sig1->employee?->full_name ?? ($sig1->name ?? '—'));
+                $title1 = $sig1->designation ?: ($sig1->employee?->designation ?? ($sig1->title ?? ''));
+                $rawLabel1 = trim($sig1->role_label ?? ($sig1->role ?? ''));
+                $label1 = ! empty($rawLabel1) ? (rtrim($rawLabel1, ':').':') : '';
+
+                $name2 = $sig2->signatory_name ?: ($sig2->employee?->full_name ?? ($sig2->name ?? '—'));
+                $title2 = $sig2->designation ?: ($sig2->employee?->designation ?? ($sig2->title ?? ''));
+                $rawLabel2 = trim($sig2->role_label ?? ($sig2->role ?? ''));
+                $label2 = ! empty($rawLabel2) ? (rtrim($rawLabel2, ':').':') : '';
+
+                $leftX = $margin;
+                $this->SetXY($leftX, $rowY);
+                $this->SetFont($this->fontFamily, 'I', 9.5);
+                $this->SetTextColor(55, 65, 81);
+                $this->Cell($sigW, 4.5, $this->sanitizeText($label1), 0, 0, 'L');
+
+                $rightX = $margin + $sigW + 12.0;
+                $this->SetXY($rightX, $rowY);
+                $this->Cell($sigW, 4.5, $this->sanitizeText($label2), 0, 1, 'L');
+
+                if (! empty($sig1->signature_img)) {
+                    $renderSigImage($sig1->signature_img, $leftX, $rowY + 4.5, 38.0, 10.0);
+                }
+                if (! empty($sig2->signature_img)) {
+                    $renderSigImage($sig2->signature_img, $rightX, $rowY + 4.5, 38.0, 10.0);
+                }
+
+                $nameY = $rowY + 14.0;
+                $this->SetXY($leftX, $nameY);
+                $this->SetFont($this->fontFamily, 'B', 10.0);
+                $this->SetTextColor(17, 24, 39);
+                $this->Cell($sigW, 4.5, $this->sanitizeText(strtoupper($name1)), 0, 0, 'L');
+
+                $this->SetXY($rightX, $nameY);
+                $this->Cell($sigW, 4.5, $this->sanitizeText(strtoupper($name2)), 0, 1, 'L');
+
+                $titleY = $nameY + 4.5;
+                $this->SetXY($leftX, $titleY);
+                $this->SetFont($this->fontFamily, '', 9.0);
+                $this->SetTextColor(75, 85, 99);
+                $this->MultiCell($sigW, 3.8, $this->sanitizeText($title1), 0, 'L');
+                $endY1 = $this->GetY();
+
+                $this->SetXY($rightX, $titleY);
+                $this->MultiCell($sigW, 3.8, $this->sanitizeText($title2), 0, 'L');
+                $endY2 = $this->GetY();
+
+                $this->SetY(max($endY1, $endY2) + 6.0);
+                $i += 2;
+            } elseif ($pos1['align'] === 'center') {
+                // Render Centered Full Row
+                $checkPageBreak(34.0);
+                $rowY = $this->GetY();
+
+                $name1 = $sig1->signatory_name ?: ($sig1->employee?->full_name ?? ($sig1->name ?? '—'));
+                $title1 = $sig1->designation ?: ($sig1->employee?->designation ?? ($sig1->title ?? ''));
+                $rawLabel1 = trim($sig1->role_label ?? ($sig1->role ?? ''));
+                $label1 = ! empty($rawLabel1) ? (rtrim($rawLabel1, ':').':') : '';
+
+                $centerW = min(120.0, $w);
+                $centerX = $margin + ($w - $centerW) / 2.0;
+
+                $this->SetXY($centerX, $rowY);
+                $this->SetFont($this->fontFamily, 'I', 9.5);
+                $this->SetTextColor(55, 65, 81);
+                if (! empty($label1)) {
+                    $this->Cell($centerW, 4.5, $this->sanitizeText($label1), 0, 1, 'C');
+                } else {
+                    $this->Ln(4.5);
+                }
+
+                if (! empty($sig1->signature_img)) {
+                    $renderSigImage($sig1->signature_img, $centerX + ($centerW - 38.0) / 2.0, $rowY + 4.5, 38.0, 10.0);
+                }
+
+                $nameY = $rowY + 14.0;
+                $this->SetXY($centerX, $nameY);
+                $this->SetFont($this->fontFamily, 'B', 10.0);
+                $this->SetTextColor(17, 24, 39);
+                $this->Cell($centerW, 4.5, $this->sanitizeText(strtoupper($name1)), 0, 1, 'C');
+
+                $titleY = $nameY + 4.5;
+                $this->SetXY($centerX, $titleY);
+                $this->SetFont($this->fontFamily, '', 9.0);
+                $this->SetTextColor(75, 85, 99);
+                $this->MultiCell($centerW, 3.8, $this->sanitizeText($title1), 0, 'C');
+
+                $this->SetY($this->GetY() + 6.0);
+                $i += 1;
+            } else {
+                // Render Single Left Column (or Right Column)
+                $checkPageBreak(34.0);
+                $rowY = $this->GetY();
+
+                $name1 = $sig1->signatory_name ?: ($sig1->employee?->full_name ?? ($sig1->name ?? '—'));
+                $title1 = $sig1->designation ?: ($sig1->employee?->designation ?? ($sig1->title ?? ''));
+                $rawLabel1 = trim($sig1->role_label ?? ($sig1->role ?? ''));
+                $label1 = ! empty($rawLabel1) ? (rtrim($rawLabel1, ':').':') : '';
+
+                $colX = ($pos1['align'] === 'right') ? ($margin + $sigW + 12.0) : $margin;
+
+                $this->SetXY($colX, $rowY);
+                $this->SetFont($this->fontFamily, 'I', 9.5);
+                $this->SetTextColor(55, 65, 81);
+                $this->Cell($sigW, 4.5, $this->sanitizeText($label1), 0, 1, 'L');
+
+                if (! empty($sig1->signature_img)) {
+                    $renderSigImage($sig1->signature_img, $colX, $rowY + 4.5, 38.0, 10.0);
+                }
+
+                $nameY = $rowY + 14.0;
+                $this->SetXY($colX, $nameY);
+                $this->SetFont($this->fontFamily, 'B', 10.0);
+                $this->SetTextColor(17, 24, 39);
+                $this->Cell($sigW, 4.5, $this->sanitizeText(strtoupper($name1)), 0, 1, 'L');
+
+                $titleY = $nameY + 4.5;
+                $this->SetXY($colX, $titleY);
+                $this->SetFont($this->fontFamily, '', 9.0);
+                $this->SetTextColor(75, 85, 99);
+                $this->MultiCell($sigW, 3.8, $this->sanitizeText($title1), 0, 'L');
+
+                $this->SetY($this->GetY() + 6.0);
+                $i += 1;
+            }
+        }
+
         $this->SetAutoPageBreak(true, 42.0);
     }
 

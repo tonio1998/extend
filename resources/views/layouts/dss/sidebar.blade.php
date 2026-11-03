@@ -9,9 +9,12 @@
     $isProjectsActive = $currentRoute && (
         str_starts_with($currentRoute, 'dss.rie.plans') ||
         str_starts_with($currentRoute, 'dss.rie.proposals') ||
-        str_starts_with($currentRoute, 'dss.rie.calendar')
+        str_starts_with($currentRoute, 'dss.rie.activity_designs')
     );
 
+    $isRiePrioritiesActive = $currentRoute && str_starts_with($currentRoute, 'dss.settings.rie_priorities');
+    $isCalendarActive = $currentRoute && str_starts_with($currentRoute, 'dss.rie.calendar');
+    $isUnitMonitoringActive = $currentRoute && str_starts_with($currentRoute, 'dss.rie.unit_monitoring');
     $isBudgetsActive = $currentRoute && str_starts_with($currentRoute, 'dss.rie.budgets');
 
     $isDocsAndRoutingActive = $currentRoute && (
@@ -29,9 +32,8 @@
     );
 
     $isSystemConfigActive = $currentRoute && (
-        in_array($currentRoute, ['dss.settings.institution', 'dss.settings.institution.campuses'], true) ||
+        in_array($currentRoute, ['dss.settings.institution', 'dss.settings.institution.campuses', 'dss.settings.document_codes'], true) ||
         str_starts_with($currentRoute, 'dss.settings.campuses') ||
-        str_starts_with($currentRoute, 'dss.settings.rie_priorities') ||
         str_starts_with($currentRoute, 'dss.settings.signatories') ||
         $currentRoute === 'dss.settings.theme'
     );
@@ -134,12 +136,9 @@
                 <i class="mdi mdi-view-dashboard-outline pm-nav-icon"></i>
                 <span class="text-truncate">Dashboard</span>
             </div>
-            @if($uiTemplate === 'print_manzil')
-                <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-            @endif
         </a>
 
-        {{-- 1.2 Programs & Projects Dropdown --}}
+        {{-- 1.2 Programs & Projects Dropdown (Core 3 Document Workflows) --}}
         @canany(['rie.plans.view', 'rie.proposals.view'])
             <div class="dss-sidebar-dropdown">
                 <a href="#projectsSubmenu" class="dss-nav-link {{ $isProjectsActive ? 'active' : '' }}"
@@ -174,25 +173,74 @@
                     @endcan
 
                     @canany(['rie.proposals.view', 'rie.plans.view'])
-                        <a href="{{ route('dss.rie.calendar.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.calendar') ? 'active' : '' }}" title="Extension Calendar">
+                        <a href="{{ route('dss.rie.activity_designs.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.rie.activity_designs') ? 'active' : '' }}" title="Activity Designs">
                             <i class="mdi mdi-circle-small"></i>
-                            <span>Extension Calendar</span>
+                            @hasanyrole(['Project Leader', 'Faculty', 'Employee'])
+                                <span>My Activity Designs</span>
+                            @else
+                                <span>Activity Designs</span>
+                            @endhasanyrole
                         </a>
                     @endcanany
                 </div>
             </div>
         @endcanany
 
-        {{-- 1.3 Annual Extension Budgets --}}
+        {{-- 1.3 RIE Priorities Standalone Dropdown (Pulled Out) --}}
+        @canany(['rie.proposals.view', 'rie.plans.view', 'system.hierarchy.manage'])
+            <div class="dss-sidebar-dropdown">
+                <a href="#riePrioritiesSubmenu" class="dss-nav-link {{ $isRiePrioritiesActive ? 'active' : '' }}"
+                   data-bs-toggle="collapse" role="button" aria-expanded="{{ $isRiePrioritiesActive ? 'true' : 'false' }}" title="RIE Priorities">
+                    <div class="pm-nav-left">
+                        <i class="mdi mdi-target-variant pm-nav-icon"></i>
+                        <span class="text-truncate">RIE Priorities</span>
+                    </div>
+                    <i class="mdi mdi-chevron-down pm-nav-arrow" style="font-size: 14px;"></i>
+                </a>
+                <div class="collapse ps-3 {{ $isRiePrioritiesActive ? 'show' : '' }}" id="riePrioritiesSubmenu">
+                    <a href="{{ route('dss.settings.rie_priorities.index', ['tab' => 'banner_programs']) }}"
+                       class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.rie_priorities') && request('tab', 'banner_programs') === 'banner_programs' ? 'active' : '' }}"
+                       title="Banner Programs">
+                        <i class="mdi mdi-circle-small"></i>
+                        <span>Banner Programs</span>
+                    </a>
+                    <a href="{{ route('dss.settings.rie_priorities.index', ['tab' => 'agendas']) }}"
+                       class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.rie_priorities') && request('tab') === 'agendas' ? 'active' : '' }}"
+                       title="Extension Agendas">
+                        <i class="mdi mdi-circle-small"></i>
+                        <span>Extension Agendas</span>
+                    </a>
+                </div>
+            </div>
+        @endcanany
+
+        {{-- 1.4 Extension Calendar (Pulled Out to Top-Level) --}}
+        @canany(['rie.proposals.view', 'rie.plans.view'])
+            <a href="{{ route('dss.rie.calendar.index') }}" class="dss-nav-link {{ $isCalendarActive ? 'active' : '' }}" title="Extension Calendar">
+                <div class="pm-nav-left">
+                    <i class="mdi mdi-calendar-month-outline pm-nav-icon"></i>
+                    <span class="text-truncate">Extension Calendar</span>
+                </div>
+            </a>
+        @endcanany
+
+        {{-- 1.5 Unit Monitoring & Impact (Pulled Out to Top-Level) --}}
+        @canany(['rie.proposals.view', 'rie.plans.view'])
+            <a href="{{ route('dss.rie.unit_monitoring.index') }}" class="dss-nav-link {{ $isUnitMonitoringActive ? 'active' : '' }}" title="Unit Monitoring & Impact Assessment">
+                <div class="pm-nav-left">
+                    <i class="mdi mdi-chart-timeline-variant pm-nav-icon"></i>
+                    <span class="text-truncate">Unit Monitoring &amp; Impact</span>
+                </div>
+            </a>
+        @endcanany
+
+        {{-- 1.6 Annual Extension Budgets --}}
         @can('rie.budgets.view')
             <a href="{{ route('dss.rie.budgets.index') }}" class="dss-nav-link {{ $isBudgetsActive ? 'active' : '' }}" title="Extension Budgets">
                 <div class="pm-nav-left">
                     <i class="mdi mdi-chart-box-outline pm-nav-icon"></i>
                     <span class="text-truncate">Extension Budgets</span>
                 </div>
-                @if($uiTemplate === 'print_manzil')
-                    <i class="mdi mdi-chevron-right pm-nav-arrow"></i>
-                @endif
             </a>
         @endcan
 
@@ -315,13 +363,13 @@
                         <i class="mdi mdi-circle-small"></i>
                         <span>Manage Campuses</span>
                     </a>
+                    <a href="{{ route('dss.settings.document_codes') }}" class="dss-subnav-link {{ $currentRoute === 'dss.settings.document_codes' ? 'active' : '' }}">
+                        <i class="mdi mdi-circle-small"></i>
+                        <span>Document Codes</span>
+                    </a>
                     <a href="{{ route('dss.settings.signatories.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.signatories') ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
                         <span>Define Signatories</span>
-                    </a>
-                    <a href="{{ route('dss.settings.rie_priorities.index') }}" class="dss-subnav-link {{ str_starts_with($currentRoute, 'dss.settings.rie_priorities') ? 'active' : '' }}">
-                        <i class="mdi mdi-circle-small"></i>
-                        <span>RIE Priorities</span>
                     </a>
                     <a href="{{ route('dss.settings.theme') }}" class="dss-subnav-link {{ $currentRoute === 'dss.settings.theme' ? 'active' : '' }}">
                         <i class="mdi mdi-circle-small"></i>
@@ -363,7 +411,7 @@
     @elseif($uiTemplate === 'print_manzil')
         <!-- PRINT MANZIL FOOTER: Jordan Nico Contact Card + Workspace Mini Bar -->
         <div class="pm-sidebar-footer">
-            <div class="pm-user-detail-card">
+            <!-- <div class="pm-user-detail-card">
                 <div class="d-flex align-items-center gap-2 min-w-0">
                     <div class="pm-user-detail-avatar">
                         {{ strtoupper(substr($user->name ?? 'JD', 0, 2)) }}
@@ -380,35 +428,9 @@
                         </div>
                     </div>
                 </div>
+            </div> -->
 
-                <div class="pm-user-contact-row">
-                    <div class="pm-user-contact-icon">
-                        <i class="mdi mdi-phone"></i>
-                    </div>
-                    <div class="min-w-0 flex-grow-1">
-                        <div class="text-muted" style="font-size: 10px; line-height: 1.1;">Campus Line</div>
-                        <div class="fw-semibold text-dark text-truncate" style="font-size: 11px;">
-                            {{ $inst->contact_phone ?: '(086) 826-1738' }}
-                        </div>
-                    </div>
-                    <i class="mdi mdi-chevron-right text-muted"></i>
-                </div>
-
-                <div class="pm-user-contact-row">
-                    <div class="pm-user-contact-icon">
-                        <i class="mdi mdi-email"></i>
-                    </div>
-                    <div class="min-w-0 flex-grow-1">
-                        <div class="text-muted" style="font-size: 10px; line-height: 1.1;">Email</div>
-                        <div class="fw-semibold text-dark text-truncate" style="font-size: 11px;">
-                            {{ $user->email ?? ($inst->contact_email ?: 'rie@snsu.edu.ph') }}
-                        </div>
-                    </div>
-                    <i class="mdi mdi-chevron-right text-muted"></i>
-                </div>
-            </div>
-
-            <div class="pm-user-mini-bar dropdown">
+            <!-- <div class="pm-user-mini-bar dropdown">
                 <div class="d-flex align-items-center gap-2 min-w-0">
                     <div class="user-avatar-circle" style="width: 32px; height: 32px; font-size: 11px;">
                         {{ strtoupper(substr($user->name ?? 'JD', 0, 2)) }}
@@ -443,7 +465,7 @@
                         </form>
                     </li>
                 </ul>
-            </div>
+            </div> -->
         </div>
     @endif
 </aside>

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\DSS\RIE;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\DSS\CentralizedSignatoryController;
 use App\Http\Requests\RIE\StoreExtensionPlanRequest;
 use App\Http\Requests\RIE\UpdateExtensionPlanRequest;
 use App\Models\Accreditation\AcademicProgram;
@@ -221,6 +222,7 @@ class ExtensionPlanController extends Controller
                             <ul class="dropdown-menu dropdown-menu-start shadow-lg border extra-small p-1" style="min-width: 225px; z-index: 1065;">
                                 <li class="dropdown-header extra-small text-uppercase fw-bold text-muted py-1 font-mono">Plan Operations</li>
                                 <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$url.'"><i class="mdi mdi-file-document-outline text-primary fs-6"></i><span>Plan Workbench</span></a></li>
+                                <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-primary" href="'.route('dss.documents.signatories.edit', ['type' => 'extension_plan', 'id' => $key]).'"><i class="mdi mdi-account-cog-outline fs-6"></i><span>Configure Signatories</span></a></li>
                                 '.($plan->canBeEditedBy(Auth::user()) ? '<li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-warning-emphasis" href="'.route('dss.rie.plans.edit', $key).'"><i class="mdi mdi-pencil-outline fs-6"></i><span>Edit Plan Details</span></a></li>' : '').'
                                 '.($plan->canBeDeletedBy(Auth::user()) ? '<li><button type="button" class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-danger delete-plan-btn" data-id="'.$key.'" data-code="'.e($plan->plan_code).'"><i class="mdi mdi-trash-can-outline fs-6"></i><span>Delete Draft</span></button></li>' : '').'
                                 '.$dtsItems.'
@@ -320,10 +322,7 @@ class ExtensionPlanController extends Controller
         DB::beginTransaction();
         try {
 
-            $countThisYear = ExtensionPlan::where('tenant_id', $tenantId)
-                ->whereYear('created_at', date('Y'))
-                ->count() + 1;
-            $planCode = sprintf('%s-EXT-%s-%04d', $acronym, $year, $countThisYear);
+            $planCode = ExtensionPlan::generateCode($tenantId);
 
             $trackingNumber = ! empty($validated['tracking_number']) ? trim((string) $validated['tracking_number']) : null;
 
@@ -503,6 +502,15 @@ class ExtensionPlanController extends Controller
 
             return back()->withInput()->with('error', 'Error creating Extension Plan: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Show dedicated full page for configuring Extension Plan signatories workflow (Centralized Modifier).
+     */
+    public function configureSignatories(Request $request, string $id): View
+    {
+        return app(CentralizedSignatoryController::class)
+            ->editDocumentSignatories($request, 'extension_plan', $id);
     }
 
     public function show(Request $request, string $id): View

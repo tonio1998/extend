@@ -284,10 +284,10 @@ class CentralizedSignatoryService
 
         // 1. Prepared by (Author / Creator)
         if (! isset($creatorInputs['prepared'])) {
-            $prepUserId = $document->prepared_by_user_id ?? ($author?->id ?? null);
-            $prepEmpId = $document->prepared_by_employee_id ?? ($author?->employee_id ?? null);
-            $prepName = $document->prepared_by_name ?? ($author?->employee?->full_name ?? ($author?->name ?? null));
-            $prepDesig = $document->prepared_by_designation ?? ($author?->designation ?? 'Project Leader');
+            $prepUserId = $document->prepared_by_user_id ?? ($document->project_leader_user_id ?? ($author?->id ?? null));
+            $prepEmpId = $document->prepared_by_employee_id ?? ($document->project_leader_employee_id ?? ($author?->employee_id ?? null));
+            $prepName = $document->prepared_by_name ?? ($document->project_leader_name ?? ($author?->employee?->full_name ?? ($author?->name ?? null)));
+            $prepDesig = $document->prepared_by_designation ?? ($document->project_leader_title ?? ($author?->designation ?? 'Project Leader'));
             if ($prepName || $prepUserId || $prepEmpId) {
                 $creatorInputs['prepared'] = [
                     'role_label' => 'Prepared by:',

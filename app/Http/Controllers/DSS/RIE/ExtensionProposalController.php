@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\DSS\RIE;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\DSS\CentralizedSignatoryController;
 use App\Models\Accreditation\AcademicProgram;
 use App\Models\Dts\RecordRoute;
 use App\Models\Dts\Unit;
 use App\Models\Employee;
 use App\Models\EmployeeDesignation;
+use App\Models\RIE\ActivityDesign;
 use App\Models\RIE\ExtensionAgenda;
 use App\Models\RIE\ExtensionBannerProgram;
 use App\Models\RIE\ExtensionPlan;
@@ -283,6 +285,7 @@ class ExtensionProposalController extends Controller
                             <ul class="dropdown-menu dropdown-menu-start shadow-lg border extra-small p-1" style="min-width: 220px; z-index: 1065;">
                                 <li class="dropdown-header extra-small text-uppercase fw-bold text-muted py-1 font-mono">Proposal Operations</li>
                                 <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$viewUrl.'"><i class="mdi mdi-view-dashboard-outline text-primary fs-6"></i><span>Proposal Workbench</span></a></li>
+                                <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-primary" href="'.route('dss.documents.signatories.edit', ['type' => 'extension_proposal', 'id' => $key]).'"><i class="mdi mdi-account-cog-outline fs-6"></i><span>Configure Signatories</span></a></li>
                                 '.($canEdit ? '<li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1 text-warning-emphasis" href="'.$editUrl.'"><i class="mdi mdi-pencil-outline fs-6"></i><span>Edit Proposal</span></a></li>' : '').'
                                 <li><a class="dropdown-item py-1 d-flex align-items-center gap-2 rounded-1" href="'.$accomplishmentUrl.'"><i class="mdi mdi-trophy-outline text-success fs-6"></i><span>Terminal / Accomplishment</span></a></li>
                                 '.$dtsItem.'
@@ -456,10 +459,7 @@ class ExtensionProposalController extends Controller
             'action_type' => 'nullable|string|in:draft,submit',
         ]);
 
-        $year = now()->year;
-        $campusPrefix = $plan->campus?->code ?: 'PROP';
-        $count = ExtensionProposal::where('tenant_id', $tenantId)->whereYear('created_at', $year)->count() + 1;
-        $proposalCode = sprintf('%s-PROP-%d-%04d', $campusPrefix, $year, $count);
+        $proposalCode = ExtensionProposal::generateCode($tenantId);
 
         $status = 'draft';
 
@@ -1255,6 +1255,15 @@ class ExtensionProposalController extends Controller
             'past_proposal_title' => $suggested['past_proposal_title'] ?? null,
             'signatories' => $suggested['signatories'],
         ]);
+    }
+
+    /**
+     * Show dedicated full page for configuring Extension Proposal signatories workflow (Centralized Modifier).
+     */
+    public function configureSignatories(Request $request, string $id): View
+    {
+        return app(CentralizedSignatoryController::class)
+            ->editDocumentSignatories($request, 'extension_proposal', $id);
     }
 
     public function updateSignatories(Request $request, string $id): JsonResponse
@@ -2357,31 +2366,51 @@ class ExtensionProposalController extends Controller
     /**
      * Render the official Activity Design for this extension proposal.
      */
-    public function activityDesign(Request $request, string $id): View
+    public function activityDesign(Request $request, string $id): RedirectResponse
     {
         $proposalId = function_exists('dss_decrypt_id') ? dss_decrypt_id($id) : (int) $id;
         $proposal = ExtensionProposal::with([
-            'extensionPlan.academicProgram.campus',
-            'extensionPlan.campus',
-            'extensionPlan.activities.uploadedByUser',
-            'extensionPlan.activities.uploadedDocument',
+            'extensionPlan',
             'academicProgram',
             'campus',
             'projectLeaderUser',
             'projectLeaderEmployee',
-            'documentSignatories.employee',
-            'documentSignatories.signedByUser',
         ])->findOrFail($proposalId);
 
-        $institution = TenantContext::getInstitution();
-        $plan = $proposal->extensionPlan;
-        $activities = $plan?->milestones_list ?? [];
-        $signatories = CentralizedSignatoryService::getSignatoriesForDocument($proposal);
+        $design = ActivityDesign::firstOrCreate(
+            [
+                'extension_proposal_id' => $proposal->id,
+            ],
+            [
+                'tenant_id' => $proposal->tenant_id ?: 1,
+                'campus_id' => $proposal->campus_id,
+                'extension_plan_id' => $proposal->extension_plan_id,
+                'design_code' => ActivityDesign::generateCode($proposal->tenant_id ?: 1),
+                'title' => $proposal->title,
+                'banner_program' => $proposal->banner_program,
+                'academic_program_id' => $proposal->academic_program_id,
+                'unit_id' => $proposal->unit_id,
+                'collaborating_agencies' => $proposal->collaborating_agencies,
+                'target_beneficiaries' => $proposal->beneficiaries,
+                'target_beneficiaries_count' => 0,
+                'duration_text' => $proposal->duration_text,
+                'project_location' => $proposal->project_location,
+                'project_leader_user_id' => $proposal->project_leader_user_id,
+                'project_leader_employee_id' => $proposal->project_leader_employee_id,
+                'project_leader_name' => $proposal->project_leader_name,
+                'project_leader_title' => $proposal->project_leader_title ?: 'Project Leader',
+                'context_rationale' => $proposal->introduction ?: $proposal->relevance_narrative,
+                'general_objective' => $proposal->general_objective,
+                'specific_objectives' => $proposal->specific_objectives,
+                'program_matrix' => $proposal->extensionPlan?->milestones_list ?? [],
+                'budget_total' => $proposal->budget_cash_amount ?: 0,
+                'budget_snsu_share' => $proposal->budget_cash_amount ?: 0,
+                'budget_partner_share' => 0,
+                'budget_total_display' => $proposal->budget_total_display,
+                'status' => 'draft',
+            ]
+        );
 
-        // Check if an uploaded wet-signed Activity Design exists
-        $wetSignedDoc = $plan?->activities()->where('title', 'like', '%Activity Design%')->first()?->uploadedDocument
-            ?: $proposal->uploadedDocuments()->where('category', 'activity_design')->first();
-
-        return view('dss.rie.extension_proposals.activity_design', compact('proposal', 'plan', 'institution', 'activities', 'signatories', 'wetSignedDoc'));
+        return redirect()->route('dss.rie.activity_designs.show', $design->getRouteKey());
     }
 }

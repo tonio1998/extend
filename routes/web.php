@@ -11,11 +11,13 @@ use App\Http\Controllers\DSS\DSSDashboardController;
 use App\Http\Controllers\DSS\EmployeeManagementController;
 use App\Http\Controllers\DSS\ExtensionPriorityController;
 use App\Http\Controllers\DSS\InstitutionSettingsController;
+use App\Http\Controllers\DSS\RIE\ActivityDesignController;
 use App\Http\Controllers\DSS\RIE\ExtensionBudgetController;
 use App\Http\Controllers\DSS\RIE\ExtensionCalendarController;
 use App\Http\Controllers\DSS\RIE\ExtensionPlanController;
 use App\Http\Controllers\DSS\RIE\ExtensionProposalController;
 use App\Http\Controllers\DSS\RIE\ExtensionTrackingController;
+use App\Http\Controllers\DSS\RIE\UnitMonitoringController;
 use App\Http\Controllers\DSS\RolePermissionController;
 use App\Http\Controllers\DSS\Select2Controller;
 use App\Http\Controllers\DSS\ThemeCustomizerController;
@@ -51,6 +53,7 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
     });
     Route::prefix('documents')->name('documents.')->group(function () {
         Route::get('/repository', [CentralizedDocumentUploadController::class, 'index'])->name('repository');
+        Route::get('/suggestions', [CentralizedDocumentUploadController::class, 'suggestions'])->name('suggestions');
 
         Route::prefix('uploads')->name('upload.')->group(function () {
             Route::get('/', [CentralizedDocumentUploadController::class, 'index'])->name('index');
@@ -66,6 +69,9 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
         Route::get('/{type}/{id}/preview', [DocumentViewerController::class, 'preview'])->name('preview');
         Route::get('/{type}/{id}/audit-trail', [DocumentViewerController::class, 'getAuditTrail'])->name('audit_trail');
         Route::get('/{type}/{id}/signatories', [DocumentViewerController::class, 'getSignatories'])->name('signatories');
+        Route::get('/{type}/{id}/signatories/edit', [CentralizedSignatoryController::class, 'editDocumentSignatories'])->name('signatories.edit');
+        Route::post('/{type}/{id}/signatories', [CentralizedSignatoryController::class, 'updateDocumentSignatoriesWorkflow'])->name('signatories.update');
+        Route::get('/{type}/{id}/signatories/suggest', [CentralizedSignatoryController::class, 'suggestDocumentSignatories'])->name('signatories.suggest');
         Route::get('/{type}/{id}/barcode', [DocumentViewerController::class, 'barcodeStamp'])->name('barcode');
         Route::get('/{type}/{id}/comments', [DocumentViewerController::class, 'getComments'])->name('comments.index');
         Route::get('/{type}/{id}/comments/list', [DocumentViewerController::class, 'getComments'])->name('comments.get');
@@ -87,6 +93,7 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::put('/{id}', [ExtensionPlanController::class, 'update'])->name('update');
             Route::delete('/{id}', [ExtensionPlanController::class, 'destroy'])->name('destroy');
             Route::get('/{id}/pdf', [ExtensionPlanController::class, 'pdf'])->name('pdf');
+            Route::get('/{id}/signatories', [ExtensionPlanController::class, 'configureSignatories'])->name('signatories.edit');
             Route::post('/{id}/submit-for-review', [ExtensionPlanController::class, 'submitForReview'])->name('submit_for_review');
             Route::get('/fetch-signatories', [ExtensionPlanController::class, 'getSignatoriesByProgram'])->name('signatories_by_program');
             Route::post('/{id}/connect-tracking', [ExtensionPlanController::class, 'connectTracking'])->name('connect_tracking');
@@ -109,6 +116,7 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/{id}/activity-design', [ExtensionProposalController::class, 'activityDesign'])->name('activity_design');
             Route::post('/{id}/sign', [ExtensionProposalController::class, 'sign'])->name('sign');
             Route::post('/{id}/technical', [ExtensionProposalController::class, 'updateTechnical'])->name('technical.update');
+            Route::get('/{id}/signatories', [ExtensionProposalController::class, 'configureSignatories'])->name('signatories.edit');
             Route::post('/{id}/signatories', [ExtensionProposalController::class, 'updateSignatories'])->name('signatories.update');
             Route::get('/{id}/suggest-signatories', [ExtensionProposalController::class, 'getSuggestedSignatories'])->name('signatories.suggest');
             Route::post('/{id}/submit-for-review', [ExtensionProposalController::class, 'submitForReview'])->name('submit_for_review');
@@ -120,6 +128,20 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/{id}/accomplishment/pdf', [ExtensionProposalController::class, 'accomplishmentPdf'])->name('accomplishment.pdf');
             Route::post('/{id}/accomplishment/generate-narrative', [ExtensionProposalController::class, 'generateAccomplishmentNarrative'])->name('accomplishment.generate_narrative');
         });
+
+        Route::prefix('activity-designs')->name('activity_designs.')->group(function () {
+            Route::get('/', [ActivityDesignController::class, 'index'])->name('index');
+            Route::get('/create', [ActivityDesignController::class, 'create'])->name('create');
+            Route::post('/', [ActivityDesignController::class, 'store'])->name('store');
+            Route::get('/{id}', [ActivityDesignController::class, 'show'])->name('show');
+            Route::get('/{id}/signatories', [ActivityDesignController::class, 'configureSignatories'])->name('signatories.edit');
+            Route::post('/{id}/sync', [ActivityDesignController::class, 'sync'])->name('sync');
+            Route::get('/{id}/pdf', [ActivityDesignController::class, 'pdf'])->name('pdf');
+            Route::post('/{id}/signatories', [ActivityDesignController::class, 'updateSignatories'])->name('signatories.update');
+            Route::get('/{id}/suggest-signatories', [ActivityDesignController::class, 'getSuggestedSignatories'])->name('signatories.suggest');
+            Route::post('/{id}/sign', [ActivityDesignController::class, 'sign'])->name('sign');
+        });
+
         Route::prefix('budgets')->name('budgets.')->group(function () {
             Route::get('/', [ExtensionBudgetController::class, 'index'])->name('index');
             Route::get('/create', [ExtensionBudgetController::class, 'create'])->name('create');
@@ -143,14 +165,26 @@ Route::middleware(['auth'])->prefix('dss')->name('dss.')->group(function () {
             Route::get('/', [ExtensionCalendarController::class, 'index'])->name('index');
             Route::get('/events', [ExtensionCalendarController::class, 'events'])->name('events');
         });
+
+        Route::prefix('unit-monitoring')->name('unit_monitoring.')->group(function () {
+            Route::get('/', [UnitMonitoringController::class, 'index'])->name('index');
+            Route::get('/export', [UnitMonitoringController::class, 'export'])->name('export');
+            Route::get('/units/{id}', [UnitMonitoringController::class, 'unitTransactions'])->name('unit_transactions');
+            Route::get('/leaders/{name}', [UnitMonitoringController::class, 'leaderTransactions'])->name('leader_transactions');
+            Route::post('/proposals/{id}/impact-assessment', [UnitMonitoringController::class, 'recordImpactAssessment'])->name('record_impact');
+        });
     });
 
     Route::prefix('settings')->name('settings.')->group(function () {
         Route::get('/institution', [InstitutionSettingsController::class, 'index'])->name('institution');
+        Route::get('/document-codes', [InstitutionSettingsController::class, 'documentCodes'])->name('document_codes');
+        Route::post('/document-codes', [InstitutionSettingsController::class, 'updateDocumentCodes'])->name('document_codes.update');
         Route::get('/institution/campuses', [InstitutionSettingsController::class, 'campuses'])->name('institution.campuses');
         Route::get('/institution/doc-params', [InstitutionSettingsController::class, 'docParams'])->name('institution.doc_params');
         Route::post('/institution/profile', [InstitutionSettingsController::class, 'updateProfile'])->name('institution.profile');
         Route::post('/institution/campus', [InstitutionSettingsController::class, 'storeCampus'])->name('institution.campus');
+        Route::put('/institution/campus/{id}', [InstitutionSettingsController::class, 'updateCampus'])->name('institution.campus.update');
+        Route::delete('/institution/campus/{id}', [InstitutionSettingsController::class, 'destroyCampus'])->name('institution.campus.destroy');
         Route::post('/institution/department', [InstitutionSettingsController::class, 'storeDepartment'])->name('institution.department');
         Route::post('/institution/signatory', [InstitutionSettingsController::class, 'storeSignatory'])->name('institution.signatory');
         Route::post('/institution/document-settings', [InstitutionSettingsController::class, 'updateDocumentSettings'])->name('institution.document_settings');

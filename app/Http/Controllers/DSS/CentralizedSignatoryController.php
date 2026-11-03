@@ -3,9 +3,14 @@
 namespace App\Http\Controllers\DSS;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\DSS\RIE\ActivityDesignController;
+use App\Http\Controllers\DSS\RIE\ExtensionProposalController;
 use App\Models\Dts\DocumentType;
 use App\Models\Dts\RecordRoute;
 use App\Models\Employee;
+use App\Models\RIE\ActivityDesign;
+use App\Models\RIE\ExtensionPlan;
+use App\Models\RIE\ExtensionProposal;
 use App\Models\SaaS\Campus;
 use App\Models\SaaS\DocumentSignatory;
 use App\Models\SaaS\DocumentSignatoryMatrix;
@@ -705,5 +710,293 @@ class CentralizedSignatoryController extends Controller
 
             return back()->with('error', 'Failed to update signatories: '.$e->getMessage());
         }
+    }
+
+    /**
+     * Resolve document model and meta for a given type alias and ID.
+     *
+     * @return array{document: mixed, meta: array<string, mixed>, class: string}
+     */
+    public static function resolveDocumentInstance(string $type, int|string $id): array
+    {
+        $id = function_exists('dss_decrypt_id') ? dss_decrypt_id($id) : (int) $id;
+        $type = strtolower(str_replace(['-', ' '], '_', $type));
+
+        return match ($type) {
+            'activity_design', 'activity_designs', 'activitydesign' => [
+                'document' => ActivityDesign::with([
+                    'extensionProposal.extensionPlan',
+                    'extensionPlan',
+                    'unit',
+                    'campus',
+                    'projectLeaderUser',
+                    'projectLeaderEmployee',
+                    'documentSignatories.employee',
+                ])->findOrFail($id),
+                'meta' => function (ActivityDesign $doc) {
+                    return [
+                        'type_key' => 'activity_design',
+                        'type_label' => 'Activity Design',
+                        'code' => $doc->design_code,
+                        'title' => $doc->title,
+                        'unit' => $doc->unit?->unit_name ?: 'Academic Unit',
+                        'leader_name' => $doc->project_leader_name,
+                        'leader_title' => $doc->project_leader_title ?: 'Project Leader',
+                        'leader_employee_id' => $doc->project_leader_employee_id,
+                        'budget' => $doc->formatted_budget_total,
+                        'status' => $doc->status ?: 'Draft',
+                        'parent_ref' => $doc->extensionProposal ? ('Proposal: '.$doc->extensionProposal->proposal_code) : null,
+                        'parent_url' => $doc->extensionProposal ? route('dss.rie.proposals.show', $doc->extensionProposal->getRouteKey()) : null,
+                        'back_url' => route('dss.rie.activity_designs.show', $doc->getRouteKey()),
+                        'update_url' => route('dss.documents.signatories.update', ['type' => 'activity_design', 'id' => $doc->getRouteKey()]),
+                        'suggest_url' => route('dss.documents.signatories.suggest', ['type' => 'activity_design', 'id' => $doc->getRouteKey()]),
+                    ];
+                },
+                'class' => ActivityDesign::class,
+            ],
+            'extension_proposal', 'proposal', 'proposals', 'extensionproposal' => [
+                'document' => ExtensionProposal::with([
+                    'extensionPlan',
+                    'unit',
+                    'campus',
+                    'projectLeaderEmployee',
+                    'documentSignatories.employee',
+                ])->findOrFail($id),
+                'meta' => function (ExtensionProposal $doc) {
+                    return [
+                        'type_key' => 'extension_proposal',
+                        'type_label' => 'Extension Proposal',
+                        'code' => $doc->proposal_code,
+                        'title' => $doc->title,
+                        'unit' => $doc->unit?->unit_name ?: ($doc->department?->unit_name ?: 'Academic Unit'),
+                        'leader_name' => $doc->project_leader_name ?: ($doc->projectLeaderEmployee?->full_name ?: 'Project Leader'),
+                        'leader_title' => $doc->project_leader_title ?: 'Project Leader',
+                        'leader_employee_id' => $doc->project_leader_employee_id,
+                        'budget' => $doc->formatted_budget_total ?? (isset($doc->total_budget) ? ('₱'.number_format($doc->total_budget, 2)) : null),
+                        'status' => $doc->status ?: 'Draft',
+                        'parent_ref' => $doc->extensionPlan ? ('Plan: '.$doc->extensionPlan->plan_code) : null,
+                        'parent_url' => $doc->extensionPlan ? route('dss.rie.plans.show', $doc->extensionPlan->getRouteKey()) : null,
+                        'back_url' => route('dss.rie.proposals.show', $doc->getRouteKey()),
+                        'update_url' => route('dss.documents.signatories.update', ['type' => 'extension_proposal', 'id' => $doc->getRouteKey()]),
+                        'suggest_url' => route('dss.documents.signatories.suggest', ['type' => 'extension_proposal', 'id' => $doc->getRouteKey()]),
+                    ];
+                },
+                'class' => ExtensionProposal::class,
+            ],
+            'extension_plan', 'plan', 'plans', 'extensionplan' => [
+                'document' => ExtensionPlan::with([
+                    'campus',
+                    'academicProgram',
+                    'documentSignatories.employee',
+                ])->findOrFail($id),
+                'meta' => function (ExtensionPlan $doc) {
+                    return [
+                        'type_key' => 'extension_plan',
+                        'type_label' => 'Extension Plan',
+                        'code' => $doc->plan_code,
+                        'title' => $doc->extension_activity ?: ($doc->program_name ?: 'Extension Plan'),
+                        'unit' => $doc->academicProgram?->program_name ?: ($doc->campus?->campus_name ?: 'Extension Unit'),
+                        'leader_name' => $doc->prepared_by_name ?: ($doc->preparedByEmployee?->full_name ?: 'Proponent'),
+                        'leader_title' => $doc->prepared_by_designation ?: 'Extension Coordinator',
+                        'leader_employee_id' => $doc->prepared_by_employee_id,
+                        'budget' => isset($doc->estimated_budget) ? ('₱'.number_format($doc->estimated_budget, 2)) : null,
+                        'status' => $doc->status ?: 'Draft',
+                        'parent_ref' => null,
+                        'parent_url' => null,
+                        'back_url' => route('dss.rie.plans.show', $doc->getRouteKey()),
+                        'update_url' => route('dss.documents.signatories.update', ['type' => 'extension_plan', 'id' => $doc->getRouteKey()]),
+                        'suggest_url' => route('dss.documents.signatories.suggest', ['type' => 'extension_plan', 'id' => $doc->getRouteKey()]),
+                    ];
+                },
+                'class' => ExtensionPlan::class,
+            ],
+            default => abort(404, "Unsupported document type [{$type}] for signatory modification."),
+        };
+    }
+
+    /**
+     * Show centralized full page for configuring signatories workflow on any specific document.
+     */
+    public function editDocumentSignatories(Request $request, string $type, int|string $id): View
+    {
+        $resolved = self::resolveDocumentInstance($type, $id);
+        $document = $resolved['document'];
+        $meta = is_callable($resolved['meta']) ? $resolved['meta']($document) : $resolved['meta'];
+
+        // Ensure signatories exist in sys_document_signatories
+        $signatoriesCount = DocumentSignatory::where('document_type', $document->getMorphClass())
+            ->where('document_id', $document->getKey())
+            ->count();
+
+        if ($signatoriesCount === 0) {
+            if ($document instanceof ActivityDesign) {
+                ActivityDesignController::syncSignatoriesAndRoutes($document);
+            } elseif ($document instanceof ExtensionProposal) {
+                ExtensionProposalController::syncSignatoriesAndRoutes($document);
+            } else {
+                CentralizedSignatoryService::instantiateForDocument($document);
+            }
+            $document->refresh();
+        }
+
+        $signatories = CentralizedSignatoryService::getSignatoriesForDocument($document);
+        $institution = TenantContext::getInstitution();
+
+        return view('dss.documents.configure_signatories', compact('document', 'meta', 'signatories', 'institution', 'type', 'id'));
+    }
+
+    /**
+     * Centralized update endpoint for saving sequential signatories workflow on any document.
+     */
+    public function updateDocumentSignatoriesWorkflow(Request $request, string $type, int|string $id): JsonResponse
+    {
+        $resolved = self::resolveDocumentInstance($type, $id);
+        $document = $resolved['document'];
+        $meta = is_callable($resolved['meta']) ? $resolved['meta']($document) : $resolved['meta'];
+
+        if (strtolower((string) $document->status) === 'approved') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Signatories cannot be updated because the document is already approved.',
+            ], 403);
+        }
+
+        $payload = $request->all();
+
+        if ($document instanceof ActivityDesign) {
+            ActivityDesignController::syncSignatoriesAndRoutes($document, $payload);
+        } elseif ($document instanceof ExtensionProposal) {
+            ExtensionProposalController::syncSignatoriesAndRoutes($document, $payload);
+        } else {
+            self::syncGenericDocumentSignatories($document, $payload);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Signatories workflow for [{$meta['code']}] updated successfully.",
+            'redirect_url' => $meta['back_url'],
+            'count' => $document->documentSignatories()->count(),
+        ]);
+    }
+
+    /**
+     * Auto-suggest official signatories matrix for any document.
+     */
+    public function suggestDocumentSignatories(Request $request, string $type, int|string $id): JsonResponse
+    {
+        $resolved = self::resolveDocumentInstance($type, $id);
+        $document = $resolved['document'];
+
+        if ($document instanceof ActivityDesign) {
+            $suggested = ActivityDesignController::resolveSuggestedSignatories($document)['signatories'] ?? [];
+        } elseif ($document instanceof ExtensionProposal) {
+            $suggested = ExtensionProposalController::resolveSuggestedSignatories($document)['signatories'] ?? [];
+        } else {
+            $suggested = CentralizedSignatoryService::getSignatoriesFor($document->getMorphClass(), $document->tenant_id ?: 1);
+        }
+
+        return response()->json([
+            'success' => true,
+            'signatories' => $suggested,
+        ]);
+    }
+
+    /**
+     * Generic sync for runtime document signatories in sys_document_signatories.
+     *
+     * @param  array<string, mixed>  $inputs
+     */
+    public static function syncGenericDocumentSignatories(mixed $document, array $inputs = []): void
+    {
+        $tenantId = $document->tenant_id ?: 1;
+        $submitted = $inputs['signatories'] ?? null;
+        if (is_array($submitted)) {
+            $submitted = array_values($submitted);
+        }
+
+        if (empty($submitted)) {
+            return;
+        }
+
+        $existingSigs = DocumentSignatory::where('document_type', $document->getMorphClass())
+            ->where('document_id', $document->getKey())
+            ->get()
+            ->keyBy('id');
+
+        $processedIds = [];
+
+        foreach ($submitted as $idx => $item) {
+            $sortOrder = $idx + 1;
+            $rawRoleLabel = isset($item['role_label']) ? trim((string) $item['role_label']) : '';
+            $roleLabel = ($idx === 0) ? ($rawRoleLabel ?: 'Prepared by:') : $rawRoleLabel;
+            $tierRole = ! empty($item['tier_role']) ? trim($item['tier_role']) : 'step_'.$sortOrder;
+            $empId = ! empty($item['employee_id']) ? (int) $item['employee_id'] : null;
+
+            $emp = $empId ? Employee::with('department')->find($empId) : null;
+            $name = trim($item['name'] ?? ($emp ? $emp->full_name : ''));
+            $designation = trim($item['designation'] ?? ($emp?->designation ?: 'Authorized Signatory'));
+            $office = trim($item['office'] ?? ($emp?->department?->unit_name ?: 'Surigao del Norte State University'));
+
+            if (empty($name)) {
+                continue;
+            }
+
+            $alignment = $item['alignment'] ?? 'left';
+            $col = isset($item['position_column']) ? (int) $item['position_column'] : 1;
+
+            $existingId = ! empty($item['id']) ? (int) $item['id'] : null;
+            $existing = $existingId ? ($existingSigs[$existingId] ?? null) : null;
+
+            $status = $existing?->status ?? 'pending';
+            if ($idx === 0 || $tierRole === 'prepared') {
+                $status = ($document->status !== 'draft') ? 'signed' : 'pending';
+            }
+
+            if ($existing) {
+                $existing->update([
+                    'role_label' => $roleLabel,
+                    'tier_role' => $tierRole,
+                    'assignment_type' => 'creator_selected',
+                    'employee_id' => $empId,
+                    'signatory_name' => $name,
+                    'designation' => $designation,
+                    'office' => $office,
+                    'sort_order' => $sortOrder,
+                    'position_column' => $col,
+                    'alignment' => $alignment,
+                    'status' => $status,
+                ]);
+                $processedIds[] = $existing->id;
+            } else {
+                $created = DocumentSignatory::create([
+                    'document_type' => $document->getMorphClass(),
+                    'document_id' => $document->getKey(),
+                    'tenant_id' => $tenantId,
+                    'campus_id' => $document->campus_id ?? null,
+                    'dts_record_id' => $document->dts_record_id ?? null,
+                    'role_label' => $roleLabel,
+                    'tier_role' => $tierRole,
+                    'assignment_type' => 'creator_selected',
+                    'employee_id' => $empId,
+                    'signatory_name' => $name,
+                    'designation' => $designation,
+                    'office' => $office,
+                    'sort_order' => $sortOrder,
+                    'position_column' => $col,
+                    'alignment' => $alignment,
+                    'status' => $status,
+                    'requires_digital_signature' => true,
+                    'is_mandatory' => true,
+                ]);
+                $processedIds[] = $created->id;
+            }
+        }
+
+        // Delete removed non-signed signatories
+        DocumentSignatory::where('document_type', $document->getMorphClass())
+            ->where('document_id', $document->getKey())
+            ->whereNotIn('id', $processedIds)
+            ->where('status', '!=', 'signed')
+            ->delete();
     }
 }

@@ -27,9 +27,22 @@
                 </div>
             </div>
         </div>
-        <span class="badge bg-success-subtle text-success border border-success-subtle extra-small font-mono">
-            <i class="mdi mdi-shield-check me-1"></i>AUTO-RESOLVED
-        </span>
+        <div class="d-flex align-items-center gap-2">
+            @if(isset($plan) && $plan)
+                <a href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_plan', 'id' => $plan->getRouteKey()]) }}" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 extra-small fw-bold d-inline-flex align-items-center gap-1 shadow-2xs">
+                    <i class="mdi mdi-account-cog-outline"></i>
+                    <span>Configure Signatories</span>
+                </a>
+            @elseif(isset($proposal) && $proposal)
+                <a href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_proposal', 'id' => $proposal->getRouteKey()]) }}" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 extra-small fw-bold d-inline-flex align-items-center gap-1 shadow-2xs">
+                    <i class="mdi mdi-account-cog-outline"></i>
+                    <span>Configure Signatories</span>
+                </a>
+            @endif
+            <span class="badge bg-success-subtle text-success border border-success-subtle extra-small font-mono">
+                <i class="mdi mdi-shield-check me-1"></i>AUTO-RESOLVED
+            </span>
+        </div>
     </div>
 
     <div class="card-body p-3.5">

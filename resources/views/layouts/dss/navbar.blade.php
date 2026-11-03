@@ -12,11 +12,6 @@
             ->where('tenant_id', $inst->id ?? ($user->tenant_id ?? 1))
             ->count();
     }
-    $uiTemplateLabels = [
-        'flup_minimal' => 'Flup Minimal',
-        'print_manzil' => 'Print Manzil',
-        'material_able' => 'Material Able',
-    ];
 @endphp
 
 @if($uiTemplate === 'flup_minimal')
@@ -32,42 +27,6 @@
         </div>
 
         <div class="d-flex align-items-center gap-2.5 flex-wrap">
-            <!-- Quick DB-Backed UI Template Switcher -->
-            <div class="dropdown">
-                <button class="flup-period-pill bg-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="cursor: pointer;">
-                    <i class="mdi mdi-layers-outline text-primary" style="font-size: 16px;"></i>
-                    <span>UI: <strong class="text-dark">{{ $uiTemplateLabels[$uiTemplate] ?? 'Flup Minimal' }}</strong></span>
-                    <i class="mdi mdi-chevron-down text-muted"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; font-size: 12.5px; min-width: 225px;">
-                    <li class="px-3 py-1.5 text-muted extra-small fw-bold text-uppercase">Select UI Layout (Saved in DB)</li>
-                    <li>
-                        <button type="button" class="dropdown-item py-2 d-flex align-items-center justify-content-between {{ $uiTemplate === 'flup_minimal' ? 'fw-bold text-primary bg-light' : '' }}" onclick="window.switchGlobalUiTemplate('flup_minimal')">
-                            <span><i class="mdi mdi-view-quilt-outline me-2"></i>Flup — Clean SaaS</span>
-                            @if($uiTemplate === 'flup_minimal') <i class="mdi mdi-check text-primary"></i> @endif
-                        </button>
-                    </li>
-                    <li>
-                        <button type="button" class="dropdown-item py-2 d-flex align-items-center justify-content-between {{ $uiTemplate === 'print_manzil' ? 'fw-bold text-primary bg-light' : '' }}" onclick="window.switchGlobalUiTemplate('print_manzil')">
-                            <span><i class="mdi mdi-view-dashboard-variant-outline me-2"></i>Print Manzil — Bento</span>
-                            @if($uiTemplate === 'print_manzil') <i class="mdi mdi-check text-primary"></i> @endif
-                        </button>
-                    </li>
-                    <li>
-                        <button type="button" class="dropdown-item py-2 d-flex align-items-center justify-content-between {{ $uiTemplate === 'material_able' ? 'fw-bold text-primary bg-light' : '' }}" onclick="window.switchGlobalUiTemplate('material_able')">
-                            <span><i class="mdi mdi-page-layout-header me-2"></i>Material Able — Classic</span>
-                            @if($uiTemplate === 'material_able') <i class="mdi mdi-check text-primary"></i> @endif
-                        </button>
-                    </li>
-                    <li><hr class="dropdown-divider my-1"></li>
-                    <li>
-                        <a class="dropdown-item py-1.5 text-primary small fw-semibold" href="{{ route('dss.settings.theme') }}">
-                            <i class="mdi mdi-palette-outline me-1"></i>Open Full Theme Studio
-                        </a>
-                    </li>
-                </ul>
-            </div>
-
             <!-- Flup Time Period Pill -->
             <div class="flup-period-pill">
                 <i class="mdi mdi-calendar-blank-outline text-muted" style="font-size: 15px;"></i>
@@ -138,21 +97,6 @@
             </div>
 
             <div class="d-flex align-items-center gap-3">
-                <!-- Quick DB-Backed UI Template Switcher -->
-                <div class="dropdown">
-                    <button class="btn btn-sm border-0 text-white d-inline-flex align-items-center gap-1" style="background: rgba(255,255,255,0.16);" type="button" data-bs-toggle="dropdown">
-                        <i class="mdi mdi-layers-outline"></i>
-                        <span class="d-none d-md-inline">UI: {{ $uiTemplateLabels[$uiTemplate] ?? 'Material Able' }}</span>
-                        <i class="mdi mdi-chevron-down"></i>
-                    </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="font-size: 12.5px; min-width: 220px;">
-                        <li class="px-3 py-1.5 text-muted extra-small fw-bold text-uppercase">Select UI Layout (Saved in DB)</li>
-                        <li><button type="button" class="dropdown-item py-2" onclick="window.switchGlobalUiTemplate('flup_minimal')"><i class="mdi mdi-view-quilt-outline me-2"></i>Flup — Clean SaaS</button></li>
-                        <li><button type="button" class="dropdown-item py-2" onclick="window.switchGlobalUiTemplate('print_manzil')"><i class="mdi mdi-view-dashboard-variant-outline me-2"></i>Print Manzil — Bento</button></li>
-                        <li><button type="button" class="dropdown-item py-2 fw-bold text-primary bg-light" onclick="window.switchGlobalUiTemplate('material_able')"><i class="mdi mdi-page-layout-header me-2"></i>Material Able — Classic</button></li>
-                    </ul>
-                </div>
-
                 <!-- Fiscal Year Switcher -->
                 <div class="d-none d-md-flex align-items-center gap-1 px-2.5 py-1 rounded" style="background: rgba(255,255,255,0.15);">
                     <span class="text-white text-opacity-75" style="font-size: 11.5px;">FY:</span>
@@ -243,21 +187,6 @@
                         <option value="{{ $y }}" class="text-dark" {{ $fy == $y ? 'selected' : '' }}>{{ $y }}</option>
                     @endfor
                 </select>
-            </div>
-
-            <!-- Quick DB-Backed UI Template Switcher -->
-            <div class="dropdown">
-                <button class="pm-date-pill bg-white" type="button" data-bs-toggle="dropdown" style="cursor: pointer;">
-                    <i class="mdi mdi-layers-outline text-primary"></i>
-                    <span>{{ $uiTemplateLabels[$uiTemplate] ?? 'Print Manzil' }}</span>
-                    <i class="mdi mdi-chevron-down text-muted"></i>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2" style="border-radius: 12px; font-size: 12.5px; min-width: 225px;">
-                    <li class="px-3 py-1.5 text-muted extra-small fw-bold text-uppercase">Select UI Layout (Saved in DB)</li>
-                    <li><button type="button" class="dropdown-item py-2" onclick="window.switchGlobalUiTemplate('flup_minimal')"><i class="mdi mdi-view-quilt-outline me-2"></i>Flup — Clean SaaS</button></li>
-                    <li><button type="button" class="dropdown-item py-2 fw-bold text-primary bg-light" onclick="window.switchGlobalUiTemplate('print_manzil')"><i class="mdi mdi-view-dashboard-variant-outline me-2"></i>Print Manzil — Bento</button></li>
-                    <li><button type="button" class="dropdown-item py-2" onclick="window.switchGlobalUiTemplate('material_able')"><i class="mdi mdi-page-layout-header me-2"></i>Material Able — Classic</button></li>
-                </ul>
             </div>
         </div>
 

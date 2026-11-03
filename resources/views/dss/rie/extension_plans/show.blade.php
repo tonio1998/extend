@@ -155,110 +155,191 @@
                     <span class="badge bg-secondary-subtle text-secondary border rounded-pill extra-small font-mono">
                         {{ $plan->plan_code }}
                     </span>
+                    @if($plan->tracking_number)
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill extra-small font-mono d-inline-flex align-items-center gap-1" title="DTS Tracking Connected">
+                            <i class="mdi mdi-barcode-scan"></i> DTS: {{ $plan->tracking_number }}
+                        </span>
+                    @endif
                 </div>
             </div>
 
-                <!-- Action Toolbar Buttons -->
-                <div class="d-flex flex-wrap align-items-center gap-2">
-                    @if($plan->canBeEditedBy(auth()->user()))
-                        <a href="{{ route('dss.rie.plans.edit', $plan->getRouteKey()) }}"
-                           class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-2xs fw-bold text-dark d-inline-flex align-items-center gap-1"
-                           title="Edit Plan Details">
-                            <i class="mdi mdi-pencil-outline"></i>
-                            <span>Edit Plan</span>
+            <!-- Sleek Action Group: 1 Primary Button + Dropdown Actions Menu -->
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                @if($plan->canCreateProposal())
+                    @if($plan->extensionProposal)
+                        <a href="{{ route('dss.rie.proposals.show', $plan->extensionProposal->getRouteKey()) }}"
+                           class="btn btn-sm btn-success rounded-pill px-3.5 py-1.5 shadow-2xs fw-bold d-inline-flex align-items-center gap-1.5"
+                           title="View Linked Extension Proposal">
+                            <i class="mdi mdi-file-document-check-outline fs-6"></i>
+                            <span>View Extension Proposal</span>
                         </a>
-                    @endif
-
-                    @if($plan->status === 'draft' && ($plan->prepared_by_user_id === auth()->id() || auth()->user()->isSuperAdmin() || auth()->user()->isTenantAdmin()))
-                        <button type="button" class="btn btn-sm btn-warning rounded-pill px-3 shadow-2xs fw-bold text-dark d-inline-flex align-items-center gap-1"
-                                id="btnSubmitPlanForReview" onclick="submitPlanForReview()">
-                            <i class="mdi mdi-send-check"></i>
-                            <span>Submit for Notation</span>
-                        </button>
-                    @endif
-
-                    @if($plan->canCreateProposal())
-                        @if($plan->extensionProposal)
-                            <a href="{{ route('dss.rie.proposals.show', $plan->extensionProposal->getRouteKey()) }}"
-                               class="btn btn-sm btn-success rounded-pill px-3 shadow-2xs fw-bold d-inline-flex align-items-center gap-1">
-                                <i class="mdi mdi-file-document-check-outline"></i>
-                                <span>View Extension Proposal</span>
-                            </a>
-                        @else
-                            @can('rie.proposals.create')
-                            <a href="{{ route('dss.rie.proposals.create', ['plan_id' => $plan->getRouteKey()]) }}"
-                               class="btn btn-sm btn-dss-primary rounded-pill px-3 shadow-2xs fw-bold d-inline-flex align-items-center gap-1">
-                                <i class="mdi mdi-plus-circle-outline"></i>
-                                <span>Create Extension Proposal</span>
-                            </a>
-                            @endcan
-                        @endif
                     @else
-                        <button type="button" class="btn btn-sm btn-light border rounded-pill px-3 text-muted extra-small"
-                                onclick="alert('Notice: Creating an Extension Proposal requires an officially APPROVED Extension Plan. This plan is currently: {{ strtoupper($plan->status) }}.');"
-                                title="Locked: Requires Dean\'s Official Approval">
-                            <i class="mdi mdi-lock-outline me-1"></i> Proposal Locked
-                        </button>
-                    @endif
-
-                    @if($plan->tracking_number)
-                        @can('rie.tracking.manage')
-                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-2xs font-mono fw-semibold"
-                                data-bs-toggle="modal" data-bs-target="#modalConnectPlanTracking"
-                                title="3rd-Party DTS Tracking Connected (Click to update)">
-                            <i class="mdi mdi-barcode-scan me-1"></i> DTS: {{ $plan->tracking_number }}
-                        </button>
+                        @can('rie.proposals.create')
+                        <a href="{{ route('dss.rie.proposals.create', ['plan_id' => $plan->getRouteKey()]) }}"
+                           class="btn btn-sm btn-dss-primary rounded-pill px-3.5 py-1.5 shadow-2xs fw-bold d-inline-flex align-items-center gap-1.5"
+                           title="Create Extension Proposal from this approved plan">
+                            <i class="mdi mdi-plus-circle-outline fs-6"></i>
+                            <span>Create Extension Proposal</span>
+                        </a>
                         @else
-                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 font-mono fs-7 d-inline-flex align-items-center gap-1">
-                            <i class="mdi mdi-barcode-scan"></i> DTS: {{ $plan->tracking_number }}
-                        </span>
-                        @endcan
                         <a href="{{ route('dss.rie.plans.pdf', ['id' => $plan->getRouteKey(), 'download' => 1]) }}"
-                           class="btn btn-sm btn-primary rounded-pill px-3 shadow-2xs fw-semibold"
+                           class="btn btn-sm btn-primary rounded-pill px-3.5 py-1.5 shadow-2xs fw-semibold d-inline-flex align-items-center gap-1.5"
                            title="Download Official PDF">
-                            <i class="mdi mdi-download me-1"></i> Download PDF
+                            <i class="mdi mdi-file-pdf-box fs-6"></i>
+                            <span>Download PDF</span>
+                        </a>
+                        @endcan
+                    @endif
+                @elseif($plan->status === 'draft' && ($plan->prepared_by_user_id === auth()->id() || auth()->user()->isSuperAdmin() || auth()->user()->isTenantAdmin()))
+                    <button type="button" class="btn btn-sm btn-warning rounded-pill px-3.5 py-1.5 shadow-2xs fw-bold text-dark d-inline-flex align-items-center gap-1.5"
+                            id="btnSubmitPlanForReview" onclick="submitPlanForReview()">
+                        <i class="mdi mdi-send-check fs-6"></i>
+                        <span>Submit for Notation</span>
+                    </button>
+                @else
+                    @if($plan->tracking_number)
+                        <a href="{{ route('dss.rie.plans.pdf', ['id' => $plan->getRouteKey(), 'download' => 1]) }}"
+                           class="btn btn-sm btn-primary rounded-pill px-3.5 py-1.5 shadow-2xs fw-semibold d-inline-flex align-items-center gap-1.5"
+                           title="Download Official PDF">
+                            <i class="mdi mdi-file-pdf-box fs-6"></i>
+                            <span>Download PDF</span>
                         </a>
                     @else
-                        @can('rie.tracking.manage')
-                        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 shadow-2xs fw-semibold"
-                                data-bs-toggle="modal" data-bs-target="#modalConnectPlanTracking"
-                                title="Connect 3rd-Party Tracking Number">
-                            <i class="mdi mdi-link-variant-plus me-1"></i> Connect Tracking #
-                        </button>
-                        @endcan
-                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3 shadow-2xs fw-semibold"
+                        <button type="button" class="btn btn-sm btn-primary rounded-pill px-3.5 py-1.5 shadow-2xs fw-semibold d-inline-flex align-items-center gap-1.5"
                                 onclick="confirmPrintWithoutTracking('{{ route('dss.rie.plans.pdf', ['id' => $plan->getRouteKey(), 'download' => 1]) }}')"
                                 title="Download PDF">
-                            <i class="mdi mdi-download me-1"></i> Download PDF
+                            <i class="mdi mdi-file-pdf-box fs-6"></i>
+                            <span>Download PDF</span>
                         </button>
                     @endif
+                @endif
 
-                <div class="dropdown">
-                    <button class="btn btn-sm btn-light border rounded-pill px-2 py-1" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="More Options">
-                        <i class="mdi mdi-dots-vertical"></i>
+                <div class="dropdown" style="position: relative;">
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1 shadow-2xs dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="More Plan Options">
+                        <span style="pointer-events: none;">Actions</span>
+                        <i class="mdi mdi-chevron-down text-muted ms-0.5" style="pointer-events: none;"></i>
                     </button>
-                    <ul class="dropdown-menu dropdown-menu-end shadow-sm extra-small">
+                    <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; font-size: 12.5px; min-width: 240px; z-index: 1055 !important;">
+                        <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Plan Operations</li>
                         <li>
-                            <a class="dropdown-item py-1" href="{{ route('dss.documents.view', ['type' => 'extension_plan', 'id' => $plan->id]) }}" target="_blank">
-                                <i class="mdi mdi-open-in-new me-2 text-primary"></i> Fullscreen Viewer
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_plan', 'id' => $plan->getRouteKey()]) }}">
+                                <i class="mdi mdi-account-cog-outline text-primary fs-5"></i>
+                                <div>
+                                    <div class="fw-semibold">Configure Signatories</div>
+                                    <div class="extra-small text-muted">Approval Chain &amp; Signers</div>
+                                </div>
                             </a>
                         </li>
+                        @if($plan->canBeEditedBy(auth()->user()))
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.rie.plans.edit', $plan->getRouteKey()) }}">
+                                    <i class="mdi mdi-pencil-outline text-warning fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Edit Plan Details</div>
+                                        <div class="extra-small text-muted">Update targets, goals &amp; activities</div>
+                                    </div>
+                                </a>
+                            </li>
+                        @endif
+                        @if($plan->status === 'draft' && ($plan->prepared_by_user_id === auth()->id() || auth()->user()->isSuperAdmin() || auth()->user()->isTenantAdmin()))
+                            <li>
+                                <button type="button" class="dropdown-item py-2 d-flex align-items-center gap-2" onclick="submitPlanForReview()">
+                                    <i class="mdi mdi-send-check text-warning fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Submit for Notation</div>
+                                        <div class="extra-small text-muted">Forward to Department Dean / Director</div>
+                                    </div>
+                                </button>
+                            </li>
+                        @endif
+
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Document &amp; Tracking</li>
+                        @if($plan->tracking_number)
+                            @can('rie.tracking.manage')
+                                <li>
+                                    <button type="button" class="dropdown-item py-2 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalConnectPlanTracking">
+                                        <i class="mdi mdi-barcode-scan text-success fs-5"></i>
+                                        <div>
+                                            <div class="fw-semibold font-mono">DTS: {{ $plan->tracking_number }}</div>
+                                            <div class="extra-small text-muted">Click to update DTS tracking #</div>
+                                        </div>
+                                    </button>
+                                </li>
+                            @else
+                                <li>
+                                    <div class="dropdown-item py-2 d-flex align-items-center gap-2 disabled text-muted">
+                                        <i class="mdi mdi-barcode-scan fs-5"></i>
+                                        <div>
+                                            <div class="fw-semibold font-mono">DTS: {{ $plan->tracking_number }}</div>
+                                            <div class="extra-small">Tracking connected</div>
+                                        </div>
+                                    </div>
+                                </li>
+                            @endcan
+                        @else
+                            @can('rie.tracking.manage')
+                                <li>
+                                    <button type="button" class="dropdown-item py-2 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#modalConnectPlanTracking">
+                                        <i class="mdi mdi-link-variant-plus text-warning fs-5"></i>
+                                        <div>
+                                            <div class="fw-semibold">Connect Tracking #</div>
+                                            <div class="extra-small text-muted">Link SNSU Central DTS</div>
+                                        </div>
+                                    </button>
+                                </li>
+                            @endcan
+                        @endif
+
                         <li>
-                            <button class="dropdown-item py-1" type="button" onclick="window.print()">
-                                <i class="mdi mdi-printer me-2 text-secondary"></i> Print Page
+                            @if($plan->tracking_number)
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary" href="{{ route('dss.rie.plans.pdf', ['id' => $plan->getRouteKey(), 'download' => 1]) }}">
+                                    <i class="mdi mdi-file-pdf-box fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Download Official PDF</div>
+                                        <div class="extra-small text-muted">Institutional Plan Form</div>
+                                    </div>
+                                </a>
+                            @else
+                                <button type="button" class="dropdown-item py-2 d-flex align-items-center gap-2 text-primary" onclick="confirmPrintWithoutTracking('{{ route('dss.rie.plans.pdf', ['id' => $plan->getRouteKey(), 'download' => 1]) }}')">
+                                    <i class="mdi mdi-file-pdf-box fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Download Official PDF</div>
+                                        <div class="extra-small text-muted">Institutional Plan Form</div>
+                                    </div>
+                                </button>
+                            @endif
+                        </li>
+
+                        <li>
+                            <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.documents.view', ['type' => 'extension_plan', 'id' => $plan->id]) }}" target="_blank">
+                                <i class="mdi mdi-open-in-new text-secondary fs-5"></i>
+                                <div>
+                                    <div class="fw-semibold">Fullscreen Viewer</div>
+                                    <div class="extra-small text-muted">Distraction-free preview</div>
+                                </div>
+                            </a>
+                        </li>
+
+                        <li><hr class="dropdown-divider my-1"></li>
+                        <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Navigation</li>
+                        <li>
+                            <button class="dropdown-item py-1.5 d-flex align-items-center gap-2" type="button" onclick="window.print()">
+                                <i class="mdi mdi-printer text-dark fs-5"></i>
+                                <span>Print Page</span>
                             </button>
                         </li>
-                        <li><hr class="dropdown-divider my-1"></li>
                         <li>
-                            <a class="dropdown-item py-1" href="{{ route('dss.rie.plans.index') }}">
-                                <i class="mdi mdi-arrow-left me-2 text-muted"></i> Back to Masterlist
+                            <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="{{ route('dss.rie.plans.index') }}">
+                                <i class="mdi mdi-arrow-left text-secondary fs-5"></i>
+                                <span>Back to Masterlist</span>
                             </a>
                         </li>
                     </ul>
                 </div>
             </div>
+            </div>
         </div>
-    </div>
 
     <!-- 2. Canva-Style KPI Metric Bento Cards (Top of Page) -->
     <div class="row g-3 mb-4">

@@ -386,6 +386,38 @@
                 $container.removeClass('dropdown-open').css('overflow', 'auto');
             }
         });
+
+        // Global Bulletproof Dropdown Initializer and Popout Assurance
+        $(document).on('click', '[data-bs-toggle="dropdown"]', function (e) {
+            var $btn = $(this);
+            var $menu = $btn.siblings('.dropdown-menu');
+            if ($menu.length === 0) {
+                $menu = $btn.closest('.dropdown').find('.dropdown-menu');
+            }
+            if ($menu.length === 0) return;
+
+            var wasOpen = $menu.hasClass('show');
+            setTimeout(function () {
+                // If native Bootstrap didn't toggle it, force it via fallback
+                if (!wasOpen && !$menu.hasClass('show')) {
+                    $('.dropdown-menu.show').not($menu).removeClass('show');
+                    $('[data-bs-toggle="dropdown"]').not($btn).removeClass('show').attr('aria-expanded', 'false');
+                    $menu.addClass('show');
+                    $btn.addClass('show').attr('aria-expanded', 'true');
+                } else if (wasOpen && $menu.hasClass('show')) {
+                    $menu.removeClass('show');
+                    $btn.removeClass('show').attr('aria-expanded', 'false');
+                }
+            }, 15);
+        });
+
+        // Click outside closes open dropdowns
+        $(document).on('click', function (e) {
+            if (!$(e.target).closest('.dropdown').length) {
+                $('.dropdown-menu.show').removeClass('show');
+                $('[data-bs-toggle="dropdown"].show').removeClass('show').attr('aria-expanded', 'false');
+            }
+        });
     </script>
     <style>
         /* Custom Select2 Bootstrap-5 Theme Polish for DSS Executive Standard */

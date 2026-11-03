@@ -3,6 +3,7 @@
 namespace App\Models\Dts;
 
 use App\Models\Employee;
+use App\Models\RIE\ExtensionProposal;
 use App\Models\SaaS\Campus;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -100,6 +101,11 @@ class Unit extends Model
     public function documents(): HasMany
     {
         return $this->hasMany(Records::class, 'UnitID');
+    }
+
+    public function extensionProposals(): HasMany
+    {
+        return $this->hasMany(ExtensionProposal::class, 'unit_id');
     }
 
     public function scopeActive($query)

@@ -5,6 +5,8 @@
         <input type="hidden" name="format" value="{{ $formatFilter }}" id="hiddenFormatFilter">
         <input type="hidden" name="storage" value="{{ $storageFilter }}" id="hiddenStorageFilter">
         <input type="hidden" name="campus_id" value="{{ $campusId }}" id="hiddenCampusId">
+        <input type="hidden" name="unit_id" value="{{ $unitId }}" id="hiddenUnitId">
+        <input type="hidden" name="project_leader" value="{{ $projectLeader }}" id="hiddenProjectLeader">
         <input type="hidden" name="physically_signed" value="{{ $physicallySignedOnly ? '1' : '' }}" id="hiddenPhysicallySigned">
 
         <!-- Module Select -->
@@ -44,21 +46,22 @@
             </select>
         </div>
 
-        <!-- Keyword Search -->
-        <div class="col-md-4">
+        <!-- Keyword & Smart Search -->
+        <div class="col-md-4 position-relative" id="canvasSearchContainer">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light border-end-0 text-muted"><i class="mdi mdi-magnify"></i></span>
-                <input type="text" name="search" id="canvasSearchInput" class="form-control form-control-sm border-start-0" placeholder="Search filename, title, checksum, or author..." value="{{ $search }}" autocomplete="off">
+                <input type="text" name="search" id="canvasSearchInput" class="form-control form-control-sm border-start-0" placeholder="Search files, or type department or leader name..." value="{{ $search }}" autocomplete="off">
                 @if($search)
                     <button type="button" class="input-group-text bg-light border-start-0 text-danger" id="btnClearCanvasSearch" title="Clear Search">
                         <i class="mdi mdi-close"></i>
                     </button>
                 @endif
             </div>
+            <div id="canvasSmartSuggestions" class="repo-smart-suggestions shadow-lg"></div>
         </div>
 
         <div class="col-md-2 text-end">
-            @if($search || $moduleFilter || $categoryFilter || $campusId || $physicallySignedOnly || $formatFilter || $storageFilter || (!empty($sort) && $sort !== 'latest'))
+            @if($search || $moduleFilter || $categoryFilter || $campusId || $unitId || $projectLeader || $physicallySignedOnly || $formatFilter || $storageFilter || (!empty($sort) && $sort !== 'latest'))
                 <button type="button" class="btn btn-sm btn-light border text-danger rounded-pill w-100 fw-medium" id="btnResetRepoFilters" title="Reset all filters">
                     <i class="mdi mdi-refresh me-1"></i> Clear Filters
                 </button>
@@ -71,9 +74,24 @@
     </form>
 
     <!-- Active Filter Tags -->
-    @if($search || $moduleFilter || $categoryFilter || $campusId || $physicallySignedOnly || $formatFilter || $storageFilter || (!empty($sort) && $sort !== 'latest'))
+    @if($search || $moduleFilter || $categoryFilter || $campusId || $unitId || $projectLeader || $physicallySignedOnly || $formatFilter || $storageFilter || (!empty($sort) && $sort !== 'latest'))
         <div class="d-flex align-items-center gap-1 flex-wrap pt-2 mt-2 border-top extra-small">
             <span class="text-muted fw-bold font-mono">Active Filters:</span>
+            @if($unitId)
+                @php
+                    $activeUnit = \App\Models\Dts\Unit::find($unitId);
+                @endphp
+                <span class="badge bg-success-subtle text-success border border-success-subtle d-inline-flex align-items-center gap-1">
+                    <i class="mdi mdi-domain me-1"></i> Unit: {{ $activeUnit ? ($activeUnit->unit_code ?: $activeUnit->unit_name) : 'Unit #'.$unitId }}
+                    <i class="mdi mdi-close ms-1 cursor-pointer" onclick="removeRepoFilter('unit_id')" title="Remove unit filter"></i>
+                </span>
+            @endif
+            @if($projectLeader)
+                <span class="badge bg-info-subtle text-info border border-info-subtle d-inline-flex align-items-center gap-1">
+                    <i class="mdi mdi-account-tie me-1"></i> Leader: {{ $projectLeader }}
+                    <i class="mdi mdi-close ms-1 cursor-pointer" onclick="removeRepoFilter('project_leader')" title="Remove leader filter"></i>
+                </span>
+            @endif
             @if($search)
                 <span class="badge bg-light text-dark border d-inline-flex align-items-center gap-1">
                     Search: "{{ $search }}"
@@ -119,6 +137,91 @@
         </div>
     @endif
 </div>
+
+<!-- SMART PROFILE & UNIT OVERVIEW BANNER (When searching specific person or academic unit) -->
+@if(!empty($matchedLeader))
+    <div class="card border rounded-3 p-3 mb-4 shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%); border-left: 5px solid #00674f !important;">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center text-white fw-bold shadow-xs flex-shrink-0"
+                     style="width: 52px; height: 52px; font-size: 19px; background: linear-gradient(135deg, #00674f 0%, #047857 100%); letter-spacing: -0.02em;">
+                    {{ $matchedLeader['initials'] }}
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <span class="badge bg-success-subtle text-success border border-success-subtle font-mono extra-small">
+                            <i class="mdi mdi-account-star me-1"></i>PROJECT LEADER &bull; PROPONENT
+                        </span>
+                        <span class="extra-small text-muted font-mono">{{ $matchedLeader['unit'] }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">{{ $matchedLeader['name'] }}</h5>
+                    <div class="d-flex align-items-center gap-2 font-mono extra-small text-muted flex-wrap">
+                        <span class="text-dark fw-semibold"><i class="mdi mdi-folder-outline text-primary me-1"></i>{{ $matchedLeader['projects_count'] }} Extension Projects</span>
+                        <span>&bull;</span>
+                        <span class="text-success fw-semibold"><i class="mdi mdi-cash-multiple me-1"></i>₱{{ $matchedLeader['total_budget'] }} Total Budget</span>
+                        <span>&bull;</span>
+                        <span><i class="mdi mdi-file-document-outline me-1"></i>{{ $matchedLeader['documents_count'] }} Files in Vault</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap flex-sm-nowrap w-100 w-md-auto justify-content-md-end">
+                <a href="{{ $matchedLeader['overview_url'] }}" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 extra-small fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs text-white text-decoration-none">
+                    <i class="mdi mdi-open-in-new"></i>
+                    <span>View All Projects &amp; Transactions</span>
+                </a>
+                <a href="{{ $matchedLeader['proposals_url'] }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1.5 extra-small fw-semibold text-decoration-none" title="View Proposal Masterlist">
+                    <i class="mdi mdi-file-document-multiple-outline me-1"></i>Proposals
+                </a>
+                <button type="button" class="btn btn-sm btn-light border rounded-circle p-1.5 text-muted" onclick="removeRepoFilter('search'); removeRepoFilter('project_leader');" title="Dismiss Card">
+                    <i class="mdi mdi-close"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
+
+@if(!empty($matchedUnit))
+    <div class="card border rounded-3 p-3 mb-4 shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #eff6ff 100%); border-left: 5px solid #2563eb !important;">
+        <div class="d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-3 d-flex align-items-center justify-content-center text-white fw-bold shadow-xs flex-shrink-0"
+                     style="width: 52px; height: 52px; font-size: 24px; background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);">
+                    <i class="mdi mdi-domain"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono extra-small">
+                            <i class="mdi mdi-office-building me-1"></i>ACADEMIC UNIT &bull; {{ $matchedUnit['code'] }}
+                        </span>
+                        <span class="extra-small text-muted font-mono">{{ $matchedUnit['campus'] }} &bull; Head: {{ $matchedUnit['head'] }}</span>
+                    </div>
+                    <h5 class="fw-bold text-dark mb-1">{{ $matchedUnit['name'] }}</h5>
+                    <div class="d-flex align-items-center gap-2 font-mono extra-small text-muted flex-wrap">
+                        <span class="text-dark fw-semibold"><i class="mdi mdi-lightbulb-on-outline text-primary me-1"></i>{{ $matchedUnit['projects_count'] }} Monitored Extensions</span>
+                        <span>&bull;</span>
+                        <span class="text-success fw-semibold"><i class="mdi mdi-cash-multiple me-1"></i>₱{{ $matchedUnit['total_budget'] }} Total Budget</span>
+                        <span>&bull;</span>
+                        <span><i class="mdi mdi-file-document-outline me-1"></i>{{ $matchedUnit['documents_count'] }} Documents</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2 flex-wrap flex-sm-nowrap w-100 w-md-auto justify-content-md-end">
+                <a href="{{ $matchedUnit['transactions_url'] }}" class="btn btn-sm btn-primary rounded-pill px-3 py-1.5 extra-small fw-bold d-inline-flex align-items-center gap-1.5 shadow-xs text-white text-decoration-none">
+                    <i class="mdi mdi-open-in-new"></i>
+                    <span>View Unit Projects &amp; Transactions</span>
+                </a>
+                <a href="{{ $matchedUnit['overview_url'] }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5 py-1.5 extra-small fw-semibold text-decoration-none" title="View Units Summary">
+                    <i class="mdi mdi-table me-1"></i>Unit Summary
+                </a>
+                <button type="button" class="btn btn-sm btn-light border rounded-circle p-1.5 text-muted" onclick="removeRepoFilter('unit_id'); removeRepoFilter('search');" title="Dismiss Card">
+                    <i class="mdi mdi-close"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+@endif
 
 <!-- Top Pagination Bar -->
 @if(!$documents->isEmpty() && $documents->hasPages())
@@ -239,6 +342,17 @@
                                             {{ $recordLabel }}
                                         </span>
                                     @endif
+                                </div>
+                            @endif
+
+                            @if($doc->linked_unit_name)
+                                <div class="mb-0.5 text-truncate" style="font-size: 10.5px;">
+                                    <span class="text-muted" title="{{ $doc->linked_unit_name }}"><i class="mdi mdi-domain me-1 text-success"></i>{{ $doc->linked_unit_name }}</span>
+                                </div>
+                            @endif
+                            @if($doc->linked_project_leader)
+                                <div class="mb-1 text-truncate" style="font-size: 10.5px;">
+                                    <span class="text-muted" title="{{ $doc->linked_project_leader }}"><i class="mdi mdi-account-tie me-1 text-primary"></i>{{ $doc->linked_project_leader }}</span>
                                 </div>
                             @endif
 
@@ -450,6 +564,21 @@
                                     @endif
                                 @else
                                     <span class="text-muted extra-small fst-italic">Standalone File</span>
+                                @endif
+
+                                @if($doc->linked_unit_name)
+                                    <div class="mt-1">
+                                        <span class="badge bg-light text-dark border extra-small" title="Department / Academic Unit">
+                                            <i class="mdi mdi-domain me-1 text-success"></i>{{ $doc->linked_unit_name }}
+                                        </span>
+                                    </div>
+                                @endif
+                                @if($doc->linked_project_leader)
+                                    <div class="mt-0.5">
+                                        <span class="badge bg-light text-dark border extra-small" title="Project Leader">
+                                            <i class="mdi mdi-account-tie me-1 text-primary"></i>{{ $doc->linked_project_leader }}
+                                        </span>
+                                    </div>
                                 @endif
                             </td>
 

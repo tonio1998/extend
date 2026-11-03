@@ -85,7 +85,7 @@
         const subStyle = 'color: #64748b; font-size: 11px;';
         console.log('%c RIE-EXTEND PLATFORM ', titleStyle);
         console.log('%c Lead Systems Architect & Developer: Antonio Jr. L. Piloton ', authorStyle);
-        console.log('%c Provenance Fingerprint: SHA256-APJ-RIE-EXTEND-SECURE-2026 \u2022 Protected by Intellectual Property Code of the Philippines (RA 8293) ', subStyle);
+        console.log('%c Provenance Fingerprint: SHA256-APJ-RIE-EXTEND-SECURE-2026', subStyle);
 
         // 2. Secret Key Combination: Ctrl + Shift + Alt + A (or Cmd + Shift + Alt + A on Mac)
         window.addEventListener('keydown', function (e) {

@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\SaaS\Campus;
 use App\Models\SaaS\Tenant;
 use App\Models\User;
+use App\Services\RIE\DocumentCodeService;
 use App\Traits\HasCentralizedDocuments;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -844,5 +845,13 @@ class ExtensionProposal extends Model
     public function getIsSubmittedAttribute(): bool
     {
         return ! $this->is_editable;
+    }
+
+    /**
+     * Generates a new unique Extension Proposal Code from Admin Settings (e.g. SNSU-PROP-2026-0001).
+     */
+    public static function generateCode(?int $tenantId = null): string
+    {
+        return DocumentCodeService::generateProposalCode($tenantId);
     }
 }

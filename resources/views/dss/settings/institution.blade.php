@@ -1,4 +1,4 @@
-﻿@extends('layouts.dss.app')
+@extends('layouts.dss.app')
 
 @section('title', 'School Profile — School Management')
 
@@ -24,6 +24,9 @@
             <p class="text-muted small mb-0">Fundamental university metadata, charter basis, contact channels, and official fiscal identity.</p>
         </div>
         <div>
+            <a href="{{ route('dss.settings.document_codes') }}" class="btn btn-outline-primary btn-sm px-3 shadow-xs">
+                <i class="mdi mdi-barcode-scan me-1"></i>Configure Document Codes
+            </a>
             <button class="btn btn-dss-primary btn-sm px-3 shadow-xs" onclick="saveSchoolProfile()">
                 <i class="mdi mdi-content-save me-1"></i>Save Institutional Profile
             </button>

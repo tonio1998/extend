@@ -13,6 +13,7 @@ use App\Models\SaaS\SignatoryMatrix;
 use App\Models\User;
 use App\Services\DSS\TenantContext;
 use App\Services\PDF\PolicyGenerate;
+use App\Services\RIE\DocumentCodeService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -25,8 +26,37 @@ class InstitutionSettingsController extends Controller
     {
         $institution = TenantContext::getInstitution();
         $theme = TenantContext::getTheme();
+        $codeFormats = DocumentCodeService::getAllDocumentTypes();
 
-        return view('dss.settings.institution', compact('institution', 'theme'));
+        return view('dss.settings.institution', compact('institution', 'theme', 'codeFormats'));
+    }
+
+    public function documentCodes()
+    {
+        $institution = TenantContext::getInstitution();
+        $theme = TenantContext::getTheme();
+        $docTypes = DocumentCodeService::getAllDocumentTypes();
+
+        return view('dss.settings.school.document_codes', compact('institution', 'theme', 'docTypes'));
+    }
+
+    public function updateDocumentCodes(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'codes' => 'required|array',
+            'codes.plan' => 'required|string|max:50',
+            'codes.proposal' => 'required|string|max:50',
+            'codes.activity_design' => 'required|string|max:50',
+        ]);
+
+        DocumentCodeService::saveDocumentCodes($validated['codes']);
+
+        return response()->json([
+            'result' => true,
+            'success' => true,
+            'message' => 'Institutional document codes in dts_document_types updated successfully!',
+            'doc_types' => DocumentCodeService::getAllDocumentTypes(),
+        ]);
     }
 
     public function campuses()
@@ -106,12 +136,62 @@ class InstitutionSettingsController extends Controller
             'contact_no' => 'nullable|string|max:50',
         ]);
 
-        $campus = Campus::create(array_merge($validated, ['tenant_id' => $tenant->id]));
+        $campus = Campus::create(array_merge($validated, [
+            'tenant_id' => $tenant->id,
+            'status' => $request->input('status', 'active'),
+        ]));
 
         return response()->json([
             'result' => true,
             'message' => 'Campus unit added successfully!',
             'campus' => $campus,
+        ]);
+    }
+
+    public function updateCampus(Request $request, $id)
+    {
+        $tenant = TenantContext::getTenant();
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $campus = Campus::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        $validated = $request->validate([
+            'campus_code' => 'required|string|max:50',
+            'campus_name' => 'required|string|max:191',
+            'campus_type' => 'required|string|max:50',
+            'location' => 'nullable|string|max:191',
+            'head_name' => 'nullable|string|max:100',
+            'contact_no' => 'nullable|string|max:50',
+            'status' => 'nullable|in:active,inactive',
+        ]);
+
+        $campus->update($validated);
+
+        return response()->json([
+            'result' => true,
+            'message' => 'Campus unit updated successfully!',
+            'campus' => $campus,
+        ]);
+    }
+
+    public function destroyCampus(Request $request, $id)
+    {
+        $tenant = TenantContext::getTenant();
+        $id = is_numeric($id) ? (int) $id : dss_decrypt_id($id);
+        $campus = Campus::withCount('departments')->where('tenant_id', $tenant->id)->findOrFail($id);
+
+        if ($campus->departments_count > 0) {
+            return response()->json([
+                'result' => false,
+                'message' => "Cannot delete campus '{$campus->campus_name}' because it has {$campus->departments_count} academic department(s) attached.",
+            ], 422);
+        }
+
+        $campusName = $campus->campus_name;
+        $campus->delete();
+
+        return response()->json([
+            'result' => true,
+            'message' => "Campus '{$campusName}' deleted successfully.",
         ]);
     }
 

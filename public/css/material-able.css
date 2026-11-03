@@ -270,25 +270,23 @@ body[data-ui-template="flup_minimal"] .dss-sidebar {
     flex-direction: column;
     border-right: 1px solid #e8eeec !important;
     box-shadow: none !important;
-    position: fixed !important;
+    position: sticky !important;
     top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
     height: 100vh !important;
-    z-index: 1035 !important;
-    transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease, transform 0.22s ease;
+    flex-shrink: 0 !important;
+    z-index: 1025 !important;
+    transition: width 0.22s ease, min-width 0.22s ease, max-width 0.22s ease;
 }
 
 body[data-ui-template="flup_minimal"] .dss-main-content {
-    flex: 1;
-    margin-left: 244px;
+    flex: 1 1 0% !important;
+    margin-left: 0 !important;
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 100vh;
     background-color: #ffffff !important;
     padding: 0 24px 24px 24px;
-    transition: margin-left 0.22s ease;
 }
 
 /* Flup Collapsible Mini-Rail Mode (76px Icon Rail shown in Flup Reference Image!) */
@@ -300,7 +298,7 @@ body[data-ui-template="flup_minimal"].ma-sidebar-collapsed .dss-sidebar {
 }
 
 body[data-ui-template="flup_minimal"].ma-sidebar-collapsed .dss-main-content {
-    margin-left: 76px !important;
+    margin-left: 0 !important;
 }
 
 body[data-ui-template="flup_minimal"].ma-sidebar-collapsed .flup-brand-text,
@@ -683,17 +681,20 @@ body[data-ui-template="print_manzil"] .dss-sidebar {
     flex-direction: column;
     border-right: 1px solid #eef2f6 !important;
     box-shadow: 4px 0 24px rgba(15, 23, 42, 0.025);
-    position: fixed !important;
+    position: sticky !important;
     top: 0 !important;
-    left: 0 !important;
-    bottom: 0 !important;
     height: 100vh !important;
-    z-index: 1035 !important;
-    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    flex-shrink: 0 !important;
+    z-index: 1025 !important;
+    transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 body[data-ui-template="print_manzil"].ma-sidebar-collapsed .dss-sidebar {
-    transform: translateX(-264px);
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
+    border-right: none !important;
 }
 
 body[data-ui-template="print_manzil"].ma-sidebar-collapsed .dss-main-content {
@@ -701,15 +702,14 @@ body[data-ui-template="print_manzil"].ma-sidebar-collapsed .dss-main-content {
 }
 
 body[data-ui-template="print_manzil"] .dss-main-content {
-    flex: 1;
-    margin-left: 264px;
+    flex: 1 1 0% !important;
+    margin-left: 0 !important;
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: 100vh;
     background-color: #f3f6fa !important;
     padding: 18px 24px 28px 24px;
-    transition: margin-left 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* Print Manzil Sidebar Elements */
@@ -780,7 +780,7 @@ body[data-ui-template="print_manzil"] .dss-nav-link.active {
     color: var(--ma-primary) !important;
     font-weight: 700 !important;
     border-radius: 12px !important;
-    border-top: 2px solid var(--ma-primary) !important;
+    /* border-top: 2px solid var(--ma-primary) !important; */
     box-shadow: 0 4px 12px color-mix(in srgb, var(--ma-primary) 10%, transparent) !important;
 }
 
@@ -851,18 +851,25 @@ body[data-ui-template="print_manzil"] .dss-nav-link.active i {
     gap: 8px;
 }
 
-/* Print Manzil Detached Topbar */
+/* Print Manzil Detached Topbar (Sticky / Fixed at Top on Scroll) */
+body[data-ui-template="print_manzil"] .pm-topbar,
 .pm-topbar {
-    background: #ffffff;
-    border: 1px solid #eef2f6;
-    border-radius: 18px;
-    padding: 10px 18px;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border: 1px solid rgba(226, 232, 240, 0.9);
+    border-radius: 16px;
+    padding: 11px 20px;
     margin-bottom: 20px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 14px;
-    box-shadow: var(--ma-shadow-card);
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .pm-shop-selector {
@@ -1007,17 +1014,19 @@ body[data-ui-template="material_able"] .dss-sidebar {
     flex-direction: column;
     border-right: none !important;
     box-shadow: 1px 0 14px rgba(0, 0, 0, 0.07);
-    position: fixed !important;
+    position: sticky !important;
     top: 56px !important;
-    left: 0 !important;
-    bottom: 0 !important;
     height: calc(100vh - 56px) !important;
+    flex-shrink: 0 !important;
     z-index: 1025 !important;
-    transition: transform 0.25s ease;
+    transition: width 0.25s ease, transform 0.25s ease;
 }
 
 body[data-ui-template="material_able"].ma-sidebar-collapsed .dss-sidebar {
-    transform: translateX(-250px);
+    width: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    overflow: hidden !important;
 }
 
 body[data-ui-template="material_able"].ma-sidebar-collapsed .dss-main-content {
@@ -1025,15 +1034,14 @@ body[data-ui-template="material_able"].ma-sidebar-collapsed .dss-main-content {
 }
 
 body[data-ui-template="material_able"] .dss-main-content {
-    flex: 1;
-    margin-left: 250px;
+    flex: 1 1 0% !important;
+    margin-left: 0 !important;
     display: flex;
     flex-direction: column;
     min-width: 0;
     min-height: calc(100vh - 56px);
     background-color: #eff3f6 !important;
     padding: 0;
-    transition: margin-left 0.25s ease;
 }
 
 body[data-ui-template="material_able"] .dss-page-content {
@@ -1397,6 +1405,14 @@ body[data-ui-template="material_able"] .dss-nav-link.active i {
     color: var(--ma-primary) !important;
     background-color: var(--ma-primary-soft) !important;
     font-weight: 600 !important;
+}
+
+.dss-subnav-link .subnav-arrow {
+    transition: transform 0.2s ease;
+}
+
+.dss-subnav-link[aria-expanded="true"] .subnav-arrow {
+    transform: rotate(180deg);
 }
 
 .card,
@@ -1988,7 +2004,15 @@ table.dataTable tbody td {
     body[data-ui-template="flup_minimal"] .dss-sidebar,
     body[data-ui-template="print_manzil"] .dss-sidebar,
     body[data-ui-template="material_able"] .dss-sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        height: 100vh !important;
+        z-index: 1050 !important;
         transform: translateX(-100%) !important;
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
+        transition: transform 0.22s ease !important;
     }
 
     body.ma-sidebar-mobile-open .dss-sidebar {

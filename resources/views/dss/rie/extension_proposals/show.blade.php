@@ -4,54 +4,100 @@
 
 @push('styles')
 <style>
-    /* Executive Proposal Hero Banner */
+    /* Institutional Executive Proposal Hero */
     .proposal-hero-banner {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 16px;
+        border-top: 4px solid #00674f;
+        border-radius: 14px;
         position: relative;
-        overflow: hidden;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
     }
-    .proposal-hero-banner::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, #2563eb, #3b82f6, #0ea5e9, #10b981);
-    }
-    .proposal-icon-box {
-        width: 52px;
-        height: 52px;
-        min-width: 52px;
-        border-radius: 14px;
-        background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%);
+    .proposal-emblem-box {
+        width: 48px;
+        height: 48px;
+        min-width: 48px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #00674f 0%, #047857 100%);
         color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.25);
+        box-shadow: 0 4px 12px rgba(0, 103, 79, 0.2);
+    }
+
+    /* Streamlined Institutional Lifecycle Pipeline */
+    .proposal-lifecycle-pipeline {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 10px 16px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .pipeline-step {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        position: relative;
+    }
+    .pipeline-step-badge {
+        width: 24px;
+        height: 24px;
+        min-width: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        font-family: monospace;
+    }
+    .pipeline-step.active .pipeline-step-badge {
+        background: #00674f;
+        color: #ffffff;
+        box-shadow: 0 0 0 3px rgba(0, 103, 79, 0.15);
+    }
+    .pipeline-step.completed .pipeline-step-badge {
+        background: #10b981;
+        color: #ffffff;
+    }
+    .pipeline-step.pending .pipeline-step-badge {
+        background: #f1f5f9;
+        color: #64748b;
+        border: 1px solid #cbd5e1;
+    }
+    .pipeline-connector {
+        flex-grow: 1;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 12px;
+    }
+    .pipeline-connector.active {
+        background: #00674f;
     }
 
     /* Executive Segmented Nav Tabs */
     .proposal-tabs-wrapper {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 16px;
-        padding: 6px;
+        background: #f1f5f9;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 12px;
+        padding: 5px;
         margin-bottom: 20px;
-        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        overflow-x: auto;
+        scrollbar-width: none;
+    }
+    .proposal-tabs-wrapper::-webkit-scrollbar {
+        display: none;
     }
     .proposal-tabs-nav {
         display: flex;
         align-items: center;
-        flex-wrap: wrap;
-        gap: 6px;
+        flex-wrap: nowrap;
+        gap: 5px;
         margin: 0;
         padding: 0;
         list-style: none;
+        min-width: max-content;
     }
     .proposal-tabs-nav .nav-item {
         flex-shrink: 0;
@@ -59,53 +105,59 @@
     .proposal-tabs-nav .nav-link {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        padding: 10px 18px;
+        gap: 6px;
+        padding: 7.5px 14px;
         font-size: 0.8125rem;
         font-weight: 600;
-        color: #64748b;
+        color: #475569;
         background: transparent;
         border: 1px solid transparent;
-        border-radius: 12px;
+        border-radius: 8px;
         text-decoration: none;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        transition: all 0.15s ease;
         white-space: nowrap;
     }
     .proposal-tabs-nav .nav-link:hover {
         color: #0f172a;
         background: #ffffff;
-        border-color: #e2e8f0;
+        border-color: #cbd5e1;
     }
     .proposal-tabs-nav .nav-link.active {
-        color: #0f172a;
-        background: #ffffff;
-        border-color: #cbd5e1;
-        box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.08), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
-    }
-    .proposal-tabs-nav .nav-link .tab-icon {
-        font-size: 1.15rem;
-        line-height: 1;
-        transition: transform 0.2s ease;
+        color: #ffffff !important;
+        background: #00674f !important;
+        border-color: #00674f !important;
+        font-weight: 700;
+        box-shadow: 0 2px 8px rgba(0, 103, 79, 0.32);
     }
     .proposal-tabs-nav .nav-link.active .tab-icon {
-        transform: scale(1.12);
+        color: #ffffff !important;
+    }
+    .proposal-tabs-nav .nav-link.active .badge {
+        background: rgba(255, 255, 255, 0.28) !important;
+        color: #ffffff !important;
+        border: none !important;
+    }
+    .proposal-tabs-nav .nav-link .tab-icon {
+        font-size: 1.1rem;
+        line-height: 1;
+        transition: color 0.15s ease;
     }
 
     /* Content Card Container */
     .proposal-workbench-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 16px;
+        border-radius: 14px;
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         overflow: hidden;
     }
 
-    /* Stat Highlight Cards */
+    /* 4-Column Executive KPI Cards */
     .metric-stat-card {
         background: #ffffff;
         border: 1px solid #e2e8f0;
-        border-radius: 14px;
-        padding: 18px 20px;
+        border-radius: 12px;
+        padding: 16px 18px;
         transition: all 0.2s ease;
         height: 100%;
         display: flex;
@@ -114,47 +166,72 @@
     }
     .metric-stat-card:hover {
         border-color: #cbd5e1;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
         transform: translateY(-1px);
     }
     .metric-stat-card .metric-icon-pill {
-        width: 42px;
-        height: 42px;
-        border-radius: 12px;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.2rem;
     }
-
-    /* Info Grid Styling */
-    .info-tile {
-        background: #f8fafc;
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 14px 16px;
-        transition: all 0.15s ease;
-    }
-    .info-tile:hover {
-        background: #ffffff;
-        border-color: #cbd5e1;
-    }
-    .info-tile-label {
-        font-size: 0.725rem;
+    .metric-stat-card .metric-label {
+        font-size: 0.7rem;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: 0.06em;
         font-weight: 700;
         color: #64748b;
-        margin-bottom: 4px;
+        margin: 0;
     }
-    .info-tile-value {
-        font-size: 0.875rem;
-        font-weight: 600;
+    .metric-stat-card .metric-val {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin: 4px 0;
+    }
+    .metric-stat-card .metric-sub {
+        font-size: 0.75rem;
+        color: #64748b;
+    }
+
+    /* Institutional Dossier Section Cards */
+    .dossier-card {
+        background: #ffffff;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .dossier-card-header {
+        padding: 12px 18px;
+        background: #f8fafc;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .dossier-card-title {
+        font-size: 0.775rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
         color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
     }
+    .dossier-card-body {
+        padding: 18px;
+    }
+
     .pulse-indicator {
-        width: 8px;
-        height: 8px;
+        width: 7px;
+        height: 7px;
         border-radius: 50%;
         display: inline-block;
         background-color: currentColor;
@@ -164,250 +241,195 @@
 
 @section('content')
 <div class="container-fluid p-0">
-    {{-- Executive Proposal Hero Banner --}}
-    <div class="proposal-hero-banner p-4 mb-4 shadow-sm">
-        <div class="d-flex flex-column gap-3">
-            <!-- Top Row: Breadcrumb & Academic Campus Badge -->
+    {{-- Clean Executive Proposal Hero Banner --}}
+    <div class="proposal-hero-banner p-3 mb-3 bg-white border rounded-4 shadow-2xs">
+        <div class="d-flex flex-column gap-2">
+            <!-- Top Row: Breadcrumbs & Created Date -->
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
                 <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb extra-small mb-0 align-items-center">
+                    <ol class="breadcrumb extra-small mb-0 align-items-center font-mono">
                         <li class="breadcrumb-item">
-                            <a href="{{ route('dss.rie.plans.index') }}" class="text-decoration-none text-muted d-inline-flex align-items-center gap-1">
-                                <i class="mdi mdi-home-outline"></i> RIE System
+                            <a href="{{ route('dss.rie.proposals.index') }}" class="text-decoration-none text-muted">
+                                Proposals
                             </a>
-                        </li>
-                        <li class="breadcrumb-item">
-                            <a href="{{ route('dss.rie.proposals.index') }}" class="text-decoration-none text-muted">Extension Proposals</a>
                         </li>
                         <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ $proposal->proposal_code }}</li>
                     </ol>
                 </nav>
 
-                <div class="d-flex align-items-center gap-2">
-                    @if($proposal->unit || $proposal->academicProgram)
-                        <span class="badge bg-light text-secondary border font-sans px-2 py-1 extra-small rounded-pill d-inline-flex align-items-center gap-1">
-                            <i class="mdi mdi-domain text-primary"></i>
-                            {{ $proposal->unit?->unit_name ?: ($proposal->academicProgram?->name ?: 'Extension Office') }}
-                        </span>
-                    @endif
-                    <span class="badge bg-light text-muted border font-mono px-2 py-1 extra-small rounded-pill">
-                        Created {{ $proposal->created_at ? $proposal->created_at->format('M d, Y') : 'Recent' }}
-                    </span>
+                <div class="extra-small text-muted font-mono">
+                    Created {{ $proposal->created_at ? $proposal->created_at->format('M d, Y') : 'Recent' }}
                 </div>
             </div>
 
-            <!-- Center Row: Emblem, Code, Badges, Title & Key Details -->
-            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
-                <div class="d-flex align-items-start gap-3 flex-grow-1" style="max-width: 860px;">
-                    <div class="proposal-icon-box d-none d-sm-flex flex-shrink-0">
-                        <i class="mdi mdi-file-document-outline fs-3"></i>
-                    </div>
-                    <div>
-                        <!-- Status & System Badges Row -->
-                        <div class="d-flex align-items-center gap-2 flex-wrap mb-2">
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono px-2 py-1 extra-small rounded-pill fw-bold">
-                                <i class="mdi mdi-pound me-0.5"></i>{{ $proposal->proposal_code }}
+            <!-- Title & Main Actions Row -->
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                <div class="flex-grow-1" style="max-width: 820px;">
+                    <h4 class="fw-bold text-dark mb-1" style="font-size: 1.25rem; letter-spacing: -0.01em; line-height: 1.35;">
+                        {{ $proposal->title }}
+                    </h4>
+
+                    <!-- Clean Metadata Row -->
+                    <div class="d-flex align-items-center gap-2 flex-wrap extra-small">
+                        @php $badge = $proposal->status_badge; @endphp
+                        <span class="badge {{ $badge['class'] }} rounded-pill extra-small font-mono px-2.5 py-0.5">
+                            <span class="pulse-indicator"></span>
+                            <span>{{ $badge['label'] }}</span>
+                        </span>
+
+                        @if($proposal->extensionPlan)
+                            <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="badge bg-light text-secondary border rounded-pill extra-small font-mono text-decoration-none px-2 py-0.5" title="Parent Plan">
+                                <i class="mdi mdi-link-variant text-muted"></i> Plan: {{ $proposal->extensionPlan->plan_code }}
+                            </a>
+                        @endif
+
+                        @if($proposal->tracking_number)
+                            <a href="{{ $proposal->tracking_url }}" target="_blank" class="badge bg-light text-dark border font-mono px-2 py-0.5 extra-small rounded-pill text-decoration-none" title="DTS Tracking Connected">
+                                <i class="mdi mdi-barcode-scan text-primary"></i> DTS: {{ $proposal->tracking_number }}
+                            </a>
+                        @endif
+
+                        <span class="text-secondary d-inline-flex align-items-center gap-1 font-sans ms-1">
+                            <i class="mdi mdi-account-circle text-muted"></i>
+                            <strong>{{ $proposal->project_leader_name }}</strong>
+                            @if($proposal->unit?->unit_name)
+                                <span class="text-muted">&bull; {{ $proposal->unit->unit_name }}</span>
+                            @endif
+                        </span>
+
+                        @if($proposal->budget_total_display)
+                            <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill font-mono fw-bold">
+                                {{ $proposal->budget_total_display }}
                             </span>
-
-                            @if($proposal->tracking_number)
-                                <a href="{{ $proposal->tracking_url }}" target="_blank" class="badge bg-light text-dark border font-mono px-2 py-1 extra-small rounded-pill text-decoration-none shadow-2xs hover-border-primary d-inline-flex align-items-center gap-1" title="Track in Centralized DTS">
-                                    <i class="mdi mdi-qrcode-scan text-primary"></i> DTS: <span class="fw-bold">{{ $proposal->tracking_number }}</span>
-                                </a>
-                            @endif
-
-                            @php $badge = $proposal->status_badge; @endphp
-                            <span class="badge {{ $badge['class'] }} rounded-pill extra-small font-mono px-2 py-1 d-inline-flex align-items-center gap-1">
-                                <span class="pulse-indicator"></span>
-                                <span>{{ $badge['label'] }}</span>
-                            </span>
-
-                            @if($proposal->extensionPlan)
-                                <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="badge bg-success-subtle text-success border border-success-subtle rounded-pill extra-small font-mono text-decoration-none px-2 py-1 d-inline-flex align-items-center gap-1" title="View Parent Approved Plan">
-                                    <i class="mdi mdi-link-variant"></i> Plan: {{ $proposal->extensionPlan->plan_code }}
-                                </a>
-                            @endif
-                        </div>
-
-                        <!-- Main Proposal Title -->
-                        <h2 class="fw-extrabold text-dark mb-2" style="font-size: 1.375rem; letter-spacing: -0.02em; line-height: 1.35;">
-                            {{ $proposal->title }}
-                        </h2>
-
-                        <!-- Key Information Chips Row -->
-                        <div class="d-flex align-items-center gap-2 flex-wrap text-secondary extra-small">
-                            <div class="d-inline-flex align-items-center gap-1 bg-light px-2 py-1 rounded-pill border">
-                                <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 18px; height: 18px; font-size: 10px;">
-                                    {{ substr($proposal->project_leader_name, 0, 1) }}
-                                </div>
-                                <span class="text-muted">Lead Proponent:</span>
-                                <strong class="text-dark">{{ $proposal->project_leader_name }}</strong>
-                                <span class="text-muted">({{ $proposal->project_leader_title ?: 'Project Leader' }})</span>
-                            </div>
-
-                            @if($proposal->budget_total_display)
-                                <div class="d-inline-flex align-items-center gap-1 bg-success-subtle text-success-emphasis border border-success-subtle px-2 py-1 rounded-pill font-mono fw-bold">
-                                    <i class="mdi mdi-cash-multiple"></i>
-                                    <span>Total: {{ $proposal->budget_total_display }}</span>
-                                </div>
-                            @endif
-
-                            @if($proposal->duration_text || $proposal->duration_start)
-                                <div class="d-inline-flex align-items-center gap-1 bg-light px-2 py-1 rounded-pill border text-muted">
-                                    <i class="mdi mdi-calendar-range text-primary"></i>
-                                    <span>{{ $proposal->duration_text ?: ($proposal->duration_start?->format('M Y') . ' – ' . $proposal->duration_end?->format('M Y')) }}</span>
-                                </div>
-                            @endif
-
-                            @if($proposal->beneficiaries)
-                                <div class="d-inline-flex align-items-center gap-1 text-muted">
-                                    <i class="mdi mdi-account-multiple-outline text-secondary"></i>
-                                    <span>Beneficiaries: <strong class="text-dark">{{ Str::limit($proposal->beneficiaries, 40) }}</strong></span>
-                                </div>
-                            @endif
-                        </div>
+                        @endif
                     </div>
                 </div>
 
-                <!-- Action Buttons Area -->
+                <!-- Sleek Action Group: 1 Primary Button + Dropdown Actions Menu -->
                 <div class="d-flex align-items-center gap-2 flex-wrap flex-shrink-0">
-                    @if($proposal->extensionPlan)
-                        <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-1 shadow-2xs" title="Step 1: View Extension Plan">
-                            <i class="mdi mdi-clipboard-text-outline text-primary fs-6"></i>
-                            <span>View Plan</span>
+                    @php
+                        $user = Auth::user();
+                        $hasPendingForUser = $user && \App\Models\SaaS\DocumentSignatory::where('document_type', $proposal->getMorphClass())
+                            ->where('document_id', $proposal->id)
+                            ->where('status', 'pending')
+                            ->forSignatoryUser($user)
+                            ->exists();
+                    @endphp
+
+                    @if($hasPendingForUser)
+                        <a href="{{ route('dss.signatures.index') }}" class="btn btn-sm btn-danger rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm" title="Open your centralized signature inbox">
+                            <i class="mdi mdi-draw-pen fs-6"></i>
+                            <span>Sign in Centralized Inbox</span>
                         </a>
-                    @endif
-
-                    <a href="{{ route('dss.rie.proposals.activity_design', $proposal->getRouteKey()) }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-1 shadow-2xs" title="Step 3: View Activity Design">
-                        <i class="mdi mdi-calendar-text-outline text-info fs-6"></i>
-                        <span>View Activity Design</span>
-                    </a>
-
-                    <a href="{{ route('dss.rie.proposals.pdf', $proposal->getRouteKey()) }}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1 fw-semibold d-flex align-items-center gap-1 shadow-2xs">
-                        <i class="mdi mdi-file-pdf-box text-danger fs-6"></i>
-                        <span>Official PDF</span>
-                    </a>
-
-                    <a href="{{ route('dss.rie.proposals.accomplishment.pdf', $proposal->getRouteKey()) }}" target="_blank" class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1 shadow-2xs" title="Open Official Terminal Narrative PDF">
-                        <i class="mdi mdi-file-pdf-box fs-6 text-danger"></i>
-                        <span>Narrative PDF</span>
-                    </a>
-
-                    @if($proposal->is_editable)
-                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1 shadow-2xs" data-bs-toggle="modal" data-bs-target="#configureSignatoriesModal">
-                            <i class="mdi mdi-account-cog-outline fs-6"></i>
-                            <span>Set Signatories</span>
-                        </button>
-                        <button type="button" class="btn btn-sm btn-success rounded-pill px-4 py-1 fw-bold d-flex align-items-center gap-1 shadow-sm btn-trigger-submit-review">
+                    @elseif($proposal->is_editable)
+                        <button type="button" class="btn btn-sm btn-success rounded-pill px-3.5 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm btn-trigger-submit-review">
                             <i class="mdi mdi-send-check fs-6"></i>
                             <span>Submit for Review</span>
                         </button>
                     @else
-                        @php
-                            $user = Auth::user();
-                            $hasPendingForUser = $user && \App\Models\SaaS\DocumentSignatory::where('document_type', $proposal->getMorphClass())
-                                ->where('document_id', $proposal->id)
-                                ->where('status', 'pending')
-                                ->forSignatoryUser($user)
-                                ->exists();
-                        @endphp
-                        @if($hasPendingForUser)
-                            <a href="{{ route('dss.signatures.index') }}" class="btn btn-sm btn-danger rounded-pill px-3 py-1 fw-bold d-flex align-items-center gap-1 shadow-sm" title="Open your centralized signature inbox">
-                                <i class="mdi mdi-draw-pen fs-6"></i>
-                                <span>Sign in Centralized Inbox</span>
-                            </a>
-                        @else
-                            <span class="badge bg-light text-secondary border rounded-pill px-3 py-2 font-mono extra-small d-inline-flex align-items-center gap-1">
-                                <i class="mdi mdi-clock-check-outline text-primary"></i>
-                                <span>Submitted / In DTS Routing</span>
-                            </span>
-                        @endif
-                    @endif
-                </div>
-            </div>
-        </div>
-    </div>
-
-    {{-- Institutional 3-Stage Lifecycle Stepper --}}
-    <div class="card border rounded-3 p-3 mb-4 bg-white shadow-2xs">
-        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
-            <div class="d-flex align-items-center gap-2">
-                <span class="badge bg-dark text-white font-mono extra-small">RIE WORKFLOW</span>
-                <span class="fw-bold text-dark extra-small text-uppercase font-mono" style="letter-spacing: 0.5px;">Institutional Extension Lifecycle Pipeline</span>
-            </div>
-            @if($proposal->extensionPlan)
-                <span class="extra-small font-mono text-muted">
-                    Project Lifecycle Progress: <strong class="text-{{ $proposal->extensionPlan->progress_color }}">{{ $proposal->extensionPlan->progress_percentage }}%</strong> ({{ $proposal->extensionPlan->completed_milestones_count }}/{{ $proposal->extensionPlan->active_milestones_count }} Milestones Verified)
-                </span>
-            @endif
-        </div>
-        <div class="row g-2 align-items-stretch">
-            <!-- Stage 1: Extension Plan -->
-            <div class="col-md-4">
-                <div class="p-2.5 rounded-2 border h-100 {{ $proposal->extensionPlan ? 'bg-light' : 'bg-light text-muted' }} d-flex justify-content-between align-items-center gap-2">
-                    <div class="d-flex align-items-center gap-2 overflow-hidden">
-                        <span class="badge rounded-circle {{ $proposal->extensionPlan ? 'bg-success text-white' : 'bg-secondary text-white' }} fw-bold font-mono extra-small d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px;">1</span>
-                        <div class="overflow-hidden">
-                            <div class="extra-small text-muted text-uppercase fw-bold font-mono">Stage 1: Extension Plan</div>
-                            <div class="fw-bold text-dark text-truncate small font-mono">
-                                {{ $proposal->extensionPlan ? $proposal->extensionPlan->plan_code : 'Independent Plan' }}
-                            </div>
-                        </div>
-                    </div>
-                    @if($proposal->extensionPlan)
-                        <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="btn btn-xs btn-outline-primary rounded-pill px-2.5 py-1 extra-small flex-shrink-0" title="Open Extension Plan">
-                            <span>View Plan</span> <i class="mdi mdi-arrow-right"></i>
+                        <a href="{{ route('dss.rie.proposals.pdf', $proposal->getRouteKey()) }}" target="_blank" class="btn btn-sm btn-primary rounded-pill px-3.5 py-1.5 fw-semibold d-inline-flex align-items-center gap-1.5 shadow-2xs" title="Download Official Proposal PDF">
+                            <i class="mdi mdi-file-pdf-box fs-6"></i>
+                            <span>Download PDF</span>
                         </a>
-                    @else
-                        <span class="badge bg-secondary-subtle text-secondary extra-small">Direct</span>
                     @endif
-                </div>
-            </div>
 
-            <!-- Stage 2: Extension Proposal (Active) -->
-            <div class="col-md-4">
-                <div class="p-2.5 rounded-2 border h-100 bg-primary-subtle border-primary d-flex justify-content-between align-items-center gap-2">
-                    <div class="d-flex align-items-center gap-2 overflow-hidden">
-                        <span class="badge rounded-circle bg-primary text-white fw-bold font-mono extra-small d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px;">2</span>
-                        <div class="overflow-hidden">
-                            <div class="extra-small text-primary text-uppercase fw-bold font-mono">Stage 2: Extension Proposal</div>
-                            <div class="fw-bold text-dark text-truncate small font-mono">{{ $proposal->proposal_code }}</div>
-                        </div>
-                    </div>
-                    <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 extra-small">Active Hub</span>
-                </div>
-            </div>
+                    <div class="dropdown" style="position: relative;">
+                        <button class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1 shadow-2xs dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-display="static" aria-expanded="false" title="More Proposal Options">
+                            <span style="pointer-events: none;">Actions</span>
+                            <i class="mdi mdi-chevron-down text-muted ms-0.5" style="pointer-events: none;"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-1" style="border-radius: 12px; font-size: 12.5px; min-width: 240px; z-index: 1055 !important;">
+                            <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Proposal Operations</li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_proposal', 'id' => $proposal->getRouteKey()]) }}">
+                                    <i class="mdi mdi-account-cog-outline text-primary fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Configure Signatories</div>
+                                        <div class="extra-small text-muted">Approval Chain &amp; Matrix</div>
+                                    </div>
+                                </a>
+                            </li>
+                            @if($proposal->is_editable)
+                                <li>
+                                    <button type="button" class="dropdown-item py-2 d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#editPartIModal">
+                                        <i class="mdi mdi-pencil-outline text-warning fs-5"></i>
+                                        <div>
+                                            <div class="fw-semibold">Edit Basic Info</div>
+                                            <div class="extra-small text-muted">Title, mandate, beneficiaries</div>
+                                        </div>
+                                    </button>
+                                </li>
+                            @endif
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.rie.proposals.activity_design', $proposal->getRouteKey()) }}">
+                                    <i class="mdi mdi-calendar-text-outline text-info fs-5"></i>
+                                    <div>
+                                        <div class="fw-semibold">Activity Design Matrix</div>
+                                        <div class="extra-small text-muted">Budget &amp; Schedule Breakdown</div>
+                                    </div>
+                                </a>
+                            </li>
 
-            <!-- Stage 3: Activity Design -->
-            <div class="col-md-4">
-                <div class="p-2.5 rounded-2 border h-100 bg-light d-flex justify-content-between align-items-center gap-2">
-                    <div class="d-flex align-items-center gap-2 overflow-hidden">
-                        <span class="badge rounded-circle bg-info text-white fw-bold font-mono extra-small d-inline-flex align-items-center justify-content-center" style="width: 22px; height: 22px;">3</span>
-                        <div class="overflow-hidden">
-                            <div class="extra-small text-muted text-uppercase fw-bold font-mono">Stage 3: Activity Design</div>
-                            <div class="fw-bold text-dark text-truncate small">Action Matrix &amp; Budget</div>
-                        </div>
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Official Documents</li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-semibold" href="{{ route('dss.rie.proposals.pdf', $proposal->getRouteKey()) }}" target="_blank">
+                                    <i class="mdi mdi-file-pdf-box fs-5"></i>
+                                    <div>
+                                        <div>Official Proposal PDF</div>
+                                        <div class="extra-small text-muted fw-normal">Complete ISO 9001:2015 Form</div>
+                                    </div>
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item py-2 d-flex align-items-center gap-2 text-danger fw-semibold" href="{{ route('dss.rie.proposals.accomplishment.pdf', $proposal->getRouteKey()) }}" target="_blank">
+                                    <i class="mdi mdi-file-pdf-box fs-5"></i>
+                                    <div>
+                                        <div>Terminal Narrative PDF</div>
+                                        <div class="extra-small text-muted fw-normal">Accomplishment report</div>
+                                    </div>
+                                </a>
+                            </li>
+
+                            <li><hr class="dropdown-divider my-1"></li>
+                            <li class="px-3 py-1 text-muted extra-small fw-bold text-uppercase">Cross-Links &amp; Navigation</li>
+                            @if($proposal->extensionPlan)
+                                <li>
+                                    <a class="dropdown-item py-2 d-flex align-items-center gap-2" href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}">
+                                        <i class="mdi mdi-clipboard-text-outline text-success fs-5"></i>
+                                        <div>
+                                            <div>View Parent Extension Plan</div>
+                                            <div class="extra-small text-muted font-mono">{{ $proposal->extensionPlan->plan_code }}</div>
+                                        </div>
+                                    </a>
+                                </li>
+                            @endif
+                            <li>
+                                <a class="dropdown-item py-1.5 d-flex align-items-center gap-2" href="{{ route('dss.rie.proposals.index') }}">
+                                    <i class="mdi mdi-arrow-left text-secondary fs-5"></i>
+                                    <span>Back to Proposals Registry</span>
+                                </a>
+                            </li>
+                        </ul>
                     </div>
-                    <a href="{{ route('dss.rie.proposals.activity_design', $proposal->getRouteKey()) }}" class="btn btn-xs btn-outline-info rounded-pill px-2.5 py-1 extra-small flex-shrink-0" title="Open Activity Design">
-                        <span>View Design</span> <i class="mdi mdi-arrow-right"></i>
-                    </a>
                 </div>
             </div>
         </div>
     </div>
 
-    {{-- Modern Segmented Tab Navigation Bar --}}
+    {{-- Modern Segmented Tab Navigation Bar (Single Clean Row, High-Contrast Active State) --}}
     <div class="proposal-tabs-wrapper">
         <ul class="proposal-tabs-nav font-sans" id="proposalWorkbenchTabs" role="tablist">
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'overview' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'overview']) }}">
-                    <i class="mdi mdi-view-dashboard-outline text-primary tab-icon"></i>
-                    <span>Overview &amp; Part I</span>
+                    <i class="mdi mdi-view-dashboard-outline tab-icon text-success"></i>
+                    <span>Overview</span>
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'activities' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'activities']) }}">
-                    <i class="mdi mdi-calendar-check-outline text-info tab-icon"></i>
-                    <span>Schedule &amp; Milestones</span>
+                    <i class="mdi mdi-calendar-check-outline tab-icon text-info"></i>
+                    <span>Milestones</span>
                     @if($proposal->extensionPlan)
                         <span class="badge bg-{{ $proposal->extensionPlan->progress_color }} text-white rounded-pill ms-1 font-mono extra-small">{{ $proposal->extensionPlan->progress_percentage }}%</span>
                     @endif
@@ -415,26 +437,26 @@
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'technical' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'technical']) }}">
-                    <i class="mdi mdi-file-document-edit-outline text-indigo tab-icon"></i>
-                    <span>Part II Technical Description</span>
+                    <i class="mdi mdi-file-document-edit-outline tab-icon text-primary"></i>
+                    <span>Technical</span>
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'routing' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'routing']) }}">
-                    <i class="mdi mdi-account-multiple-check-outline text-success tab-icon"></i>
-                    <span>Part III Approval Routing &amp; Signatories</span>
+                    <i class="mdi mdi-account-multiple-check-outline tab-icon text-success"></i>
+                    <span>Signatories</span>
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'pdf' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'pdf']) }}">
-                    <i class="mdi mdi-file-pdf-box text-danger tab-icon"></i>
-                    <span>Official PDF Document</span>
+                    <i class="mdi mdi-file-pdf-box tab-icon text-danger"></i>
+                    <span>PDF</span>
                 </a>
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'attachments' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'attachments']) }}">
-                    <i class="mdi mdi-paperclip text-warning tab-icon"></i>
-                    <span>Attachments &amp; Scans</span>
+                    <i class="mdi mdi-paperclip tab-icon text-warning"></i>
+                    <span>Attachments</span>
                     @if($proposal->uploadedDocuments->count() > 0)
                         <span class="badge bg-primary text-white rounded-pill ms-1 font-mono extra-small">{{ $proposal->uploadedDocuments->count() }}</span>
                     @endif
@@ -442,12 +464,8 @@
             </li>
             <li class="nav-item" role="presentation">
                 <a class="nav-link {{ $activeTab === 'accomplishment' ? 'active' : '' }}" href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'accomplishment']) }}">
-                    <i class="mdi mdi-certificate-outline text-success tab-icon"></i>
-                    <span>Part IV Accomplishment &amp; Terminal Report</span>
-                    @php $accStatus = $proposal->metadata['accomplishment_report']['implementation_status'] ?? null; @endphp
-                    @if($accStatus)
-                        <span class="badge bg-success-subtle text-success rounded-pill ms-1 font-mono extra-small">{{ $accStatus }}</span>
-                    @endif
+                    <i class="mdi mdi-certificate-outline tab-icon text-success"></i>
+                    <span>Accomplishment</span>
                 </a>
             </li>
         </ul>
@@ -455,139 +473,118 @@
 
     {{-- Active Tab Content Card Shell --}}
     <div class="proposal-workbench-card p-0 mb-4">
-        <div class="card-body p-4">
-            <div class="tab-content">
+        <div class="card-body p-3 p-md-4">
+            <div class="tab-content" id="proposalWorkbenchTabContent">
                 <!-- TAB 1: OVERVIEW & PART I -->
                 <div class="tab-pane fade {{ $activeTab === 'overview' ? 'show active' : 'd-none' }}" id="overview">
-                    <!-- Top Metric Highlight Cards Row -->
+                    <!-- Top 4-Column Executive KPI Cards -->
                     <div class="row g-3 mb-4">
-                        <!-- Stat 1: Total Proposed Budget -->
-                        <div class="col-sm-6 col-xl">
+                        <!-- KPI 1: Total Proposed Budget -->
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <div class="metric-stat-card">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="info-tile-label m-0">Total Proposed Budget</span>
-                                    <div class="metric-icon-pill bg-success-subtle text-success border border-success-subtle">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="metric-label">Total Proposed Budget</span>
+                                    <div class="metric-icon-pill bg-success-subtle text-success">
                                         <i class="mdi mdi-cash-multiple"></i>
                                     </div>
                                 </div>
-                                <div class="fw-bold text-dark fs-5 font-mono mb-1">
+                                <div class="metric-val font-mono text-dark">
                                     {{ $proposal->budget_total_display ?: '₱0.00' }}
                                 </div>
-                                <div class="extra-small text-muted text-truncate" title="Institution: {{ $proposal->budget_institution_share ?: ($proposal->budget_snsu_share ?: '—') }} | Partner: {{ $proposal->budget_partner_share ?: '—' }}">
-                                    SNSU: <strong class="text-dark">{{ $proposal->budget_institution_share ?: ($proposal->budget_snsu_share ?: '—') }}</strong> &bull; Partner: <strong class="text-dark">{{ $proposal->budget_partner_share ?: '—' }}</strong>
+                                <div class="metric-sub text-truncate">
+                                    SNSU: <strong class="text-dark">{{ $proposal->budget_institution_share ?: ($proposal->budget_snsu_share ?: '₱0.00') }}</strong> &bull; Partner: <strong class="text-dark">{{ $proposal->budget_partner_share ?: '₱0.00' }}</strong>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Stat 2: Implementation Duration -->
-                        <div class="col-sm-6 col-xl">
+                        <!-- KPI 2: Implementation Duration -->
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <div class="metric-stat-card">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="info-tile-label m-0">Implementation Period</span>
-                                    <div class="metric-icon-pill bg-primary-subtle text-primary border border-primary-subtle">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="metric-label">Implementation Window</span>
+                                    <div class="metric-icon-pill bg-primary-subtle text-primary">
                                         <i class="mdi mdi-calendar-clock"></i>
                                     </div>
                                 </div>
-                                <div class="fw-bold text-dark fs-5 font-mono mb-1 text-truncate" title="{{ $proposal->duration_text ?: 'Scheduled Period' }}">
-                                    {{ $proposal->duration_text ?: ($proposal->duration_start?->format('M Y') . ' – ' . $proposal->duration_end?->format('M Y')) }}
+                                <div class="metric-val font-mono text-dark text-truncate">
+                                    {{ $proposal->duration_months ? $proposal->duration_months . ' Month' . ($proposal->duration_months > 1 ? 's' : '') : ($proposal->duration_text ?: 'Scheduled') }}
                                 </div>
-                                <div class="extra-small text-muted">
-                                    Commencement: <strong class="text-dark">{{ $proposal->duration_start ? $proposal->duration_start->format('M d, Y') : 'To Be Scheduled' }}</strong>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Stat 3: Proponents & Extensionists -->
-                        <div class="col-sm-6 col-xl">
-                            <div class="metric-stat-card">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="info-tile-label m-0">Extension Team</span>
-                                    <div class="metric-icon-pill bg-info-subtle text-info-emphasis border border-info-subtle">
-                                        <i class="mdi mdi-account-group-outline"></i>
-                                    </div>
-                                </div>
-                                <div class="fw-bold text-dark fs-5 mb-1">
-                                    {{ count($proposal->proponents ?? []) ?: ($proposal->asst_project_leader_name ? 2 : 1) }} Member(s)
-                                </div>
-                                <div class="extra-small text-muted text-truncate" title="Lead: {{ $proposal->project_leader_name }}">
-                                    Lead: <strong class="text-dark">{{ $proposal->project_leader_name }}</strong>
+                                <div class="metric-sub text-truncate">
+                                    {{ $proposal->duration_start ? $proposal->duration_start->format('M d, Y') : 'Start TBD' }} &ndash; {{ $proposal->duration_end ? $proposal->duration_end->format('M d, Y') : 'End TBD' }}
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Stat 4: Centralized DTS Tracking -->
-                        <div class="col-sm-6 col-xl">
+                        <!-- KPI 3: Project Leader & Academic Unit -->
+                        <div class="col-12 col-sm-6 col-lg-3">
                             <div class="metric-stat-card">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="info-tile-label m-0">DTS Central Track #</span>
-                                    <div class="metric-icon-pill bg-warning-subtle text-warning-emphasis border border-warning-subtle">
-                                        <i class="mdi mdi-qrcode-scan"></i>
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="metric-label">Lead Proponent</span>
+                                    <div class="metric-icon-pill bg-info-subtle text-info">
+                                        <i class="mdi mdi-account-tie"></i>
                                     </div>
                                 </div>
-                                <div class="fw-bold text-primary fs-5 font-mono mb-1 text-truncate">
+                                <div class="metric-val text-dark text-truncate fs-6">
+                                    {{ $proposal->project_leader_name }}
+                                </div>
+                                <div class="metric-sub text-truncate">
+                                    {{ $proposal->unit?->unit_name ?: ($proposal->academicProgram?->name ?: 'Extension Office') }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- KPI 4: Central DTS Tracking -->
+                        <div class="col-12 col-sm-6 col-lg-3">
+                            <div class="metric-stat-card">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <span class="metric-label">DTS Central Track #</span>
+                                    <div class="metric-icon-pill bg-warning-subtle text-warning">
+                                        <i class="mdi mdi-barcode-scan"></i>
+                                    </div>
+                                </div>
+                                <div class="metric-val font-mono text-truncate">
                                     @if($proposal->tracking_number)
                                         <a href="{{ $proposal->tracking_url }}" target="_blank" class="text-primary text-decoration-none hover-underline">
                                             {{ $proposal->tracking_number }}
                                         </a>
                                     @else
-                                        <span class="text-muted font-sans fs-6">Generating...</span>
+                                        <span class="text-muted fs-6 font-sans">Generating...</span>
                                     @endif
                                 </div>
-                                <div class="extra-small text-muted">
-                                    Current Trail: <strong class="text-dark">{{ $proposal->dtsRecord->TrailStatus ?? 'Draft / In-Preparation' }}</strong>
+                                <div class="metric-sub text-truncate">
+                                    Status: <strong class="text-dark">{{ $proposal->dtsRecord->TrailStatus ?? 'In DTS Routing' }}</strong>
                                 </div>
                             </div>
                         </div>
-
-                        <!-- Stat 5: Project Lifecycle Progress -->
-                        @if($proposal->extensionPlan)
-                        <div class="col-sm-6 col-xl">
-                            <div class="metric-stat-card">
-                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                    <span class="info-tile-label m-0">Lifecycle Progress</span>
-                                    <div class="metric-icon-pill bg-{{ $proposal->extensionPlan->progress_color }}-subtle text-{{ $proposal->extensionPlan->progress_color }} border border-{{ $proposal->extensionPlan->progress_color }}-subtle">
-                                        <i class="mdi mdi-progress-check"></i>
-                                    </div>
-                                </div>
-                                <div class="fw-bold font-mono fs-5 mb-1 text-{{ $proposal->extensionPlan->progress_color }}">
-                                    {{ $proposal->extensionPlan->progress_percentage }}%
-                                </div>
-                                <div class="extra-small text-muted font-mono">
-                                    <strong class="text-dark">{{ $proposal->extensionPlan->completed_milestones_count }}</strong> of {{ $proposal->extensionPlan->active_milestones_count }} verified
-                                </div>
-                            </div>
-                        </div>
-                        @endif
                     </div>
 
-                    <!-- Main Grid: Detailed Specifications (8-Col) & Team/Quick Links (4-Col) -->
-                    <div class="row g-4">
-                        <!-- Left Column (8-Col): Project Specifications & Priorities -->
+                    <!-- Main Grid: Detailed Dossier (8-Col) & Sidebar Roster (4-Col) -->
+                    <div class="row g-3">
+                        <!-- Left Column (8-Col): Part I Specifications -->
                         <div class="col-lg-8">
-                            <!-- Official Part I. Basic Information Details -->
-                            <div class="border rounded-4 p-4 mb-4 bg-white shadow-2xs">
-                                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-                                    <h6 class="fw-bold text-dark extra-small text-uppercase m-0 d-flex align-items-center gap-1">
-                                        <i class="mdi mdi-card-bulleted-settings-outline text-success"></i>
-                                        <span>Part I. Basic Information (Official SNSU Activity Proposal)</span>
+                            <!-- Dossier Section 1: Strategic & Programmatic Alignment -->
+                            <div class="dossier-card">
+                                <div class="dossier-card-header">
+                                    <h6 class="dossier-card-title">
+                                        <i class="mdi mdi-compass-outline text-success fs-6"></i>
+                                        <span>A. Strategic Alignment &amp; Extension Agendas</span>
                                     </h6>
                                     @if($proposal->is_editable)
-                                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-3 fw-bold" data-bs-toggle="modal" data-bs-target="#editPartIModal">
-                                            <i class="mdi mdi-pencil me-1"></i> Edit Basic Information
+                                        <button type="button" class="btn btn-xs btn-outline-success rounded-pill px-2.5 py-0.5 fw-semibold" data-bs-toggle="modal" data-bs-target="#editPartIModal">
+                                            <i class="mdi mdi-pencil me-0.5"></i> Edit
                                         </button>
                                     @endif
                                 </div>
-
-                                <div class="row g-3">
-                                    {{-- Banner Program --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100 border-start border-success border-3">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-flag-outline text-success"></i> B. Banner Program
-                                            </div>
-                                            <div class="info-tile-value">
+                                <div class="dossier-card-body">
+                                    <div class="row g-3 mb-3">
+                                        <!-- Banner Program -->
+                                        <div class="col-md-6">
+                                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                                <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-1">
+                                                    <i class="mdi mdi-flag-outline text-success me-1"></i>Banner Program
+                                                </div>
                                                 @if($proposal->banner_program)
-                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-mono px-2 py-1">
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill font-mono px-2 py-0.5">
                                                         {{ $proposal->banner_program }}
                                                     </span>
                                                     @if($proposal->banner_program === 'Others' && $proposal->banner_program_other)
@@ -598,337 +595,335 @@
                                                 @endif
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {{-- Extension Agenda --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-bullseye-arrow text-primary"></i> C. Extension Agenda
-                                            </div>
-                                            <div class="info-tile-value d-flex flex-wrap gap-1">
-                                                @forelse($proposal->agenda_priorities ?? [] as $agenda)
-                                                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill extra-small px-2 py-0.5">
-                                                        {{ $agenda }}
-                                                    </span>
-                                                @empty
-                                                    <span class="text-muted extra-small">None selected</span>
-                                                @endforelse
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- D. SDG Addressed (Inline Official UN SDG Tiles) --}}
-                                    <div class="col-12">
-                                        <div class="info-tile">
-                                            <div class="info-tile-label d-flex align-items-center gap-1 mb-2">
-                                                <i class="mdi mdi-earth text-success"></i> D. SDG Addressed (UN Sustainable Development Goals)
-                                            </div>
-                                            @include('dss.rie.extension_proposals.partials.sdg_inline_tiles', [
-                                                'mode' => 'readonly',
-                                                'selectedSdgs' => $proposal->resolved_sdg_alignments['selected'] ?? [4, 9, 17],
-                                                'indirectSdgs' => $proposal->resolved_sdg_alignments['indirect'] ?? [],
-                                            ])
-                                        </div>
-                                    </div>
-
-                                    {{-- Project Leader & Gender --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-account-star-outline text-indigo"></i> E. Project Leader
-                                            </div>
-                                            <div class="info-tile-value d-flex align-items-center justify-content-between flex-wrap gap-1">
-                                                <div>
-                                                    <div class="fw-bold text-dark">{{ $proposal->project_leader_name }}</div>
-                                                    <div class="text-muted extra-small">{{ $proposal->project_leader_title ?: 'Project Leader' }}</div>
+                                        <!-- Extension Agendas -->
+                                        <div class="col-md-6">
+                                            <div class="p-2.5 rounded-3 bg-light border h-100">
+                                                <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-1">
+                                                    <i class="mdi mdi-bullseye-arrow text-primary me-1"></i>Extension Agenda(s)
                                                 </div>
-                                                @if($proposal->project_leader_gender)
-                                                    <span class="badge {{ strtolower($proposal->project_leader_gender) === 'female' ? 'bg-pink-subtle text-danger border border-danger-subtle' : 'bg-primary-subtle text-primary border border-primary-subtle' }} rounded-pill px-2 py-0.5 extra-small">
-                                                        <i class="mdi {{ strtolower($proposal->project_leader_gender) === 'female' ? 'mdi-gender-female' : 'mdi-gender-male' }} me-0.5"></i>
-                                                        {{ ucfirst($proposal->project_leader_gender) }}
-                                                    </span>
-                                                @endif
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Implementing College(s) --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-school-outline text-warning-emphasis"></i> F. Implementing College(s)
-                                            </div>
-                                            <div class="info-tile-value d-flex flex-wrap gap-1">
-                                                @php
-                                                    $colleges = is_array($proposal->implementing_colleges) ? $proposal->implementing_colleges : array_filter([$proposal->implementing_colleges]);
-                                                @endphp
-                                                @forelse($colleges as $col)
-                                                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle rounded-pill extra-small px-2 py-0.5">
-                                                        {{ $col }}
-                                                    </span>
-                                                @empty
-                                                    <span class="text-muted extra-small">{{ $proposal->academicProgram?->name ?? 'General Extension' }}</span>
-                                                @endforelse
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Collaborating Agencies --}}
-                                    <div class="col-12">
-                                        <div class="info-tile">
-                                            <div class="info-tile-label d-flex align-items-center gap-1 mb-2">
-                                                <i class="mdi mdi-handshake-outline text-success"></i> G. Collaborating Agency(ies)
-                                            </div>
-                                            @php $collabRows = $proposal->resolved_collaborating_agencies; @endphp
-                                            @if(!empty($collabRows) && count($collabRows) > 0)
-                                                <div class="table-responsive">
-                                                    <table class="table table-sm table-bordered bg-white mb-0" style="font-size: 12px;">
-                                                        <thead class="table-light extra-small text-uppercase text-muted">
-                                                            <tr>
-                                                                <th style="width: 50%;">Agency / Partner Name</th>
-                                                                <th style="width: 50%;">Role / Contribution</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            @foreach($collabRows as $collab)
-                                                                <tr>
-                                                                    <td class="fw-semibold text-dark">{{ $collab['agency'] ?? '—' }}</td>
-                                                                    <td class="text-secondary">{{ $collab['role'] ?? 'Collaborating Partner' }}</td>
-                                                                </tr>
-                                                            @endforeach
-                                                        </tbody>
-                                                    </table>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @forelse($proposal->agenda_priorities ?? [] as $agenda)
+                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill extra-small px-2 py-0.5">
+                                                            {{ $agenda }}
+                                                        </span>
+                                                    @empty
+                                                        <span class="text-muted extra-small">None selected</span>
+                                                    @endforelse
                                                 </div>
-                                            @else
-                                                <div class="text-muted extra-small fst-italic">No collaborating partner agencies indicated.</div>
-                                            @endif
+                                            </div>
+                                        </div>
+
+                                        <!-- Implementing College(s) -->
+                                        <div class="col-12">
+                                            <div class="p-2.5 rounded-3 bg-light border">
+                                                <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-1">
+                                                    <i class="mdi mdi-school-outline text-warning me-1"></i>Implementing College(s) / Academic Unit
+                                                </div>
+                                                <div class="d-flex flex-wrap gap-1">
+                                                    @php
+                                                        $colleges = is_array($proposal->implementing_colleges) ? $proposal->implementing_colleges : array_filter([$proposal->implementing_colleges]);
+                                                    @endphp
+                                                    @forelse($colleges as $col)
+                                                        <span class="badge bg-white text-dark border rounded-pill extra-small px-2.5 py-0.5">
+                                                            {{ $col }}
+                                                        </span>
+                                                    @empty
+                                                        <span class="text-muted extra-small">{{ $proposal->academicProgram?->name ?? 'General Extension' }}</span>
+                                                    @endforelse
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {{-- Target Beneficiaries --}}
-                                    <div class="col-12">
-                                        <div class="info-tile">
-                                            <div class="info-tile-label d-flex align-items-center gap-1 mb-2">
-                                                <i class="mdi mdi-account-multiple-check-outline text-primary"></i> H. Target Beneficiaries Breakdown
-                                            </div>
-                                            @php
-                                                $benefRows = $proposal->resolved_target_beneficiaries;
-                                                $sumM = 0; $sumF = 0; $sumT = 0;
-                                                foreach($benefRows as $b) {
-                                                    $sumM += (int) ($b['male'] ?? 0);
-                                                    $sumF += (int) ($b['female'] ?? 0);
-                                                    $sumT += (int) ($b['total'] ?? 0);
-                                                }
-                                            @endphp
-                                            <div class="table-responsive">
-                                                <table class="table table-sm table-bordered bg-white mb-0" style="font-size: 12px;">
+                                    <!-- UN Sustainable Development Goals (SDG) -->
+                                    <div class="pt-2 border-top">
+                                        <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-2 d-flex align-items-center gap-1">
+                                            <i class="mdi mdi-earth text-success"></i> UN Sustainable Development Goals (SDG) Addressed
+                                        </div>
+                                        @include('dss.rie.extension_proposals.partials.sdg_inline_tiles', [
+                                            'mode' => 'readonly',
+                                            'selectedSdgs' => $proposal->resolved_sdg_alignments['selected'] ?? [4, 9, 17],
+                                            'indirectSdgs' => $proposal->resolved_sdg_alignments['indirect'] ?? [],
+                                        ])
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dossier Section 2: Beneficiaries & Partner Agencies -->
+                            <div class="dossier-card">
+                                <div class="dossier-card-header">
+                                    <h6 class="dossier-card-title">
+                                        <i class="mdi mdi-account-group-outline text-primary fs-6"></i>
+                                        <span>B. Partner Agencies &amp; Target Beneficiaries</span>
+                                    </h6>
+                                </div>
+                                <div class="dossier-card-body">
+                                    <!-- Collaborating Agencies Table -->
+                                    <div class="mb-4">
+                                        <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-2 d-flex align-items-center gap-1">
+                                            <i class="mdi mdi-handshake-outline text-success"></i> Collaborating Partner Agencies
+                                        </div>
+                                        @php $collabRows = $proposal->resolved_collaborating_agencies; @endphp
+                                        @if(!empty($collabRows) && count($collabRows) > 0)
+                                            <div class="table-responsive rounded-2 border">
+                                                <table class="table table-sm table-striped mb-0 align-middle" style="font-size: 12px;">
                                                     <thead class="table-light extra-small text-uppercase text-muted">
                                                         <tr>
-                                                            <th>Target Beneficiary Group / Community</th>
-                                                            <th style="width: 90px;" class="text-center">Male</th>
-                                                            <th style="width: 90px;" class="text-center">Female</th>
-                                                            <th style="width: 100px;" class="text-center">Total</th>
+                                                            <th style="width: 50%;">Agency / Partner Name</th>
+                                                            <th style="width: 50%;">Role / Counterpart Contribution</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
-                                                        @forelse($benefRows as $b)
+                                                        @foreach($collabRows as $collab)
                                                             <tr>
-                                                                <td class="fw-semibold text-dark">{{ $b['name'] ?? 'General Beneficiaries' }}</td>
-                                                                <td class="text-center font-mono">{{ number_format($b['male'] ?? 0) }}</td>
-                                                                <td class="text-center font-mono">{{ number_format($b['female'] ?? 0) }}</td>
-                                                                <td class="text-center font-mono fw-bold text-primary">{{ number_format($b['total'] ?? 0) }}</td>
+                                                                <td class="fw-semibold text-dark">{{ $collab['agency'] ?? '—' }}</td>
+                                                                <td class="text-secondary">{{ $collab['role'] ?? 'Collaborating Partner' }}</td>
                                                             </tr>
-                                                        @empty
-                                                            <tr>
-                                                                <td colspan="4" class="text-center text-muted extra-small">No beneficiaries listed.</td>
-                                                            </tr>
-                                                        @endforelse
+                                                        @endforeach
                                                     </tbody>
-                                                    @if(count($benefRows) > 0)
-                                                        <tfoot class="table-light fw-bold font-mono extra-small">
-                                                            <tr>
-                                                                <td class="text-end text-uppercase">Total:</td>
-                                                                <td class="text-center">{{ number_format($sumM) }}</td>
-                                                                <td class="text-center">{{ number_format($sumF) }}</td>
-                                                                <td class="text-center text-primary">{{ number_format($sumT) }}</td>
-                                                            </tr>
-                                                        </tfoot>
-                                                    @endif
                                                 </table>
                                             </div>
-                                        </div>
+                                        @else
+                                            <div class="text-muted extra-small fst-italic p-2 bg-light rounded-2 border">No collaborating partner agencies indicated.</div>
+                                        @endif
                                     </div>
 
-                                    {{-- Estimated Budget Requirement --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-cash-multiple text-success"></i> I. Estimated Budget Requirement
-                                            </div>
-                                            <div class="info-tile-value font-mono">
-                                                <div class="d-flex justify-content-between text-muted extra-small mb-1">
-                                                    <span>SNSU / Internal:</span>
+                                    <!-- Target Beneficiaries Table -->
+                                    <div>
+                                        <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-2 d-flex align-items-center gap-1">
+                                            <i class="mdi mdi-account-multiple-check-outline text-primary"></i> Target Beneficiaries Demographics
+                                        </div>
+                                        @php
+                                            $benefRows = $proposal->resolved_target_beneficiaries;
+                                            $sumM = 0; $sumF = 0; $sumT = 0;
+                                            foreach($benefRows as $b) {
+                                                $sumM += (int) ($b['male'] ?? 0);
+                                                $sumF += (int) ($b['female'] ?? 0);
+                                                $sumT += (int) ($b['total'] ?? 0);
+                                            }
+                                        @endphp
+                                        <div class="table-responsive rounded-2 border">
+                                            <table class="table table-sm table-hover mb-0 align-middle" style="font-size: 12px;">
+                                                <thead class="table-light extra-small text-uppercase text-muted">
+                                                    <tr>
+                                                        <th>Target Beneficiary Group / Community</th>
+                                                        <th style="width: 80px;" class="text-center">Male</th>
+                                                        <th style="width: 80px;" class="text-center">Female</th>
+                                                        <th style="width: 90px;" class="text-center">Total</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @forelse($benefRows as $b)
+                                                        <tr>
+                                                            <td class="fw-semibold text-dark">{{ $b['name'] ?? 'General Beneficiaries' }}</td>
+                                                            <td class="text-center font-mono">{{ number_format($b['male'] ?? 0) }}</td>
+                                                            <td class="text-center font-mono">{{ number_format($b['female'] ?? 0) }}</td>
+                                                            <td class="text-center font-mono fw-bold text-primary">{{ number_format($b['total'] ?? 0) }}</td>
+                                                        </tr>
+                                                    @empty
+                                                        <tr>
+                                                            <td colspan="4" class="text-center text-muted extra-small py-2">No target beneficiaries listed.</td>
+                                                        </tr>
+                                                    @endforelse
+                                                </tbody>
+                                                @if(count($benefRows) > 0)
+                                                    <tfoot class="table-light fw-bold font-mono extra-small">
+                                                        <tr>
+                                                            <td class="text-end text-uppercase">Total Beneficiaries:</td>
+                                                            <td class="text-center">{{ number_format($sumM) }}</td>
+                                                            <td class="text-center">{{ number_format($sumF) }}</td>
+                                                            <td class="text-center text-primary">{{ number_format($sumT) }}</td>
+                                                        </tr>
+                                                    </tfoot>
+                                                @endif
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Dossier Section 3: Financial & Implementation Architecture -->
+                            <div class="dossier-card">
+                                <div class="dossier-card-header">
+                                    <h6 class="dossier-card-title">
+                                        <i class="mdi mdi-finance text-success fs-6"></i>
+                                        <span>C. Financial Allocation &amp; Schedule Architecture</span>
+                                    </h6>
+                                </div>
+                                <div class="dossier-card-body">
+                                    <div class="row g-3">
+                                        <!-- Budget Architecture -->
+                                        <div class="col-md-6">
+                                            <div class="p-3 rounded-3 bg-light border h-100 font-mono">
+                                                <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-2">
+                                                    <i class="mdi mdi-cash-multiple text-success me-1"></i>Fund Source Breakdown
+                                                </div>
+                                                <div class="d-flex justify-content-between text-muted extra-small mb-1.5">
+                                                    <span>SNSU / Internal Share:</span>
                                                     <strong class="text-dark">{{ $proposal->fund_source_internal ?: ($proposal->budget_institution_share ?: '₱0.00') }}</strong>
                                                 </div>
-                                                <div class="d-flex justify-content-between text-muted extra-small mb-1">
-                                                    <span>External / Partner:</span>
+                                                <div class="d-flex justify-content-between text-muted extra-small mb-1.5">
+                                                    <span>External / Partner Share:</span>
                                                     <strong class="text-dark">{{ $proposal->fund_source_external ?: ($proposal->budget_partner_share ?: '₱0.00') }}</strong>
                                                 </div>
-                                                <div class="d-flex justify-content-between border-top pt-1 text-success fw-bold">
+                                                <div class="d-flex justify-content-between border-top pt-1.5 text-success fw-bold fs-6">
                                                     <span>Grand Total:</span>
                                                     <span>{{ $proposal->budget_total_display ?: '₱0.00' }}</span>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {{-- Duration in Months --}}
-                                    <div class="col-md-6">
-                                        <div class="info-tile h-100">
-                                            <div class="info-tile-label d-flex align-items-center gap-1">
-                                                <i class="mdi mdi-calendar-clock text-primary"></i> J. Implementation Duration
-                                            </div>
-                                            <div class="info-tile-value font-mono">
+                                        <!-- Implementation Schedule -->
+                                        <div class="col-md-6">
+                                            <div class="p-3 rounded-3 bg-light border h-100 font-mono">
+                                                <div class="extra-small text-uppercase fw-bold text-muted font-mono mb-2">
+                                                    <i class="mdi mdi-calendar-range text-primary me-1"></i>Implementation Window
+                                                </div>
                                                 <div class="fw-bold text-dark fs-6 mb-1">
                                                     {{ $proposal->duration_months ? $proposal->duration_months . ' Month' . ($proposal->duration_months > 1 ? 's' : '') : ($proposal->duration_text ?: 'Scheduled Window') }}
                                                 </div>
+                                                <div class="extra-small text-muted mb-1">
+                                                    Start: <strong>{{ $proposal->duration_start ? $proposal->duration_start->format('M d, Y') : 'Start Date TBD' }}</strong>
+                                                </div>
                                                 <div class="extra-small text-muted">
-                                                    Period: <strong>{{ $proposal->duration_start ? $proposal->duration_start->format('M d, Y') : 'Start Date' }}</strong> &ndash; <strong>{{ $proposal->duration_end ? $proposal->duration_end->format('M d, Y') : 'End Date' }}</strong>
+                                                    Completion: <strong>{{ $proposal->duration_end ? $proposal->duration_end->format('M d, Y') : 'Completion Date TBD' }}</strong>
                                                 </div>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
-
-                            <!-- Linked Parent Approved Extension Plan -->
-                            @if($proposal->extensionPlan)
-                                <div class="border border-success-subtle bg-success-subtle bg-opacity-25 rounded-4 p-3 mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="rounded-circle bg-success text-white p-3 d-inline-flex flex-shrink-0">
-                                            <i class="mdi mdi-clipboard-check-outline fs-5"></i>
-                                        </div>
-                                        <div>
-                                            <span class="badge bg-success text-white font-mono extra-small rounded-pill mb-1">Approved Parent Plan</span>
-                                            <div class="fw-bold text-dark">{{ $proposal->extensionPlan->title }}</div>
-                                            <div class="text-muted extra-small font-mono">Code: {{ $proposal->extensionPlan->plan_code }} &bull; Target Budget: {{ $proposal->extensionPlan->formatted_budget ?? '—' }}</div>
-                                        </div>
-                                    </div>
-                                    <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="btn btn-sm btn-outline-success rounded-pill px-3 fw-bold shadow-2xs">
-                                        <i class="mdi mdi-open-in-new me-1"></i> View Parent Plan
-                                    </a>
-                                </div>
-                            @endif
                         </div>
 
-                        <!-- Right Column (4-Col): Team Roster & Fast Actions -->
+                        <!-- Right Column (4-Col): Team Roster & Fast Links -->
                         <div class="col-lg-4">
-                            <!-- Proponents & Extensionists Team Roster -->
-                            <div class="border rounded-4 p-3 mb-4 bg-white shadow-2xs">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <h6 class="fw-bold text-dark extra-small text-uppercase m-0 d-flex align-items-center gap-1">
-                                        <i class="mdi mdi-account-group text-primary"></i>
-                                        <span>Proponents &amp; Extensionists</span>
+                            <!-- Team Roster Card -->
+                            <div class="dossier-card">
+                                <div class="dossier-card-header">
+                                    <h6 class="dossier-card-title">
+                                        <i class="mdi mdi-account-group text-primary fs-6"></i>
+                                        <span>Extensionists &amp; Team</span>
                                     </h6>
                                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle font-mono extra-small">
                                         {{ count($proposal->proponents ?? []) ?: ($proposal->asst_project_leader_name ? 2 : 1) }} Total
                                     </span>
                                 </div>
-                                <div class="d-flex flex-column gap-2">
-                                    @if(!empty($proposal->proponents) && is_array($proposal->proponents))
-                                        @foreach($proposal->proponents as $prop)
-                                            @php
-                                                $pRole = strtolower($prop['role'] ?? '');
-                                                $isLeader = str_contains($pRole, 'leader') && !str_contains($pRole, 'asst') && !str_contains($pRole, 'assistant');
-                                                $isAsst = str_contains($pRole, 'asst') || str_contains($pRole, 'assistant');
-                                            @endphp
-                                            <div class="p-3 rounded-3 border bg-light bg-opacity-50">
+                                <div class="dossier-card-body p-2.5">
+                                    <div class="d-flex flex-column gap-2">
+                                        @if(!empty($proposal->proponents) && is_array($proposal->proponents))
+                                            @foreach($proposal->proponents as $prop)
+                                                @php
+                                                    $pRole = strtolower($prop['role'] ?? '');
+                                                    $isLeader = str_contains($pRole, 'leader') && !str_contains($pRole, 'asst') && !str_contains($pRole, 'assistant');
+                                                    $isAsst = str_contains($pRole, 'asst') || str_contains($pRole, 'assistant');
+                                                @endphp
+                                                <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="rounded-circle {{ $isLeader ? 'bg-success' : ($isAsst ? 'bg-warning text-dark' : 'bg-secondary') }} text-white d-flex align-items-center justify-content-center fw-bold font-mono" style="width: 22px; height: 22px; font-size: 10px;">
+                                                                {{ strtoupper(substr($prop['name'] ?? 'P', 0, 1)) }}
+                                                            </div>
+                                                            <span class="fw-bold text-dark extra-small">{{ $prop['name'] ?? '' }}</span>
+                                                        </div>
+                                                        @if($isLeader)
+                                                            <span class="badge bg-success-subtle text-success border border-success-subtle extra-small px-2 py-0.5">Leader</span>
+                                                        @elseif($isAsst)
+                                                            <span class="badge bg-warning-subtle text-warning border border-warning-subtle extra-small px-2 py-0.5">Asst.</span>
+                                                        @else
+                                                            <span class="badge bg-light text-secondary border extra-small px-2 py-0.5">Member</span>
+                                                        @endif
+                                                    </div>
+                                                    <div class="text-muted extra-small ps-4">{{ $prop['role'] ?? 'Extensionist' }}</div>
+                                                </div>
+                                            @endforeach
+                                        @else
+                                            <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
                                                 <div class="d-flex align-items-center justify-content-between mb-1">
                                                     <div class="d-flex align-items-center gap-2">
-                                                        <div class="rounded-circle {{ $isLeader ? 'bg-primary' : ($isAsst ? 'bg-warning text-dark' : 'bg-secondary') }} text-white d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 11px;">
-                                                            {{ substr($prop['name'] ?? 'P', 0, 1) }}
+                                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center fw-bold font-mono" style="width: 22px; height: 22px; font-size: 10px;">
+                                                            {{ strtoupper(substr($proposal->project_leader_name, 0, 1)) }}
                                                         </div>
-                                                        <span class="fw-bold text-dark extra-small">{{ $prop['name'] ?? '' }}</span>
+                                                        <span class="fw-bold text-dark extra-small">{{ $proposal->project_leader_name }}</span>
                                                     </div>
-                                                    @if($isLeader)
-                                                        <span class="badge bg-success-subtle text-success border border-success-subtle extra-small px-2 py-1">Project Leader</span>
-                                                    @elseif($isAsst)
-                                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small px-2 py-1">Asst. Leader</span>
-                                                    @elseif(($prop['type'] ?? 'faculty') === 'manual')
-                                                        <span class="badge bg-secondary-subtle text-secondary border extra-small px-2 py-1">Custom Member</span>
-                                                    @else
-                                                        <span class="badge bg-primary-subtle text-primary border border-primary-subtle extra-small px-2 py-1">Faculty</span>
-                                                    @endif
+                                                    <span class="badge bg-success-subtle text-success border border-success-subtle extra-small px-2 py-0.5">Leader</span>
                                                 </div>
-                                                <div class="text-muted extra-small ps-4">{{ $prop['role'] ?? 'Extensionist' }}</div>
+                                                <div class="text-muted extra-small ps-4">{{ $proposal->project_leader_title ?: 'Project Leader' }}</div>
                                             </div>
-                                        @endforeach
-                                    @else
-                                        <!-- Project Leader Fallback Card -->
-                                        <div class="p-3 rounded-3 border bg-light bg-opacity-50">
-                                            <div class="d-flex align-items-center justify-content-between mb-1">
-                                                <div class="d-flex align-items-center gap-2">
-                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 11px;">
-                                                        {{ substr($proposal->project_leader_name, 0, 1) }}
-                                                    </div>
-                                                    <span class="fw-bold text-dark extra-small">{{ $proposal->project_leader_name }}</span>
-                                                </div>
-                                                <span class="badge bg-success-subtle text-success border border-success-subtle extra-small px-2 py-1">Project Leader</span>
-                                            </div>
-                                            <div class="text-muted extra-small ps-4">{{ $proposal->project_leader_title ?: 'Project Leader' }}</div>
-                                        </div>
-                                        @if($proposal->asst_project_leader_name)
-                                            <div class="p-3 rounded-3 border bg-light bg-opacity-50">
-                                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                                    <div class="d-flex align-items-center gap-2">
-                                                        <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; font-size: 11px;">
-                                                            {{ substr($proposal->asst_project_leader_name, 0, 1) }}
+                                            @if($proposal->asst_project_leader_name)
+                                                <div class="p-2.5 rounded-3 border bg-light bg-opacity-50">
+                                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center fw-bold font-mono" style="width: 22px; height: 22px; font-size: 10px;">
+                                                                {{ strtoupper(substr($proposal->asst_project_leader_name, 0, 1)) }}
+                                                            </div>
+                                                            <span class="fw-bold text-dark extra-small">{{ $proposal->asst_project_leader_name }}</span>
                                                         </div>
-                                                        <span class="fw-bold text-dark extra-small">{{ $proposal->asst_project_leader_name }}</span>
+                                                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle extra-small px-2 py-0.5">Asst.</span>
                                                     </div>
-                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle extra-small px-2 py-1">Asst. Leader</span>
+                                                    <div class="text-muted extra-small ps-4">{{ $proposal->asst_project_leader_title ?: 'Assistant Project Leader' }}</div>
                                                 </div>
-                                                <div class="text-muted extra-small ps-4">{{ $proposal->asst_project_leader_title ?: 'Assistant Project Leader' }}</div>
-                                            </div>
+                                            @endif
                                         @endif
-                                    @endif
+                                    </div>
                                 </div>
                             </div>
 
-                            <!-- Fast Navigation Shortcuts -->
-                            <div class="border rounded-4 p-3 bg-light bg-opacity-40">
-                                <h6 class="fw-bold text-dark extra-small text-uppercase mb-2 d-flex align-items-center gap-1">
-                                    <i class="mdi mdi-arrow-decision-auto-outline text-primary"></i>
-                                    <span>Quick Workflow Jump</span>
-                                </h6>
-                                <div class="d-flex flex-column gap-2">
-                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'technical']) }}" class="btn btn-sm btn-white border rounded-3 p-3 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
+                            <!-- Linked Parent Extension Plan -->
+                            @if($proposal->extensionPlan)
+                                <div class="dossier-card border-success-subtle">
+                                    <div class="dossier-card-header bg-success-subtle bg-opacity-25">
+                                        <h6 class="dossier-card-title text-success">
+                                            <i class="mdi mdi-clipboard-check-outline fs-6"></i>
+                                            <span>Parent Extension Plan</span>
+                                        </h6>
+                                        <span class="badge bg-success text-white font-mono extra-small">Approved</span>
+                                    </div>
+                                    <div class="dossier-card-body p-3">
+                                        <div class="fw-bold text-dark small mb-1">{{ $proposal->extensionPlan->title }}</div>
+                                        <div class="text-muted extra-small font-mono mb-2">Code: {{ $proposal->extensionPlan->plan_code }} &bull; Budget: {{ $proposal->extensionPlan->formatted_budget ?? '—' }}</div>
+                                        <a href="{{ route('dss.rie.plans.show', $proposal->extensionPlan->getRouteKey()) }}" class="btn btn-xs btn-outline-success rounded-pill px-3 py-1 fw-bold w-100 text-center">
+                                            <i class="mdi mdi-open-in-new me-1"></i> Open Parent Plan
+                                        </a>
+                                    </div>
+                                </div>
+                            @endif
+
+                            <!-- Quick Workflow Links -->
+                            <div class="dossier-card">
+                                <div class="dossier-card-header">
+                                    <h6 class="dossier-card-title">
+                                        <i class="mdi mdi-arrow-decision-auto-outline text-primary fs-6"></i>
+                                        <span>Quick Workflow Jump</span>
+                                    </h6>
+                                </div>
+                                <div class="dossier-card-body p-2.5 d-flex flex-column gap-2">
+                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'technical']) }}" class="btn btn-sm btn-white border rounded-3 p-2.5 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
                                         <div class="d-flex align-items-center gap-2">
-                                            <i class="mdi mdi-file-document-edit-outline text-indigo fs-5"></i>
+                                            <i class="mdi mdi-file-document-edit-outline text-primary fs-5"></i>
                                             <div>
-                                                <div class="fw-bold text-dark extra-small">Part II Technical Workbench</div>
-                                                <div class="text-muted" style="font-size: 11px;">Edit narratives, objectives, &amp; timeline</div>
+                                                <div class="fw-bold text-dark extra-small">Technical Description</div>
+                                                <div class="text-muted" style="font-size: 11px;">Part II Narratives &amp; Objectives</div>
                                             </div>
                                         </div>
                                         <i class="mdi mdi-chevron-right text-muted"></i>
                                     </a>
-                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'routing']) }}" class="btn btn-sm btn-white border rounded-3 p-3 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
+                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'routing']) }}" class="btn btn-sm btn-white border rounded-3 p-2.5 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="mdi mdi-account-multiple-check-outline text-success fs-5"></i>
                                             <div>
-                                                <div class="fw-bold text-dark extra-small">Signatories &amp; DTS Transit</div>
-                                                <div class="text-muted" style="font-size: 11px;">Inspect institutional approval chain</div>
+                                                <div class="fw-bold text-dark extra-small">Approval Routing</div>
+                                                <div class="text-muted" style="font-size: 11px;">Signatories chain &amp; DTS transit</div>
                                             </div>
                                         </div>
                                         <i class="mdi mdi-chevron-right text-muted"></i>
                                     </a>
-                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'pdf']) }}" class="btn btn-sm btn-white border rounded-3 p-3 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
+                                    <a href="{{ route('dss.rie.proposals.show', ['id' => $proposal->getRouteKey(), 'tab' => 'pdf']) }}" class="btn btn-sm btn-white border rounded-3 p-2.5 text-start d-flex align-items-center justify-content-between text-decoration-none shadow-2xs hover-border-primary">
                                         <div class="d-flex align-items-center gap-2">
                                             <i class="mdi mdi-file-pdf-box text-danger fs-5"></i>
                                             <div>
                                                 <div class="fw-bold text-dark extra-small">Official PDF Preview</div>
-                                                <div class="text-muted" style="font-size: 11px;">7-Page ISO 9001:2015 layout</div>
+                                                <div class="text-muted" style="font-size: 11px;">ISO 9001:2015 formatted report</div>
                                             </div>
                                         </div>
                                         <i class="mdi mdi-chevron-right text-muted"></i>
@@ -1963,9 +1958,9 @@
                                         <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 fw-semibold shadow-xs" id="btnSaveWordDocBottom">
                                             <i class="mdi mdi-content-save-check me-1"></i> Save Draft
                                         </button>
-                                        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-xs" data-bs-toggle="modal" data-bs-target="#configureSignatoriesModal">
+                                        <a href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_proposal', 'id' => $proposal->getRouteKey()]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-xs">
                                             <i class="mdi mdi-account-cog-outline me-1"></i> Set Signatories
-                                        </button>
+                                        </a>
                                         <button type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-xs btn-trigger-submit-review">
                                             <i class="mdi mdi-send-check me-1"></i> Submit Proposal for Review
                                         </button>
@@ -1987,48 +1982,83 @@
 
                 <!-- TAB 3: APPROVAL ROUTING & SIGNATURES -->
                 <div class="tab-pane fade {{ $activeTab === 'routing' ? 'show active' : 'd-none' }}" id="routing">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 p-3 bg-light rounded-3 border mb-4">
-                        <div class="d-flex align-items-center gap-3">
-                            <div class="rounded-circle bg-primary bg-opacity-10 text-primary p-3 d-inline-flex">
-                                <i class="mdi mdi-qrcode-scan fs-4"></i>
-                            </div>
-                            <div>
-                                <div class="fw-bold text-dark extra-small text-uppercase">Centralized Document Tracking System (DTS)</div>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="font-mono fs-5 fw-bold text-primary">{{ $proposal->tracking_number ?: $proposal->proposal_code }}</span>
-                                    @if($proposal->dtsRecord)
-                                        <span class="badge bg-secondary-subtle text-secondary font-mono extra-small">
-                                            DTS Trail: {{ $proposal->dtsRecord->TrailStatus ?? 'Start' }}
-                                        </span>
-                                    @endif
-                                    @php $badge = $proposal->status_badge; @endphp
-                                    <span class="badge {{ $badge['class'] }} rounded-pill extra-small font-mono px-2 py-1">
-                                        <i class="mdi {{ $badge['icon'] }} me-0.5"></i> {{ $badge['label'] }}
-                                    </span>
-                                </div>
-                            </div>
+                    <!-- SIGNATORIES MATRIX (sys_document_signatories) - Top Placement -->
+                    <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                        <div>
+                            <h6 class="fw-bold text-dark fs-6 mb-0">Approval Signatories Matrix</h6>
+                            <p class="text-muted extra-small m-0">Canonical sequential approval chain for this proposal.</p>
                         </div>
-                        <div class="d-flex align-items-center gap-2 flex-wrap">
-                            <button type="button" class="btn btn-sm btn-outline-dark rounded-pill px-3 shadow-2xs fw-semibold" data-bs-toggle="modal" data-bs-target="#connectTrackingModal">
-                                <i class="mdi mdi-link-variant me-1"></i> Connect SNSU Tracking
-                            </button>
-                            <a href="{{ $proposal->tracking_url }}" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-2xs fw-semibold">
-                                <i class="mdi mdi-open-in-new me-1"></i> Public Tracker
+                        <div class="d-flex align-items-center gap-2">
+                            <a href="{{ route('dss.documents.signatories.edit', ['type' => 'extension_proposal', 'id' => $proposal->getRouteKey()]) }}" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-bold shadow-2xs">
+                                <i class="mdi mdi-account-cog-outline me-1"></i> Configure Signatories
                             </a>
-                            @if($proposal->is_editable)
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 fw-bold shadow-2xs" data-bs-toggle="modal" data-bs-target="#configureSignatoriesModal">
-                                    <i class="mdi mdi-account-cog-outline me-1"></i> Configure Signatories
+                            @if(strtolower((string) $proposal->status) !== 'approved')
+                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2.5 py-1 extra-small fw-semibold" id="btnQuickSuggestSignatories" title="Auto-suggest signatories from past proposal">
+                                    <i class="mdi mdi-auto-fix me-1 text-primary"></i> Suggest Past Signatories
                                 </button>
-                                <button type="button" class="btn btn-sm btn-success rounded-pill px-4 fw-bold shadow-2xs btn-trigger-submit-review">
-                                    <i class="mdi mdi-send-check me-1"></i> Submit Proposal for Review
-                                </button>
-                            @else
-                                <a href="{{ route('dss.signatures.index') }}" class="btn btn-sm btn-outline-danger rounded-pill px-3 fw-bold shadow-2xs d-inline-flex align-items-center gap-1" title="Open centralized signature inbox">
-                                    <i class="mdi mdi-draw-pen"></i>
-                                    <span>For Signature Module</span>
-                                </a>
                             @endif
                         </div>
+                    </div>
+
+                    <div class="row g-3 mb-4">
+                        @if(isset($signatories) && $signatories->isNotEmpty())
+                            @foreach($signatories as $sig)
+                                @php
+                                    $isSigned = in_array(strtolower($sig->status ?? ''), ['signed', 'approved', 'completed']) || !empty($sig->signed_at);
+                                @endphp
+                                <div class="col-md-4">
+                                    <div class="border rounded-3 p-3 h-100 bg-white shadow-2xs {{ $isSigned ? 'border-success-subtle bg-success-subtle bg-opacity-25' : '' }}">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="extra-small text-uppercase fw-bold text-muted">{{ !empty($sig->role_label) ? $sig->role_label : 'Signatory' }}</span>
+                                            @if($isSigned)
+                                                <span class="badge bg-success text-white font-mono extra-small">
+                                                    <i class="mdi mdi-check-decagram me-0.5"></i> Signed
+                                                </span>
+                                            @else
+                                                <span class="badge bg-secondary-subtle text-secondary border font-mono extra-small">
+                                                    Pending
+                                                </span>
+                                            @endif
+                                        </div>
+                                        <div class="fw-bold text-dark fs-6 mb-1">{{ $sig->signatory_name ?: ($sig->employee?->formal_name ?? '—') }}</div>
+                                        <div class="text-muted extra-small mb-2">{{ $sig->designation ?: ($sig->employee?->designation ?? 'Authorized Signatory') }}</div>
+                                        <div class="border-top pt-2 mt-2 extra-small font-mono">
+                                            @if($isSigned && $sig->signed_at)
+                                                <div class="text-success fw-semibold">
+                                                    <i class="mdi mdi-clock-check-outline me-1"></i> {{ \Carbon\Carbon::parse($sig->signed_at)->format('M d, Y h:i A') }}
+                                                </div>
+                                                @if($sig->signature_hash)
+                                                    <div class="text-muted text-truncate mt-1" style="max-width: 100%; font-size: 11px;">
+                                                        <i class="mdi mdi-shield-check text-success me-0.5"></i> {{ $sig->signature_hash }}
+                                                    </div>
+                                                @endif
+                                            @else
+                                                <div class="text-muted">
+                                                    <i class="mdi mdi-clock-outline me-1"></i> Awaiting formal signature
+                                                </div>
+                                            @endif
+                                        </div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @else
+                            @php
+                                $suggestedFallback = \App\Http\Controllers\DSS\RIE\ExtensionProposalController::resolveSuggestedSignatories($proposal)['signatories'] ?? [];
+                            @endphp
+                            @foreach($suggestedFallback as $idx => $tier)
+                                <div class="col-md-4">
+                                    <div class="border rounded-3 p-3 h-100 bg-light">
+                                        <div class="d-flex align-items-center justify-content-between mb-2">
+                                            <span class="extra-small text-uppercase fw-bold text-muted">{{ $tier['role_label'] ?? ($idx === 0 ? 'Prepared by:' : 'Signatory') }}</span>
+                                            <span class="badge bg-secondary text-white font-mono extra-small">Suggested</span>
+                                        </div>
+                                        <div class="fw-bold text-dark fs-6">{{ $tier['name'] ?: '— Awaiting Selection —' }}</div>
+                                        <div class="text-muted extra-small mb-1">{{ $tier['designation'] }}</div>
+                                        <div class="extra-small text-muted font-mono">{{ $tier['office'] }}</div>
+                                    </div>
+                                </div>
+                            @endforeach
+                        @endif
                     </div>
 
                     <!-- SNSU CENTRAL DTS LIVE TRACKING INTEGRATION -->
@@ -2209,85 +2239,6 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div>
-
-                    <!-- SIGNATORIES MATRIX (sys_document_signatories) -->
-                    <div class="d-flex align-items-center justify-content-between mb-3">
-                        <div>
-                            <h6 class="fw-bold text-dark extra-small text-uppercase mb-0">Part III. Institutional Approval Signatories Matrix ({{ isset($signatories) && $signatories->isNotEmpty() ? $signatories->count() . ' Tiers' : 'Dynamic Approval Chain' }})</h6>
-                            <p class="text-muted extra-small m-0">Canonical signatory records stored in sys_document_signatories.</p>
-                        </div>
-                        @if(strtolower((string) $proposal->status) !== 'approved')
-                            <div class="d-flex align-items-center gap-1">
-                                <button type="button" class="btn btn-xs btn-outline-secondary rounded-pill px-2 py-1 extra-small fw-bold" id="btnQuickSuggestSignatories" title="Auto-suggest signatories from past proposal">
-                                    <i class="mdi mdi-auto-fix me-1 text-primary"></i> Suggest Past Signatories
-                                </button>
-                                <button type="button" class="btn btn-xs btn-outline-primary rounded-pill px-3 py-1 extra-small fw-bold" data-bs-toggle="modal" data-bs-target="#configureSignatoriesModal">
-                                    <i class="mdi mdi-pencil me-1"></i> Edit Signatories
-                                </button>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div class="row g-3">
-                        @if(isset($signatories) && $signatories->isNotEmpty())
-                            @foreach($signatories as $sig)
-                                @php
-                                    $isSigned = in_array(strtolower($sig->status ?? ''), ['signed', 'approved', 'completed']) || !empty($sig->signed_at);
-                                @endphp
-                                <div class="col-md-4">
-                                    <div class="border rounded-3 p-3 h-100 bg-white shadow-2xs {{ $isSigned ? 'border-success-subtle bg-success-subtle bg-opacity-25' : '' }}">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="extra-small text-uppercase fw-bold text-muted">{{ !empty($sig->role_label) ? $sig->role_label : 'Signatory' }}</span>
-                                            @if($isSigned)
-                                                <span class="badge bg-success text-white font-mono extra-small">
-                                                    <i class="mdi mdi-check-decagram me-0.5"></i> Signed
-                                                </span>
-                                            @else
-                                                <span class="badge bg-secondary-subtle text-secondary border font-mono extra-small">
-                                                    Pending
-                                                </span>
-                                            @endif
-                                        </div>
-                                        <div class="fw-bold text-dark fs-6 mb-1">{{ $sig->signatory_name ?: ($sig->employee?->formal_name ?? '—') }}</div>
-                                        <div class="text-muted extra-small mb-2">{{ $sig->designation ?: ($sig->employee?->designation ?? 'Authorized Signatory') }}</div>
-                                        <div class="border-top pt-2 mt-2 extra-small font-mono">
-                                            @if($isSigned && $sig->signed_at)
-                                                <div class="text-success fw-semibold">
-                                                    <i class="mdi mdi-clock-check-outline me-1"></i> {{ \Carbon\Carbon::parse($sig->signed_at)->format('M d, Y h:i A') }}
-                                                </div>
-                                                @if($sig->signature_hash)
-                                                    <div class="text-muted text-truncate mt-1" style="max-width: 100%; font-size: 11px;">
-                                                        <i class="mdi mdi-shield-check text-success me-0.5"></i> {{ $sig->signature_hash }}
-                                                    </div>
-                                                @endif
-                                            @else
-                                                <div class="text-muted">
-                                                    <i class="mdi mdi-clock-outline me-1"></i> Awaiting formal signature
-                                                </div>
-                                            @endif
-                                        </div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @else
-                            @php
-                                $suggestedFallback = \App\Http\Controllers\DSS\RIE\ExtensionProposalController::resolveSuggestedSignatories($proposal)['signatories'] ?? [];
-                            @endphp
-                            @foreach($suggestedFallback as $idx => $tier)
-                                <div class="col-md-4">
-                                    <div class="border rounded-3 p-3 h-100 bg-light">
-                                        <div class="d-flex align-items-center justify-content-between mb-2">
-                                            <span class="extra-small text-uppercase fw-bold text-muted">{{ $tier['role_label'] ?? ($idx === 0 ? 'Prepared by:' : 'Signatory') }}</span>
-                                            <span class="badge bg-secondary text-white font-mono extra-small">Suggested</span>
-                                        </div>
-                                        <div class="fw-bold text-dark fs-6">{{ $tier['name'] ?: '— Awaiting Selection —' }}</div>
-                                        <div class="text-muted extra-small mb-1">{{ $tier['designation'] }}</div>
-                                        <div class="extra-small text-muted font-mono">{{ $tier['office'] }}</div>
-                                    </div>
-                                </div>
-                            @endforeach
-                        @endif
                     </div>
                 </div>
 
